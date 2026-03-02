@@ -15,7 +15,7 @@ export interface Position {
   openTime: string;
   leverage?: number;
   margin?: number;
-  status: 'open' | 'closed';
+  status?: 'open' | 'pending' | 'closed';
 }
 
 export interface OrderParams {

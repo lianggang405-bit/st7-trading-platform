@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { ChevronLeft, X } from 'lucide-react';
 import { AuthGuard } from '@/components/auth-guard';
@@ -8,58 +8,33 @@ import { PageShell } from '@/components/layout/page-shell';
 import { useAuthStore } from '@/stores/authStore';
 import { usePositionStore } from '@/stores/positionStore';
 import { formatSymbol } from '@/lib/formatSymbol';
-import * as tradingApi from '@/api/trading';
 
 export default function PendingOrdersPage() {
   const router = useRouter();
   const pathname = usePathname();
   const locale = pathname.split('/')[1];
   const { isHydrated } = useAuthStore();
-  const { closePosition } = usePositionStore();
-  const [orders, setOrders] = useState<tradingApi.Position[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { pendingOrders, cancelOrder, syncPendingOrders } = usePositionStore();
 
-  // 获取挂单列表
-  const fetchPendingOrders = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await tradingApi.getOrders({ status: 'pending' });
-      if (result.success && result.orders) {
-        setOrders(result.orders);
-      } else {
-        setError(result.error || '获取挂单失败');
-      }
-    } catch (err) {
-      setError('获取挂单失败');
-      console.error('Failed to fetch pending orders:', err);
-    } finally {
-      setLoading(false);
+  // 从后端同步挂单列表
+  useEffect(() => {
+    if (isHydrated) {
+      syncPendingOrders();
     }
-  };
+  }, [isHydrated, syncPendingOrders]);
 
   // 取消挂单
   const handleCancelOrder = async (id: string) => {
     try {
-      const result = await closePosition(id);
-      if (result.success) {
-        // 刷新列表
-        await fetchPendingOrders();
-      } else {
-        alert(`取消挂单失败: ${result.error}`);
+      const result = await cancelOrder(id);
+      if (!result.success) {
+        alert(`取消掛單失敗: ${result.error}`);
       }
     } catch (err) {
-      alert('取消挂单失败');
+      alert('取消掛單失敗');
       console.error('Failed to cancel order:', err);
     }
   };
-
-  useEffect(() => {
-    if (isHydrated) {
-      fetchPendingOrders();
-    }
-  }, [isHydrated]);
 
   const getPricePrecision = (price: number) => {
     return price >= 1000 ? 2 : 4;
@@ -82,25 +57,11 @@ export default function PendingOrdersPage() {
                 <h1 className="text-2xl font-bold">掛單</h1>
               </div>
 
-              {loading ? (
-                <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
-                  <p className="text-gray-500">加載中...</p>
-                </div>
-              ) : error ? (
-                <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
-                  <p className="text-red-500 mb-4">{error}</p>
-                  <button
-                    onClick={fetchPendingOrders}
-                    className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold"
-                  >
-                    重試
-                  </button>
-                </div>
-              ) : orders.length === 0 ? (
+              {pendingOrders.length === 0 ? (
                 <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
                   <p className="text-gray-500 mb-4">暫無掛單</p>
                   <button
-                    onClick={() => router.push(`/${locale}/market`)}
+                    onClick={() => router.push(`/${locale}/trade`)}
                     className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold"
                   >
                     前往市場
@@ -108,7 +69,7 @@ export default function PendingOrdersPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {orders.map((order) => (
+                  {pendingOrders.map((order) => (
                     <div key={order.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                       <div className="flex items-start justify-between gap-3">
                         {/* 左侧信息 */}

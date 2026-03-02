@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as tradingApi from '@/api/trading';
 import { useAssetStore } from './assetStore';
+import type { Position as ApiPosition } from '@/api/trading';
 
 export interface Position {
   id: string;
@@ -12,10 +13,13 @@ export interface Position {
   profit: number;
   openTime: string;
   leverage?: number; // 杠杆
+  margin?: number; // 保证金
+  status?: 'open' | 'pending' | 'closed'; // 订单状态
 }
 
 interface PositionState {
-  positions: Position[];
+  positions: Position[]; // 持仓列表（status = 'open'）
+  pendingOrders: Position[]; // 挂单列表（status = 'pending'）
   // Actions
   openPosition: (params: {
     symbol: string;
@@ -26,15 +30,21 @@ interface PositionState {
     leverage?: number; // 杠杆
   }) => Promise<{ success: boolean; position?: Position; error?: string }>;
   closePosition: (id: string) => Promise<{ success: boolean; profit?: number; error?: string }>;
+  cancelOrder: (id: string) => Promise<{ success: boolean; error?: string }>; // 取消挂单
   updatePositions: (symbol: string, currentPrice: number) => void;
   syncFromBackend: () => Promise<void>; // 从后端同步持仓
+  syncPendingOrders: () => Promise<void>; // 从后端同步挂单
   clearPositions: () => void; // 清空持仓（用于登出）
+  clearPendingOrders: () => void; // 清空挂单（用于登出）
 }
 
 export const usePositionStore = create<PositionState>((set, get) => ({
   positions: [],
+  pendingOrders: [],
 
   clearPositions: () => set({ positions: [] }),
+
+  clearPendingOrders: () => set({ pendingOrders: [] }),
 
   openPosition: async ({ symbol, side, volume, price, orderType = 'market', leverage }) => {
     try {
@@ -49,17 +59,25 @@ export const usePositionStore = create<PositionState>((set, get) => ({
       });
 
       if (result.success && result.position) {
-        set((state) => ({
-          positions: [...state.positions, result.position!],
-        }));
+        // 根据订单状态决定添加到哪个列表
+        if (result.position.status === 'pending') {
+          set((state) => ({
+            pendingOrders: [...state.pendingOrders, result.position!],
+          }));
+        } else {
+          // 市价单或没有状态字段的订单，默认为持仓
+          set((state) => ({
+            positions: [...state.positions, result.position!],
+          }));
 
-        // 更新保证金
-        const margin = price * volume / (leverage || 1);
-        useAssetStore.getState().onOpenPosition({
-          volume,
-          price,
-          margin,
-        });
+          // 更新保证金（只有持仓才扣除保证金）
+          const margin = price * volume / (leverage || 1);
+          useAssetStore.getState().onOpenPosition({
+            volume,
+            price,
+            margin,
+          });
+        }
 
         return { success: true, position: result.position };
       }
@@ -150,6 +168,45 @@ export const usePositionStore = create<PositionState>((set, get) => ({
     }
   },
 
+  // 取消挂单
+  cancelOrder: async (id) => {
+    try {
+      const result = await tradingApi.closePosition({ id });
+
+      if (result.success) {
+        const pendingOrder = get().pendingOrders.find((pos) => pos.id === id);
+
+        if (pendingOrder) {
+          // 计算保证金
+          const margin = pendingOrder.openPrice * pendingOrder.volume / (pendingOrder.leverage || 1);
+
+          set((state) => ({
+            pendingOrders: state.pendingOrders.filter((pos) => pos.id !== id),
+          }));
+
+          // 返还保证金
+          useAssetStore.getState().onClosePosition({
+            profit: 0,
+            margin,
+          });
+        }
+
+        return { success: true };
+      }
+
+      return {
+        success: false,
+        error: '取消挂单失败',
+      };
+    } catch (error) {
+      console.error('[PositionStore] Failed to cancel order:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '取消挂单失败',
+      };
+    }
+  },
+
   updatePositions: (symbol, currentPrice) => {
     set((state) => {
       const updatedPositions = state.positions.map((pos) => {
@@ -202,6 +259,21 @@ export const usePositionStore = create<PositionState>((set, get) => ({
       }
     } catch (error) {
       console.warn('[PositionStore] Failed to sync from backend:', error);
+      // 不影响用户体验，静默失败
+    }
+  },
+
+  // 从后端同步挂单
+  syncPendingOrders: async () => {
+    try {
+      const result = await tradingApi.getOrders({ status: 'pending' });
+
+      if (result.success && result.orders) {
+        set({ pendingOrders: result.orders });
+        console.log('[PositionStore] Synced pending orders from backend:', result.orders);
+      }
+    } catch (error) {
+      console.warn('[PositionStore] Failed to sync pending orders from backend:', error);
       // 不影响用户体验，静默失败
     }
   },
