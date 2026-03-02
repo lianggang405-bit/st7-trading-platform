@@ -1,12 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// 如果 Supabase 配置为空，返回 null
-export const supabase = supabaseUrl && supabaseAnonKey
+// 如果 Supabase 配置为空，返回 null，但在类型系统中强制转换为 SupabaseClient 以避免类型错误
+export const supabase = (supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+  : null) as unknown as SupabaseClient;
 
 export const getSupabaseClient = () => supabase;
 

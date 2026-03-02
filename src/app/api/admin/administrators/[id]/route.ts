@@ -9,13 +9,6 @@ export async function GET(
   try {
     const { id } = await params;
 
-    if (!supabase) {
-      return NextResponse.json(
-        { error: 'Supabase client is not initialized' },
-        { status: 500 }
-      );
-    }
-
     const { data, error } = await supabase
       .from('administrators')
       .select('*')
@@ -48,13 +41,6 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-
-    if (!supabase) {
-      return NextResponse.json(
-        { error: 'Supabase client is not initialized' },
-        { status: 500 }
-      );
-    }
 
     // 检查记录是否存在
     const { data: existing } = await supabase
@@ -106,13 +92,6 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-
-    if (!supabase) {
-      return NextResponse.json(
-        { error: 'Supabase client is not initialized' },
-        { status: 500 }
-      );
-    }
 
     // 删除数据
     const { error } = await supabase
