@@ -115,6 +115,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.warn('[AuthStore] Logout API failed:', error);
     }
 
+    // 清除 localStorage 中的认证信息
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+
+      // 清除 cookie
+      document.cookie = 'token=; path=/; max-age=0; SameSite=lax';
+    }
+
     // 重置所有业务 Store
     // 必须在清除登录态前重置，防止组件渲染时访问空数据
     useAssetStore.getState().init();
