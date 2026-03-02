@@ -1,93 +1,92 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "========================================"
-echo "  检查 Supabase 配置"
+echo "  妫€鏌?Supabase 閰嶇疆"
 echo "========================================"
 echo ""
 
-# 检查 .env.local 文件
+# 妫€鏌?.env.local 鏂囦欢
 if [ ! -f .env.local ]; then
-    echo "❌ .env.local 文件不存在"
+    echo "鉂?.env.local 鏂囦欢涓嶅瓨鍦?
     exit 1
 fi
 
-echo "✅ .env.local 文件存在"
+echo "鉁?.env.local 鏂囦欢瀛樺湪"
 echo ""
 
-# 检查 Supabase URL
-SUPABASE_URL=$(grep "COZE_SUPABASE_URL" .env.local | cut -d '=' -f2)
+# 妫€鏌?Supabase URL
+SUPABASE_URL=$(grep "NEXT_PUBLIC_SUPABASE_URL" .env.local | cut -d '=' -f2)
 
 if [ -z "$SUPABASE_URL" ]; then
-    echo "❌ COZE_SUPABASE_URL 未配置"
+    echo "鉂?NEXT_PUBLIC_SUPABASE_URL 鏈厤缃?
     exit 1
 fi
 
-echo "✅ COZE_SUPABASE_URL: $SUPABASE_URL"
+echo "鉁?NEXT_PUBLIC_SUPABASE_URL: $SUPABASE_URL"
 echo ""
 
-# 检查 anon key
-ANON_KEY=$(grep "COZE_SUPABASE_ANON_KEY" .env.local | cut -d '=' -f2)
+# 妫€鏌?anon key
+ANON_KEY=$(grep "NEXT_PUBLIC_SUPABASE_ANON_KEY" .env.local | cut -d '=' -f2)
 
-if [ -z "$ANON_KEY" ] || [ "$ANON_KEY" = "请在这里粘贴您的anon_key" ]; then
-    echo "❌ COZE_SUPABASE_ANON_KEY 未配置或未更新"
+if [ -z "$ANON_KEY" ] || [ "$ANON_KEY" = "璇峰湪杩欓噷绮樿创鎮ㄧ殑anon_key" ]; then
+    echo "鉂?NEXT_PUBLIC_SUPABASE_ANON_KEY 鏈厤缃垨鏈洿鏂?
     echo ""
-    echo "请执行以下步骤："
-    echo "1. 访问: https://app.supabase.com/project/brfzboxaxknlypapwajy"
-    echo "2. 点击 Settings -> API"
-    echo "3. 复制 anon key"
-    echo "4. 执行: nano .env.local"
-    echo "5. 粘贴 anon key 并保存"
+    echo "璇锋墽琛屼互涓嬫楠わ細"
+    echo "1. 璁块棶: https://app.supabase.com/project/brfzboxaxknlypapwajy"
+    echo "2. 鐐瑰嚮 Settings -> API"
+    echo "3. 澶嶅埗 anon key"
+    echo "4. 鎵ц: nano .env.local"
+    echo "5. 绮樿创 anon key 骞朵繚瀛?
     exit 1
 fi
 
-echo "✅ COZE_SUPABASE_ANON_KEY: ${ANON_KEY:0:20}..."
+echo "鉁?NEXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY:0:20}..."
 echo ""
 
-# 检查服务是否运行
-echo "检查服务状态..."
+# 妫€鏌ユ湇鍔℃槸鍚﹁繍琛?echo "妫€鏌ユ湇鍔＄姸鎬?.."
 if curl -s http://localhost:5000 > /dev/null 2>&1; then
-    echo "✅ 服务正在运行 (端口 5000)"
+    echo "鉁?鏈嶅姟姝ｅ湪杩愯 (绔彛 5000)"
 else
-    echo "❌ 服务未运行"
+    echo "鉂?鏈嶅姟鏈繍琛?
     echo ""
-    echo "请启动服务："
+    echo "璇峰惎鍔ㄦ湇鍔★細"
     echo "coze dev"
     exit 1
 fi
 
 echo ""
 echo "========================================"
-echo "  测试 Supabase 连接"
+echo "  娴嬭瘯 Supabase 杩炴帴"
 echo "========================================"
 echo ""
 
-# 测试数据库连接
-CHECK_RESULT=$(curl -s http://localhost:5000/api/admin/trading/check-db)
-echo "数据库检查结果:"
+# 娴嬭瘯鏁版嵁搴撹繛鎺?CHECK_RESULT=$(curl -s http://localhost:5000/api/admin/trading/check-db)
+echo "鏁版嵁搴撴鏌ョ粨鏋?"
 echo "$CHECK_RESULT" | python3 -m json.tool 2>/dev/null || echo "$CHECK_RESULT"
 
 echo ""
 echo "========================================"
-echo "  下一步"
+echo "  涓嬩竴姝?
 echo "========================================"
 echo ""
 
 READY=$(echo "$CHECK_RESULT" | grep -o '"ready":[^,}]*' | cut -d ':' -f2)
 
 if [ "$READY" = "true" ]; then
-    echo "🎉 数据库配置完成！"
+    echo "馃帀 鏁版嵁搴撻厤缃畬鎴愶紒"
     echo ""
-    echo "您可以访问："
-    echo "- 设置页面: http://localhost:5000/admin/trading/setup"
-    echo "- 调控机器人页面: http://localhost:5000/admin/trading/bots"
+    echo "鎮ㄥ彲浠ヨ闂細"
+    echo "- 璁剧疆椤甸潰: http://localhost:5000/admin/trading/setup"
+    echo "- 璋冩帶鏈哄櫒浜洪〉闈? http://localhost:5000/admin/trading/bots"
 else
-    echo "⚠️  数据库还需要配置"
+    echo "鈿狅笍  鏁版嵁搴撹繕闇€瑕侀厤缃?
     echo ""
-    echo "请执行以下步骤："
-    echo "1. 在 Supabase SQL Editor 中执行 SQL 创建表"
-    echo "2. 等待 1-2 分钟"
-    echo "3. 访问: http://localhost:5000/admin/trading/setup"
-    echo "4. 点击 '刷新状态' 按钮"
+    echo "璇锋墽琛屼互涓嬫楠わ細"
+    echo "1. 鍦?Supabase SQL Editor 涓墽琛?SQL 鍒涘缓琛?
+    echo "2. 绛夊緟 1-2 鍒嗛挓"
+    echo "3. 璁块棶: http://localhost:5000/admin/trading/setup"
+    echo "4. 鐐瑰嚮 '鍒锋柊鐘舵€? 鎸夐挳"
 fi
 
 echo ""
+

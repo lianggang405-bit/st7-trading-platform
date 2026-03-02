@@ -1,5 +1,5 @@
-/**
- * 数据迁移脚本 - 从文件系统迁移到 Supabase
+﻿/**
+ * 鏁版嵁杩佺Щ鑴氭湰 - 浠庢枃浠剁郴缁熻縼绉诲埌 Supabase
  */
 
 import fs from 'fs';
@@ -7,7 +7,7 @@ import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcrypt';
 
-// 手动加载环境变量
+// 鎵嬪姩鍔犺浇鐜鍙橀噺
 const envPath = path.join(process.cwd(), '.env.local');
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf-8');
@@ -20,19 +20,18 @@ if (fs.existsSync(envPath)) {
   console.log('[Migration] Environment variables loaded');
 }
 
-// 创建 Supabase 客户端
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseKey = process.env.COZE_SUPABASE_SERVICE_ROLE_KEY || '';
+// 鍒涘缓 Supabase 瀹㈡埛绔?const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('[Migration] ❌ Supabase credentials not found in environment');
+  console.error('[Migration] 鉂?Supabase credentials not found in environment');
   process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 console.log('[Migration] Supabase client created');
 
-// 数据存储路径
+// 鏁版嵁瀛樺偍璺緞
 const DATA_DIR = path.join(process.cwd(), 'data');
 const ACCOUNTS_FILE = path.join(DATA_DIR, 'demo-accounts.json');
 const NEXT_ID_FILE = path.join(DATA_DIR, 'demo-next-id.txt');
@@ -53,7 +52,7 @@ interface DemoAccount {
 }
 
 /**
- * 读取文件系统中的账户数据
+ * 璇诲彇鏂囦欢绯荤粺涓殑璐︽埛鏁版嵁
  */
 function readAccountsFromFile(): DemoAccount[] {
   if (!fs.existsSync(ACCOUNTS_FILE)) {
@@ -71,7 +70,7 @@ function readAccountsFromFile(): DemoAccount[] {
 }
 
 /**
- * 读取下一个 ID
+ * 璇诲彇涓嬩竴涓?ID
  */
 function readNextIdFromFile(): number {
   if (!fs.existsSync(NEXT_ID_FILE)) {
@@ -88,10 +87,10 @@ function readNextIdFromFile(): number {
 }
 
 /**
- * 迁移账户到 Supabase
+ * 杩佺Щ璐︽埛鍒?Supabase
  */
 async function migrateAccountToSupabase(account: DemoAccount) {
-  // 检查邮箱是否已存在
+  // 妫€鏌ラ偖绠辨槸鍚﹀凡瀛樺湪
   const { data: existingUser } = await supabase
     .from('users')
     .select('id')
@@ -99,21 +98,20 @@ async function migrateAccountToSupabase(account: DemoAccount) {
     .single();
 
   if (existingUser) {
-    console.log(`[Migration] ⚠️  User already exists: ${account.email}`);
+    console.log(`[Migration] 鈿狅笍  User already exists: ${account.email}`);
     return { success: false, reason: 'Email already exists' };
   }
 
-  // 加密密码
+  // 鍔犲瘑瀵嗙爜
   const passwordHash = await bcrypt.hash(account.password, 10);
 
-  // 映射状态
-  const statusMap: Record<string, string> = {
-    normal: '正常',
-    disabled: '禁用',
-    frozen: '冻结',
+  // 鏄犲皠鐘舵€?  const statusMap: Record<string, string> = {
+    normal: '姝ｅ父',
+    disabled: '绂佺敤',
+    frozen: '鍐荤粨',
   };
 
-  // 插入用户
+  // 鎻掑叆鐢ㄦ埛
   const { data, error } = await supabase
     .from('users')
     .insert({
@@ -126,7 +124,7 @@ async function migrateAccountToSupabase(account: DemoAccount) {
       credit_score: 100,
       is_verified: false,
       user_level: account.userLevel,
-      status: statusMap[account.status] || '正常',
+      status: statusMap[account.status] || '姝ｅ父',
       is_demo: account.accountType === 'demo',
       is_active: account.status === 'normal',
       remark: account.remark,
@@ -139,23 +137,22 @@ async function migrateAccountToSupabase(account: DemoAccount) {
     .single();
 
   if (error) {
-    console.error(`[Migration] ❌ Failed to migrate ${account.email}:`, error);
+    console.error(`[Migration] 鉂?Failed to migrate ${account.email}:`, error);
     return { success: false, error };
   }
 
-  console.log(`[Migration] ✅ Migrated user: ${data.email} (ID: ${data.id})`);
+  console.log(`[Migration] 鉁?Migrated user: ${data.email} (ID: ${data.id})`);
   return { success: true, data };
 }
 
 /**
- * 主迁移函数
- */
+ * 涓昏縼绉诲嚱鏁? */
 async function migrate() {
   console.log('[Migration] ========================================');
   console.log('[Migration] Starting migration from file system to Supabase');
   console.log('[Migration] ========================================');
 
-  // 读取文件系统数据
+  // 璇诲彇鏂囦欢绯荤粺鏁版嵁
   const accounts = readAccountsFromFile();
 
   if (accounts.length === 0) {
@@ -168,7 +165,7 @@ async function migrate() {
   let successCount = 0;
   let failCount = 0;
 
-  // 迁移每个账户
+  // 杩佺Щ姣忎釜璐︽埛
   for (const account of accounts) {
     const result = await migrateAccountToSupabase(account);
     if (result.success) {
@@ -182,8 +179,7 @@ async function migrate() {
   console.log(`[Migration] Migration complete: ${successCount} success, ${failCount} failed`);
   console.log('[Migration] ========================================');
 
-  // 备份原始数据（重命名文件）
-  if (successCount > 0) {
+  // 澶囦唤鍘熷鏁版嵁锛堥噸鍛藉悕鏂囦欢锛?  if (successCount > 0) {
     const backupFile = path.join(DATA_DIR, `demo-accounts.json.backup.${Date.now()}`);
     try {
       fs.copyFileSync(ACCOUNTS_FILE, backupFile);
@@ -194,8 +190,9 @@ async function migrate() {
   }
 }
 
-// 运行迁移
+// 杩愯杩佺Щ
 migrate().catch((error) => {
   console.error('[Migration] Fatal error:', error);
   process.exit(1);
 });
+

@@ -1,4 +1,4 @@
-
+﻿
 module.exports = {
   apps: [
     {
@@ -12,11 +12,12 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         PORT: 5000,
-        // 这里可以添加其他环境变量，例如 Supabase 配置
-        // COZE_SUPABASE_URL: "...",
-        // COZE_SUPABASE_ANON_KEY: "...",
+        // 杩欓噷鍙互娣诲姞鍏朵粬鐜鍙橀噺锛屼緥濡?Supabase 閰嶇疆
+        // NEXT_PUBLIC_SUPABASE_URL: "...",
+        // NEXT_PUBLIC_SUPABASE_ANON_KEY: "...",
         // JWT_SECRET: "...",
       },
     },
   ],
 };
+

@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.COZE_SUPABASE_URL || '',
-  process.env.COZE_SUPABASE_ANON_KEY || ''
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 );
 
 export async function GET(request: NextRequest) {
   try {
-    // 获取数字货币币种列表
+    // 鑾峰彇鏁板瓧璐у竵甯佺鍒楄〃
     const { data: currencies, error: currenciesError } = await supabase
       .from('digital_currency_currencies')
       .select('*')
@@ -16,14 +16,14 @@ export async function GET(request: NextRequest) {
       .order('id', { ascending: true });
 
     if (currenciesError) {
-      console.error('获取币种失败:', currenciesError);
+      console.error('鑾峰彇甯佺澶辫触:', currenciesError);
       return NextResponse.json(
-        { error: '获取币种失败' },
+        { error: '鑾峰彇甯佺澶辫触' },
         { status: 500 }
       );
     }
 
-    // 获取所有入金地址
+    // 鑾峰彇鎵€鏈夊叆閲戝湴鍧€
     const { data: addresses, error: addressesError } = await supabase
       .from('crypto_addresses')
       .select('*')
@@ -31,14 +31,14 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (addressesError) {
-      console.error('获取入金地址失败:', addressesError);
+      console.error('鑾峰彇鍏ラ噾鍦板潃澶辫触:', addressesError);
       return NextResponse.json(
-        { error: '获取入金地址失败' },
+        { error: '鑾峰彇鍏ラ噾鍦板潃澶辫触' },
         { status: 500 }
       );
     }
 
-    // 合并币种和地址信息
+    // 鍚堝苟甯佺鍜屽湴鍧€淇℃伅
     const depositAddresses = (currencies || []).map(currency => {
       const addressList = (addresses || [])
         .filter(addr => addr.currency === currency.name)
@@ -63,10 +63,11 @@ export async function GET(request: NextRequest) {
       data: depositAddresses,
     });
   } catch (error) {
-    console.error('获取入金地址失败:', error);
+    console.error('鑾峰彇鍏ラ噾鍦板潃澶辫触:', error);
     return NextResponse.json(
-      { error: '获取入金地址失败' },
+      { error: '鑾峰彇鍏ラ噾鍦板潃澶辫触' },
       { status: 500 }
     );
   }
 }
+
