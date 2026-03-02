@@ -28,10 +28,10 @@ export async function GET() {
           .select('*')
           .limit(1);
 
-        // 尝试获取表结构（通过查询 system tables）
-        const { data: columnsData, error: columnsError } = await client.rpc('get_table_structure', {
-          table_name: table,
-        }).catch(() => ({ data: null, error: null }));
+        // 尝试获取表结构（通过查询 system tables） (暂时注释掉，避免构建错误且返回值未被使用)
+        // const { data: columnsData, error: columnsError } = await client.rpc('get_table_structure', {
+        //   table_name: table,
+        // }).catch(() => ({ data: null, error: null }));
 
         results[table] = {
           exists: !tableError || (tableError.code !== '42P01' && tableError.code !== 'PGRST116'),
