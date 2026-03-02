@@ -1,14 +1,28 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+// 获取环境变量
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// 如果没有配置 Supabase，返回空数据或错误
+// 注意：不要在模块顶层抛出错误，否则会导致构建失败
+const supabase = (supabaseUrl && supabaseKey) 
+  ? createClient(supabaseUrl, supabaseKey) 
+  : null;
 
 export async function GET(request: NextRequest) {
+  // 如果 Supabase 未初始化
+  if (!supabase) {
+    console.error('Supabase 未配置');
+    return NextResponse.json({
+      success: true,
+      data: [] // 返回空数组作为降级处理
+    });
+  }
+
   try {
-    // 鑾峰彇鏁板瓧璐у竵甯佺鍒楄〃
+    // 获取数字货币币种列表
     const { data: currencies, error: currenciesError } = await supabase
       .from('digital_currency_currencies')
       .select('*')
@@ -16,14 +30,14 @@ export async function GET(request: NextRequest) {
       .order('id', { ascending: true });
 
     if (currenciesError) {
-      console.error('鑾峰彇甯佺澶辫触:', currenciesError);
+      console.error('获取币种失败:', currenciesError);
       return NextResponse.json(
-        { error: '鑾峰彇甯佺澶辫触' },
+        { error: '获取币种失败' },
         { status: 500 }
       );
     }
 
-    // 鑾峰彇鎵€鏈夊叆閲戝湴鍧€
+    // 获取所有入金地址
     const { data: addresses, error: addressesError } = await supabase
       .from('crypto_addresses')
       .select('*')
@@ -31,14 +45,14 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (addressesError) {
-      console.error('鑾峰彇鍏ラ噾鍦板潃澶辫触:', addressesError);
+      console.error('获取入金地址失败:', addressesError);
       return NextResponse.json(
-        { error: '鑾峰彇鍏ラ噾鍦板潃澶辫触' },
+        { error: '获取入金地址失败' },
         { status: 500 }
       );
     }
 
-    // 鍚堝苟甯佺鍜屽湴鍧€淇℃伅
+    // 合并币种和地址信息
     const depositAddresses = (currencies || []).map(currency => {
       const addressList = (addresses || [])
         .filter(addr => addr.currency === currency.name)
@@ -63,11 +77,10 @@ export async function GET(request: NextRequest) {
       data: depositAddresses,
     });
   } catch (error) {
-    console.error('鑾峰彇鍏ラ噾鍦板潃澶辫触:', error);
+    console.error('获取入金地址失败:', error);
     return NextResponse.json(
-      { error: '鑾峰彇鍏ラ噾鍦板潃澶辫触' },
+      { error: '获取入金地址失败' },
       { status: 500 }
     );
   }
 }
-
