@@ -19,9 +19,8 @@ export async function GET() {
       );
     }
 
-    // 使用 SQL 查询详细信息
-    const { data: details, error: detailsError } = await client.rpc('get_database_details')
-      .catch(() => ({ data: null, error: null }));
+    // 使用 SQL 查询详细信息 (暂时注释掉，避免构建错误且返回值未被使用)
+    // const { data: details, error: detailsError } = await client.rpc('get_database_details');
 
     // 返回基本信息
     return NextResponse.json({
