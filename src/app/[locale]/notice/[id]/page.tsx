@@ -15,6 +15,7 @@ interface NoticeDetail {
   keywords: string;
   created_at: string;
   content?: string;
+  summary?: string;
 }
 
 export default function NoticeDetailPage() {
