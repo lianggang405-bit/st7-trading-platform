@@ -16,6 +16,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // 获取当前语言
   const locale = pathname.split('/')[1];
@@ -46,6 +47,9 @@ export default function LoginPage() {
   };
 
   const handleCreateDemo = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+
     try {
       // 自动创建模拟账户
       const demoEmail = `demo_${Date.now()}@forex.com`;
@@ -56,14 +60,14 @@ export default function LoginPage() {
       // 自动登录模拟账户（快速体验）
       await login(demoEmail, demoPassword);
 
-      // 添加短暂延迟，确保 cookie 被浏览器完全处理
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // 跳转到市场页
-      router.push(`/${locale}/market`);
+      // 强制刷新跳转，确保状态完全重置
+      // 使用 window.location 代替 router.push 以避免路由状态竞争
+      const targetPath = `/${locale}/market`;
+      window.location.href = targetPath;
     } catch (err) {
       console.error('Create demo account failed:', err);
       alert(t('auth.createDemoFailed'));
+      setIsLoading(false);
     }
   };
 
@@ -152,9 +156,10 @@ export default function LoginPage() {
         {/* 创建模拟账户按钮 */}
         <button
           onClick={handleCreateDemo}
-          className="w-full py-3 bg-blue-500 text-white rounded-full text-sm font-medium hover:bg-blue-600 active:bg-blue-700 transition-all"
+          disabled={isLoading}
+          className={`w-full py-3 bg-blue-500 text-white rounded-full text-sm font-medium hover:bg-blue-600 active:bg-blue-700 transition-all ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
         >
-          {t('auth.createDemoAccount')}
+          {isLoading ? t('common.loading') : t('auth.createDemoAccount')}
         </button>
       </div>
     </div>
