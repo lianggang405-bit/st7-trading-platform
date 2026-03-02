@@ -57,7 +57,7 @@ export interface FlashContractParams {
  * 获取持仓列表
  */
 export async function getPositions(): Promise<{ success: boolean; positions?: Position[]; error?: string }> {
-  const response = await apiClient.get<Position[]>('/api/user/positions');
+  const response = await apiClient.get<Position[]>('/api/user/positions', { status: 'open' });
 
   if (response.success) {
     return {
@@ -118,18 +118,18 @@ export async function closePosition(
  * 获取历史订单
  */
 export async function getOrders(params?: {
-  status?: 'open' | 'closed';
+  status?: 'open' | 'pending' | 'closed';
   symbol?: string;
   page?: number;
   limit?: number;
 }): Promise<{ success: boolean; orders?: Position[]; total?: number; error?: string }> {
-  const response = await apiClient.get<any>('/api/user/orders', params);
+  const response = await apiClient.get<any>('/api/user/positions', params);
 
   if (response.success) {
     return {
       success: true,
-      orders: response.data.orders || [],
-      total: response.data.total || 0,
+      orders: response.data || [],
+      total: response.data?.length || 0,
     };
   }
 
