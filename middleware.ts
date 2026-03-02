@@ -9,8 +9,8 @@ export default function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const token = request.cookies.get('token')?.value;
 
-  // 🔒 排除管理端路径，不进行 locale 处理
-  if (pathname.startsWith('/admin')) {
+  // 🔒 排除管理端路径和 API 路径，不进行 locale 处理
+  if (pathname.startsWith('/admin') || pathname.startsWith('/api')) {
     return NextResponse.next();
   }
 
