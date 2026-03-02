@@ -153,7 +153,60 @@ export async function POST(request: NextRequest) {
     // 计算保证金
     const margin = (price * volume * 0.1) / leverage;
 
-    // 检查用户余额是否足够
+    // 检查是否为模拟账户 token
+    const isDemo = token.includes('demo');
+
+    // 模拟账户处理逻辑
+    if (isDemo) {
+      // 动态导入 demo-account-storage 以避免在非必要时加载
+      const { findAccountByEmail, updateAccountBalance } = await import('@/lib/demo-account-storage');
+      
+      // 模拟账户 token 格式通常包含 email，或者我们需要从 userId 反查
+      // 假设 userId 在模拟模式下可能就是 email 或关联 ID
+      // 这里简化处理：如果是 demo token，我们尝试解析 email
+      // token_demo_EMAIL_TIMESTAMP
+      let userEmail = '';
+      const demoMatch = token.match(/^token_demo_(.+)_(\d+)$/);
+      if (demoMatch) {
+        userEmail = demoMatch[1];
+      }
+
+      const demoUser = findAccountByEmail(userEmail);
+      
+      if (!demoUser || demoUser.balance < margin) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: '余额不足',
+          },
+          { status: 400 }
+        );
+      }
+
+      // 扣除模拟账户余额
+      updateAccountBalance(demoUser.id, demoUser.balance - margin);
+      
+      // 创建模拟订单 (不写入数据库，只返回成功)
+      const orderId = `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: orderId,
+          symbol,
+          side,
+          volume,
+          openPrice: price,
+          currentPrice: price,
+          profit: 0,
+          openTime: new Date().toISOString(),
+          leverage,
+          margin,
+        },
+      });
+    }
+
+    // 检查用户余额是否足够 (真实账户)
     const { data: user } = await supabase
       .from('users')
       .select('balance, email')

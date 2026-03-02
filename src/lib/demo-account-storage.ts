@@ -80,3 +80,15 @@ export function removeAccount(id: string): boolean {
 export function clearAllAccounts(): void {
   demoAccounts.clear();
 }
+
+/**
+ * 更新账户余额
+ */
+export function updateAccountBalance(id: string, newBalance: number): boolean {
+  const account = demoAccounts.get(id);
+  if (account) {
+    account.balance = newBalance;
+    return true;
+  }
+  return false;
+}
