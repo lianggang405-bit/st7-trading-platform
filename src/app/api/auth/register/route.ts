@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Register API] Supabase URL:', supabase.supabaseUrl);
+    // console.log('[Register API] Supabase URL:', supabase.supabaseUrl);
 
     // 检查邮箱是否已存在
     const { data: existingUser } = await supabase
