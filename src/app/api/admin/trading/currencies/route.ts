@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
-// 妫€鏌upabase鐜鍙橀噺鏄惁閰嶇疆
+// Check if Supabase environment variables are configured
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const useSupabase = supabaseUrl && supabaseServiceKey;
 
-// GET - 鑾峰彇Currency Kxes鍒楄〃
+// GET - Get Currency Kxes list
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -16,7 +16,8 @@ export async function GET(request: NextRequest) {
     const order = searchParams.get('order') || 'desc';
     const search = searchParams.get('search') || '';
 
-    // 濡傛灉娌℃湁閰嶇疆Supabase锛岀洿鎺ヨ繑鍥炴ā鎷熸暟鎹?    if (!useSupabase) {
+    // If Supabase is not configured, return mock data
+    if (!useSupabase) {
       const mockData = generateMockData(page, limit);
       return NextResponse.json({
         success: true,
@@ -27,10 +28,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 尝试导入和初始化Supabase
+    // Try to import and initialize Supabase
     let supabase;
     try {
-      const { createClient } = await import('@supabase/supabase-js');
       supabase = getSupabaseClient();
     } catch (error) {
       console.error('Failed to initialize Supabase:', error);
@@ -44,6 +44,17 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    if (!supabase) {
+        const mockData = generateMockData(page, limit);
+        return NextResponse.json({
+          success: true,
+          currencies: mockData,
+          total: 3,
+          page,
+          limit,
+        });
+    }
+
     const offset = (page - 1) * limit;
 
     let query = supabase
@@ -52,7 +63,7 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1)
       .order(sort, { ascending: order === 'asc' });
 
-    // 如果有搜索条件
+    // If there is a search condition
     if (search) {
       query = query.or(`currency.ilike.%${search}%`);
     }
@@ -61,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Supabase error:', error);
-      // 如果表不存在或查询失败，返回模拟数据
+      // If table does not exist or query fails, return mock data
       const mockData = generateMockData(page, limit);
       return NextResponse.json({
         success: true,
@@ -72,7 +83,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 格式化时间：将 ISO 格式转换为 "2024/08/15 GMT+1 02:45" 格式
+    // Format date time: convert ISO format to "2024/08/15 GMT+1 02:45" format
     const formattedCurrencies = data?.map((item: any) => ({
       id: item.id,
       currency: item.currency,
@@ -89,7 +100,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Failed to fetch currency kxes:', error);
-    // 杩斿洖妯℃嫙鏁版嵁浣滀负闄嶇骇鏂规
+    // Return mock data as fallback
     const searchParams = request.nextUrl.searchParams;
     const mockData = generateMockData(parseInt(searchParams.get('page') || '1'), parseInt(searchParams.get('limit') || '15'));
     return NextResponse.json({
@@ -102,13 +113,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - 鍒涘缓鏂扮殑Currency Kx
+// POST - Create new Currency Kx
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { currency, dataStart, dataEnd } = body;
 
-    // 濡傛灉娌℃湁閰嶇疆Supabase锛岃繑鍥炴垚鍔熷搷搴斾絾涓嶅疄闄呭垱寤?    if (!useSupabase) {
+    // If Supabase is not configured, return success response but do not actually create
+    if (!useSupabase) {
       return NextResponse.json({
         success: true,
         currency: {
@@ -120,10 +132,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 灏濊瘯瀵煎叆鍜屽垵濮嬪寲Supabase
+    // Try to import and initialize Supabase
     let supabase;
     try {
-      const { createClient } = await import('@supabase/supabase-js');
       supabase = getSupabaseClient();
     } catch (error) {
       console.error('Failed to initialize Supabase:', error);
@@ -138,7 +149,19 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 灏?"2024/08/15 GMT+1 02:45" 鏍煎紡杞崲涓?ISO 鏍煎紡
+    if (!supabase) {
+        return NextResponse.json({
+            success: true,
+            currency: {
+              id: Math.floor(Math.random() * 1000),
+              currency,
+              dataStart,
+              dataEnd,
+            },
+          });
+    }
+
+    // Convert "2024/08/15 GMT+1 02:45" format to ISO format
     const dataStartISO = parseDateTime(dataStart);
     const dataEndISO = parseDateTime(dataEnd);
 
@@ -179,7 +202,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// 鏍煎紡鍖栨棩鏈熸椂闂翠负 "2024/08/15 GMT+1 02:45" 鏍煎紡
+// Format date time to "2024/08/15 GMT+1 02:45" format
 function formatDateTime(dateStr: string | null): string {
   if (!dateStr) return '';
   
@@ -193,7 +216,7 @@ function formatDateTime(dateStr: string | null): string {
   return `${year}/${month}/${day} GMT+1 ${hours}:${minutes}`;
 }
 
-// 鐢熸垚妯℃嫙鏁版嵁锛堜笌鍥剧墖涓殑鏁版嵁涓€鑷达級
+// Generate mock data
 function generateMockData(page: number, limit: number): any[] {
   const mockData = [
     {
@@ -220,10 +243,10 @@ function generateMockData(page: number, limit: number): any[] {
   return mockData.slice(offset, offset + limit);
 }
 
-// 瑙ｆ瀽 "2024/08/15 GMT+1 02:45" 鏍煎紡涓?ISO 鏍煎紡
+// Parse "2024/08/15 GMT+1 02:45" format to ISO format
 function parseDateTime(dateStr: string): string {
   try {
-    // 绉婚櫎 "GMT+1" 閮ㄥ垎
+    // Remove "GMT+1" part
     const cleanStr = dateStr.replace(' GMT+1', '');
     const parts = cleanStr.split(' ');
     const dateParts = parts[0].split('/');
@@ -242,4 +265,3 @@ function parseDateTime(dateStr: string): string {
     return new Date().toISOString();
   }
 }
-

@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -13,12 +13,12 @@ export async function POST(request: NextRequest) {
 
     if (!currency || !network || !address) {
       return NextResponse.json(
-        { error: '缂哄皯蹇呰鍙傛暟' },
+        { error: 'Missing required parameters' },
         { status: 400 }
       );
     }
 
-    // 妫€鏌ユ槸鍚﹀凡瀛樺湪鐩稿悓鐨勫湴鍧€
+    // Check if the same address already exists
     const { data: existing } = await supabase
       .from('crypto_addresses')
       .select('*')
@@ -29,12 +29,12 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       return NextResponse.json(
-        { error: '璇ュ湴鍧€宸插瓨鍦? },
+        { error: 'This address already exists' },
         { status: 400 }
       );
     }
 
-    // 鎻掑叆鏂扮殑鍏ラ噾鍦板潃
+    // Insert new deposit address
     const { data: newAddress, error } = await supabase
       .from('crypto_addresses')
       .insert([
@@ -52,9 +52,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('璁剧疆鍏ラ噾鍦板潃澶辫触:', error);
+      console.error('Failed to set deposit address:', error);
       return NextResponse.json(
-        { error: '璁剧疆鍏ラ噾鍦板潃澶辫触' },
+        { error: 'Failed to set deposit address' },
         { status: 500 }
       );
     }
@@ -64,11 +64,10 @@ export async function POST(request: NextRequest) {
       data: newAddress,
     });
   } catch (error) {
-    console.error('璁剧疆鍏ラ噾鍦板潃澶辫触:', error);
+    console.error('Failed to set deposit address:', error);
     return NextResponse.json(
-      { error: '璁剧疆鍏ラ噾鍦板潃澶辫触' },
+      { error: 'Failed to set deposit address' },
       { status: 500 }
     );
   }
 }
-
