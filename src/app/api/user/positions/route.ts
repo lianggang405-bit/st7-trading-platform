@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
       // 1. 尝试从数据库查找持久化的模拟账户
       const { data: dbDemoUser } = await supabase
         .from('users')
-        .select('id, balance')
+        .select('id, email, balance')
         .eq('email', userEmail)
         .eq('is_demo', true)
         .single();
@@ -208,30 +208,93 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // 创建模拟订单 (不写入数据库，只返回成功，由前端维护或通过其他 API 获取)
+        // 创建模拟订单并写入数据库
         const orderId = `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
+
+        // 根据订单类型设置状态
+        const orderStatus = orderType === 'market' ? 'open' : 'pending';
+
+        const { data: order, error: insertError } = await supabase
+          .from('orders')
+          .insert([
+            {
+              id: orderId,
+              user_id: dbDemoUser.id,
+              email: dbDemoUser.email || userEmail,
+              symbol,
+              side,
+              order_type: orderType,
+              quantity: volume,
+              price,
+              leverage,
+              status: orderStatus,
+              profit: 0,
+              margin,
+              created_at: new Date().toISOString(),
+            },
+          ])
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('[Positions API] Error creating demo order:', insertError);
+          // 回滚余额
+          await supabase.from('users').update({ balance: dbDemoUser.balance }).eq('id', dbDemoUser.id);
+          return NextResponse.json(
+            {
+              success: false,
+              error: '创建模拟订单失败',
+            },
+            { status: 500 }
+          );
+        }
+
         return NextResponse.json({
           success: true,
           data: {
-            id: orderId,
-            symbol,
-            side,
-            volume,
-            openPrice: price,
-            currentPrice: price,
+            id: order.id,
+            symbol: order.symbol,
+            side: order.side,
+            volume: order.quantity,
+            openPrice: order.price,
+            currentPrice: order.price,
             profit: 0,
-            openTime: new Date().toISOString(),
-            leverage,
-            margin,
+            openTime: order.created_at,
+            leverage: order.leverage,
+            margin: order.margin,
           },
         });
       }
 
-      // 2. 如果数据库没找到，尝试内存查找 (兼容旧逻辑)
-      const demoUser = findAccountByEmail(userEmail);
-      
-      if (!demoUser || demoUser.balance < margin) {
+      // 2. 如果数据库没找到，说明模拟账户不存在，需要创建
+      // 先创建模拟账户，然后创建订单
+      const { data: newUser, error: createUserError } = await supabase
+        .from('users')
+        .insert([
+          {
+            id: userId,
+            email: userEmail,
+            balance: 100000, // 初始余额 100000 USDT
+            is_demo: true,
+            created_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single();
+
+      if (createUserError || !newUser) {
+        console.error('[Positions API] Error creating demo user:', createUserError);
+        return NextResponse.json(
+          {
+            success: false,
+            error: '创建模拟账户失败',
+          },
+          { status: 500 }
+        );
+      }
+
+      // 检查余额
+      if (newUser.balance < margin) {
         return NextResponse.json(
           {
             success: false,
@@ -241,25 +304,77 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 扣除模拟账户余额
-      updateAccountBalance(demoUser.id, demoUser.balance - margin);
-      
-      // 创建模拟订单 (不写入数据库，只返回成功)
+      // 更新数据库中的模拟账户余额
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ balance: newUser.balance - margin })
+        .eq('id', newUser.id);
+
+      if (updateError) {
+        console.error('[Positions API] Error updating demo balance:', updateError);
+        return NextResponse.json(
+          {
+            success: false,
+            error: '扣除保证金失败',
+          },
+          { status: 500 }
+        );
+      }
+
+      // 创建模拟订单并写入数据库
       const orderId = `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
+      // 根据订单类型设置状态
+      const orderStatus = orderType === 'market' ? 'open' : 'pending';
+
+      const { data: order, error: insertError } = await supabase
+        .from('orders')
+        .insert([
+          {
+            id: orderId,
+            user_id: newUser.id,
+            email: newUser.email || userEmail,
+            symbol,
+            side,
+            order_type: orderType,
+            quantity: volume,
+            price,
+            leverage,
+            status: orderStatus,
+            profit: 0,
+            margin,
+            created_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('[Positions API] Error creating demo order:', insertError);
+        // 回滚余额
+        await supabase.from('users').update({ balance: newUser.balance }).eq('id', newUser.id);
+        return NextResponse.json(
+          {
+            success: false,
+            error: '创建模拟订单失败',
+          },
+          { status: 500 }
+        );
+      }
+
       return NextResponse.json({
         success: true,
         data: {
-          id: orderId,
-          symbol,
-          side,
-          volume,
-          openPrice: price,
-          currentPrice: price,
+          id: order.id,
+          symbol: order.symbol,
+          side: order.side,
+          volume: order.quantity,
+          openPrice: order.price,
+          currentPrice: order.price,
           profit: 0,
-          openTime: new Date().toISOString(),
-          leverage,
-          margin,
+          openTime: order.created_at,
+          leverage: order.leverage,
+          margin: order.margin,
         },
       });
     }

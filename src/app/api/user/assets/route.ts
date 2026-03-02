@@ -35,17 +35,49 @@ export async function GET(request: NextRequest) {
       // 1. 尝试从数据库查找持久化的模拟账户
       const { data: dbDemoUser } = await supabase
         .from('users')
-        .select('balance')
+        .select('id, balance')
         .eq('email', userEmail)
         .eq('is_demo', true)
         .single();
 
       if (dbDemoUser) {
         const balance = dbDemoUser.balance;
-        const equity = balance; // 简化处理
-        const usedMargin = 0;   // 简化处理
-        const freeMargin = balance;
-        const floatingProfit = 0;
+
+        // 查询模拟账户的持仓信息（和真实账户一样）
+        const { data: positions } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('user_id', dbDemoUser.id)
+          .eq('status', 'open'); // 只查询开仓状态的订单
+
+        let usedMargin = 0;
+        let floatingProfit = 0;
+
+        if (positions && positions.length > 0) {
+          // 获取持仓相关的所有 symbol
+          const symbols = Array.from(new Set(positions.map((p: any) => p.symbol)));
+
+          // 批量获取实时价格
+          const currentPrices = await getBatchRealPrices(symbols);
+
+          // 计算已用保证金和浮动盈亏
+          positions.forEach((pos: any) => {
+            // 累加保证金
+            usedMargin += (pos.margin || 0);
+
+            // 计算单个持仓盈亏
+            const currentPrice = currentPrices[pos.symbol] || pos.price;
+            const openPrice = pos.price;
+            const volume = pos.quantity;
+            const isLong = pos.side === 'buy';
+
+            const profit = (currentPrice - openPrice) * volume * (isLong ? 1 : -1);
+            floatingProfit += profit;
+          });
+        }
+
+        const equity = balance + floatingProfit;
+        const freeMargin = balance - usedMargin;
         const lockedBalance = 0;
 
         return NextResponse.json({
