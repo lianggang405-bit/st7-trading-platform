@@ -6,14 +6,17 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../stores/authStore';
+import { useAssetStore } from '../../stores/assetStore';
 import * as authApi from '@/api/auth';
 
 export function AccountInfo() {
   const { user } = useAuthStore();
+  const { balance: assetBalance, syncFromBackend } = useAssetStore();
   const [showBalance, setShowBalance] = useState(true);
   const [creditScore, setCreditScore] = useState<number>(100);
 
-  const balance = user?.balance || 0;
+  // 使用 assetStore 的余额，因为交易会实时更新 assetStore
+  const balance = assetBalance;
   const accountId = user?.id || '1088765';
 
   // 根据账户类型显示不同的名称
@@ -37,6 +40,15 @@ export function AccountInfo() {
       fetchCreditScore();
     }
   }, [user]);
+
+  // 从后端同步资产信息（确保显示最新余额）
+  useEffect(() => {
+    if (user) {
+      syncFromBackend().catch(error => {
+        console.error('Failed to sync assets:', error);
+      });
+    }
+  }, [user, syncFromBackend]);
 
   // 信用分颜色
   const getCreditScoreColor = (score: number) => {
