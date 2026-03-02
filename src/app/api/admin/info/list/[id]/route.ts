@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseAdminClient } from '@/storage/database/supabase-admin-client';
 
 // 检查Supabase环境变量是否配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL;
-const supabaseServiceKey = process.env.COZE_SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const useSupabase = supabaseUrl && supabaseServiceKey;
 
 // PUT - 更新信息
@@ -24,16 +24,28 @@ export async function PUT(
       });
     }
 
-    // 尝试导入和初始化Supabase
+    // 尝试导入和初始化Supabase (使用管理员客户端)
     let supabase;
     try {
-      supabase = getSupabaseClient();
+      supabase = getSupabaseAdminClient();
     } catch (error) {
-      console.error('Failed to initialize Supabase:', error);
+      console.error('Failed to initialize Supabase Admin:', error);
       return NextResponse.json({
         success: true,
         message: 'Info updated successfully',
       });
+    }
+
+    // 确保客户端存在
+    if (!supabase) {
+      console.error('Supabase Admin client is null');
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database connection failed',
+        },
+        { status: 500 }
+      );
     }
 
     const { error } = await supabase
@@ -87,17 +99,28 @@ export async function DELETE(
       });
     }
 
-    // 尝试导入和初始化Supabase
+    // 尝试导入和初始化Supabase (使用管理员客户端)
     let supabase;
     try {
-      const { createClient } = await import('@supabase/supabase-js');
-      supabase = getSupabaseClient();
+      supabase = getSupabaseAdminClient();
     } catch (error) {
-      console.error('Failed to initialize Supabase:', error);
+      console.error('Failed to initialize Supabase Admin:', error);
       return NextResponse.json({
         success: true,
         message: 'Info deleted successfully',
       });
+    }
+
+    // 确保客户端存在
+    if (!supabase) {
+      console.error('Supabase Admin client is null');
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database connection failed',
+        },
+        { status: 500 }
+      );
     }
 
     const { error } = await supabase
