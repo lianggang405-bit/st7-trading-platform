@@ -47,7 +47,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export interface WireCurrency {
   id: number;
@@ -70,7 +70,6 @@ interface ApiResponse {
 export default function WireCurrencySettingsPage() {
   const t = useTranslations();
   const router = useRouter();
-  const { toast } = useToast();
 
   const [currencies, setCurrencies] = useState<WireCurrency[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,17 +118,13 @@ export default function WireCurrencySettingsPage() {
         setCurrencies(data);
         setTotal(result.total || data.length);
       } else {
-        toast({
-          variant: 'destructive',
-          title: t('admin.common.error'),
+        toast.error(t('admin.common.error'), {
           description: result.message || t('admin.common.fetchFailed'),
         });
       }
     } catch (error) {
       console.error('Failed to fetch wire currencies:', error);
-      toast({
-        variant: 'destructive',
-        title: t('admin.common.error'),
+      toast.error(t('admin.common.error'), {
         description: t('admin.common.fetchFailed'),
       });
     } finally {
@@ -171,25 +166,20 @@ export default function WireCurrencySettingsPage() {
       const result: ApiResponse = await response.json();
 
       if (result.success) {
-        toast({
-          title: t('admin.common.success'),
+        toast.success(t('admin.common.success'), {
           description: t('admin.deposit.wireCurrencySettings.createSuccess'),
         });
         setIsCreateDialogOpen(false);
         setFormData({ currencyName: '', usdPrice: 0 });
         fetchCurrencies();
       } else {
-        toast({
-          variant: 'destructive',
-          title: t('admin.common.error'),
+        toast.error(t('admin.common.error'), {
           description: result.message || t('admin.common.createFailed'),
         });
       }
     } catch (error) {
       console.error('Failed to create currency:', error);
-      toast({
-        variant: 'destructive',
-        title: t('admin.common.error'),
+      toast.error(t('admin.common.error'), {
         description: t('admin.common.createFailed'),
       });
     }
@@ -211,8 +201,7 @@ export default function WireCurrencySettingsPage() {
       const result: ApiResponse = await response.json();
 
       if (result.success) {
-        toast({
-          title: t('admin.common.success'),
+        toast.success(t('admin.common.success'), {
           description: t('admin.deposit.wireCurrencySettings.updateSuccess'),
         });
         setIsEditDialogOpen(false);
@@ -220,17 +209,13 @@ export default function WireCurrencySettingsPage() {
         setFormData({ currencyName: '', usdPrice: 0 });
         fetchCurrencies();
       } else {
-        toast({
-          variant: 'destructive',
-          title: t('admin.common.error'),
+        toast.error(t('admin.common.error'), {
           description: result.message || t('admin.common.updateFailed'),
         });
       }
     } catch (error) {
       console.error('Failed to update currency:', error);
-      toast({
-        variant: 'destructive',
-        title: t('admin.common.error'),
+      toast.error(t('admin.common.error'), {
         description: t('admin.common.updateFailed'),
       });
     }
@@ -248,25 +233,20 @@ export default function WireCurrencySettingsPage() {
       const result: ApiResponse = await response.json();
 
       if (result.success) {
-        toast({
-          title: t('admin.common.success'),
+        toast.success(t('admin.common.success'), {
           description: t('admin.deposit.wireCurrencySettings.deleteSuccess'),
         });
         setIsDeleteDialogOpen(false);
         setSelectedCurrency(null);
         fetchCurrencies();
       } else {
-        toast({
-          variant: 'destructive',
-          title: t('admin.common.error'),
+        toast.error(t('admin.common.error'), {
           description: result.message || t('admin.common.deleteFailed'),
         });
       }
     } catch (error) {
       console.error('Failed to delete currency:', error);
-      toast({
-        variant: 'destructive',
-        title: t('admin.common.error'),
+      toast.error(t('admin.common.error'), {
         description: t('admin.common.deleteFailed'),
       });
     }
@@ -288,24 +268,19 @@ export default function WireCurrencySettingsPage() {
       const result: ApiResponse = await response.json();
 
       if (result.success) {
-        toast({
-          title: t('admin.common.success'),
+        toast.success(t('admin.common.success'), {
           description: t('admin.deposit.wireCurrencySettings.batchDeleteSuccess'),
         });
         setSelectedIds([]);
         fetchCurrencies();
       } else {
-        toast({
-          variant: 'destructive',
-          title: t('admin.common.error'),
+        toast.error(t('admin.common.error'), {
           description: result.message || t('admin.common.deleteFailed'),
         });
       }
     } catch (error) {
       console.error('Failed to batch delete currencies:', error);
-      toast({
-        variant: 'destructive',
-        title: t('admin.common.error'),
+      toast.error(t('admin.common.error'), {
         description: t('admin.common.deleteFailed'),
       });
     }
