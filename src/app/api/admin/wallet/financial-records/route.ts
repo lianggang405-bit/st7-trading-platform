@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
           balance_before: balanceBefore,
           balance_after: balanceAfter,
           description,
-          reference_id,
+          reference_id: referenceId,
           reference_type: referenceType,
           status,
           created_at: new Date().toISOString()
