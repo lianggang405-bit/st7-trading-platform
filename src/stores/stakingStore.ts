@@ -79,6 +79,9 @@ interface StakingState {
 
   // 获取即将到期的质押记录（24小时内）
   getExpiringStakes: (hours?: number) => StakingRecord[];
+  
+  // 重置状态（用于登出）
+  reset: () => void;
 }
 
 // 模拟质押资产数据
@@ -458,5 +461,14 @@ export const useStakingStore = create<StakingState>((set, get) => ({
         new Date(record.unlockTime).getTime() <= threshold &&
         new Date(record.unlockTime).getTime() > now
     );
+  },
+
+  reset: () => {
+    set({
+      assets: [],
+      records: [],
+      totalValue: 0,
+      totalReward: 0,
+    });
   },
 }));

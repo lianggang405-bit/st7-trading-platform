@@ -28,6 +28,10 @@ interface AuthState {
   syncFromBackend: () => Promise<void>; // 从后端同步用户信息
 }
 
+import { usePositionStore } from './positionStore';
+import { useStakingStore } from './stakingStore';
+import { useRiskControlStore } from './riskControlStore';
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   isLogin: false,
   token: null,
@@ -103,12 +107,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   // 登出
-  logout: () => {
-    // 调用 API 登出
-    authApi.logout();
+  logout: async () => {
+    try {
+      // 调用 API 登出
+      await authApi.logout();
+    } catch (error) {
+      console.warn('[AuthStore] Logout API failed:', error);
+    }
 
-    // 重置 assetStore
+    // 重置所有业务 Store
+    // 必须在清除登录态前重置，防止组件渲染时访问空数据
     useAssetStore.getState().init();
+    usePositionStore.getState().clearPositions();
+    useStakingStore.getState().reset();
+    useRiskControlStore.getState().reset();
 
     set({
       isLogin: false,
@@ -117,7 +129,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isHydrated: true,
     });
 
-    console.log('[AuthStore] User logged out');
+    console.log('[AuthStore] User logged out and stores reset');
   },
 
   // 注册

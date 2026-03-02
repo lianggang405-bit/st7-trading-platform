@@ -21,11 +21,11 @@ export function FunctionList() {
   const t = useTranslations();
   const { logout } = useAuthStore();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm(t('profile.confirmLogout'))) {
-      logout();
-      // 登出后跳转到登录页
-      router.push(`/${locale}/login`);
+      await logout();
+      // 移除手动跳转，由 AuthGuard 或 Store 状态变化自动处理
+      // 避免并发路由操作导致 "client-side exception"
     }
   };
 

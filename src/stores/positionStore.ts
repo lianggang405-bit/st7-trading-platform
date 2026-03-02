@@ -28,10 +28,13 @@ interface PositionState {
   closePosition: (id: string) => Promise<{ success: boolean; profit?: number; error?: string }>;
   updatePositions: (symbol: string, currentPrice: number) => void;
   syncFromBackend: () => Promise<void>; // 从后端同步持仓
+  clearPositions: () => void; // 清空持仓（用于登出）
 }
 
 export const usePositionStore = create<PositionState>((set, get) => ({
   positions: [],
+
+  clearPositions: () => set({ positions: [] }),
 
   openPosition: async ({ symbol, side, volume, price, orderType = 'market', leverage }) => {
     try {

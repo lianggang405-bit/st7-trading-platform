@@ -61,6 +61,11 @@ interface RiskControlState {
    * 重置强平锁（用于测试或特殊场景）
    */
   resetLiquidating: () => void;
+
+  /**
+   * 重置状态（用于登出）
+   */
+  reset: () => void;
 }
 
 export const useRiskControlStore = create<RiskControlState>((set, get) => ({
@@ -159,5 +164,17 @@ export const useRiskControlStore = create<RiskControlState>((set, get) => ({
    */
   resetLiquidating: () => {
     set({ isLiquidating: false });
+  },
+
+  /**
+   * 重置状态
+   */
+  reset: () => {
+    set({
+      marginLevel: 0,
+      warning: false,
+      danger: false,
+      isLiquidating: false,
+    });
   },
 }));
