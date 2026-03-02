@@ -1,0 +1,556 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { AuthGuard } from '../../../components/auth-guard';
+import { PageShell } from '../../../components/layout/page-shell';
+import { useAuthStore } from '../../../stores/authStore';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../components/ui/select';
+import { toast } from 'sonner';
+import {
+  ChevronLeft,
+  Copy,
+  Camera,
+  ChevronRight,
+  FileText,
+  DollarSign,
+} from 'lucide-react';
+import QRCode from 'qrcode';
+
+interface CryptoCurrency {
+  id: number;
+  code: string;
+  name: string;
+  nameEn: string;
+  symbol: string;
+  protocol: string; // 添加协议字段
+  walletAddress: string;
+  qrCode: string;
+  minAmount: number;
+  maxAmount: number;
+  fee: number;
+  feeType: 'fixed' | 'percentage';
+}
+
+interface DepositRecord {
+  id: number;
+  userId: string;
+  cryptoCode: string;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected';
+  rejectReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export default function DepositPage() {
+  const router = useRouter();
+  const { isHydrated, user } = useAuthStore();
+
+  // 数字货币相关状态
+  const [cryptoCurrencies, setCryptoCurrencies] = useState<CryptoCurrency[]>([]);
+  const [selectedCrypto, setSelectedCrypto] = useState<CryptoCurrency | null>(null);
+  const [cryptoAmount, setCryptoAmount] = useState('');
+  const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  const [paymentProofPreview, setPaymentProofPreview] = useState<string>('');
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState<'apply' | 'records'>('apply');
+  const [depositRecords, setDepositRecords] = useState<DepositRecord[]>([]);
+  const [isLoadingRecords, setIsLoadingRecords] = useState(false);
+
+  // 加载加密货币列表
+  useEffect(() => {
+    fetchCryptoCurrencies();
+  }, []);
+
+  const fetchCryptoCurrencies = async () => {
+    try {
+      const response = await fetch('/api/app/deposit/crypto-currencies');
+      
+      if (!response.ok) {
+        console.error('Failed to fetch crypto currencies:', response.status, response.statusText);
+        return;
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        setCryptoCurrencies(data.currencies || []);
+        // 默认选择第一个
+        if (data.currencies && data.currencies.length > 0) {
+          setSelectedCrypto(data.currencies[0]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch crypto currencies:', err);
+    }
+  };
+
+  // 获取入金记录
+  const fetchDepositRecords = async () => {
+    if (!user?.id) {
+      setError('用戶未登錄');
+      return;
+    }
+
+    setIsLoadingRecords(true);
+    try {
+      const response = await fetch(`/api/deposit/records?userId=${user.id}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '獲取入金記錄失敗');
+      }
+      const data = await response.json();
+      setDepositRecords(data.records || []);
+    } catch (err) {
+      console.error('Failed to fetch deposit records:', err);
+      setError(err instanceof Error ? err.message : '獲取入金記錄失敗');
+    } finally {
+      setIsLoadingRecords(false);
+    }
+  };
+
+  // 当切换到记录Tab时加载数据
+  useEffect(() => {
+    if (activeTab === 'records') {
+      fetchDepositRecords();
+    }
+  }, [activeTab]);
+
+  // 生成二维码
+  const generateQRCode = async (address: string) => {
+    if (!address) return;
+    try {
+      const url = await QRCode.toDataURL(address, {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF',
+        },
+      });
+      setQrCodeUrl(url);
+    } catch (err) {
+      console.error('Failed to generate QR code:', err);
+    }
+  };
+
+  // 当选中币种变化时，生成二维码
+  useEffect(() => {
+    if (selectedCrypto && selectedCrypto.walletAddress) {
+      generateQRCode(selectedCrypto.walletAddress);
+    }
+  }, [selectedCrypto]);
+
+  const handleCopyAddress = (address: string) => {
+    navigator.clipboard.writeText(address);
+    toast.success('已複製錢包地址');
+  };
+
+  const handlePaymentProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 验证文件类型
+    if (!file.type.startsWith('image/')) {
+      toast.error('請上傳圖片文件');
+      return;
+    }
+
+    // 验证文件大小（5MB）
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('文件大小不能超過 5MB');
+      return;
+    }
+
+    // 创建预览
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const preview = reader.result as string;
+      setPaymentProof(file);
+      setPaymentProofPreview(preview);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    // 检查是否为模拟账户
+    if (user?.accountType === 'demo') {
+      toast.error('模拟账户不支持此操作，請註冊正式用戶！');
+      return;
+    }
+
+    if (!selectedCrypto) {
+      setError('請選擇數位貨幣');
+      return;
+    }
+
+    const amount = parseFloat(cryptoAmount);
+    if (!cryptoAmount || isNaN(amount) || amount <= 0) {
+      setError('請輸入有效的充幣數量');
+      return;
+    }
+
+    if (amount < selectedCrypto.minAmount) {
+      setError(`最低充幣數量為 ${selectedCrypto.minAmount}`);
+      return;
+    }
+
+    if (amount > selectedCrypto.maxAmount) {
+      setError(`最高充幣數量為 ${selectedCrypto.maxAmount}`);
+      return;
+    }
+
+    if (!paymentProof) {
+      setError('請上傳支付憑證');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('type', 'crypto');
+      formData.append('currencyId', selectedCrypto!.id.toString());
+      formData.append('amount', cryptoAmount);
+      if (paymentProof) {
+        formData.append('proof', paymentProof);
+      }
+
+      const response = await fetch('/api/applications', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        setError('網絡錯誤，請稍後重試');
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('入金申請已提交，等待審核通過');
+        router.back();
+      } else {
+        setError(data.error || '提交失敗');
+      }
+    } catch (err) {
+      console.error('Deposit error:', err);
+      setError('網絡錯誤，請稍後重試');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <PageShell loading={!isHydrated}>
+      <AuthGuard>
+        <div className="min-h-screen bg-white">
+          {/* 顶部导航 */}
+          <div className="sticky top-0 bg-white z-10">
+            <div className="px-4 py-4 flex items-center justify-between">
+              <button
+                onClick={() => router.back()}
+                className="flex items-center text-gray-600 hover:text-gray-900"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <h1 className="text-lg font-medium text-gray-900">入金</h1>
+              <div
+                className="text-sm text-gray-500 cursor-pointer hover:text-blue-600"
+                onClick={() => setActiveTab(activeTab === 'apply' ? 'records' : 'apply')}
+              >
+                {activeTab === 'apply' ? '入金記錄' : '申請入金'}
+              </div>
+            </div>
+
+            {/* 申请入金 / 入金记录切换标签 */}
+            <div className="px-4 py-2">
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setActiveTab('apply')}
+                  className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${
+                    activeTab === 'apply'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  申請入金
+                </button>
+                <button
+                  onClick={() => setActiveTab('records')}
+                  className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${
+                    activeTab === 'records'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  入金記錄
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 申请入金表单 */}
+          {activeTab === 'apply' && (
+            <div className="px-4 py-2">
+              {/* 原有内容 */}
+              <div className="px-4 py-2">
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                className="flex-1 py-2 px-4 rounded-md text-sm font-medium bg-blue-600 text-white"
+              >
+                數位貨幣
+              </button>
+            </div>
+          </div>
+
+          {/* 表单内容 */}
+          <form onSubmit={handleSubmit} className="px-4 py-6 space-y-6">
+            {/* 数字货币选择 */}
+                <div>
+                  <Label className="text-gray-700 mb-2 block">數位貨幣</Label>
+                  <div className="relative">
+                    <Select
+                      value={selectedCrypto?.id.toString()}
+                      onValueChange={(value) => {
+                        const crypto = cryptoCurrencies.find((c) => c.id === parseInt(value));
+                        setSelectedCrypto(crypto || null);
+                      }}
+                    >
+                      <SelectTrigger className="w-full h-12 bg-gray-50 border-0 rounded-lg">
+                        <SelectValue placeholder="請選擇數位貨幣" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cryptoCurrencies.map((currency) => (
+                          <SelectItem key={currency.id} value={currency.id.toString()}>
+                            {currency.code}-{currency.protocol}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* 钱包地址 */}
+                {selectedCrypto && (
+                  <div>
+                    <Label className="text-gray-700 mb-2 block">錢包地址</Label>
+                    <div className="flex flex-col gap-3">
+                      {/* 钱包地址显示栏 */}
+                      <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <p className="text-sm text-gray-900 break-all font-mono">
+                          {selectedCrypto.walletAddress}
+                        </p>
+                      </div>
+
+                      {/* 二维码显示窗口 */}
+                      <div className="relative bg-white border-2 border-blue-500 rounded-lg p-8 flex items-center justify-center">
+                        {qrCodeUrl ? (
+                          <img
+                            src={qrCodeUrl}
+                            alt={`${selectedCrypto.code} 二维码`}
+                            className="w-40 h-40"
+                          />
+                        ) : (
+                          <div className="w-40 h-40 bg-gray-100 animate-pulse rounded" />
+                        )}
+                        {/* 蓝色四角定位框 */}
+                        <div className="absolute top-2 left-2 w-8 h-8 border-l-4 border-t-4 border-blue-500" />
+                        <div className="absolute top-2 right-2 w-8 h-8 border-r-4 border-t-4 border-blue-500" />
+                        <div className="absolute bottom-2 left-2 w-8 h-8 border-l-4 border-b-4 border-blue-500" />
+                        <div className="absolute bottom-2 right-2 w-8 h-8 border-r-4 border-b-4 border-blue-500" />
+                      </div>
+
+                      {/* 复制按钮 */}
+                      <Button
+                        type="button"
+                        onClick={() => handleCopyAddress(selectedCrypto.walletAddress)}
+                        className="w-full h-10 bg-white border border-blue-500 text-blue-600 hover:bg-blue-50"
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        複製
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 充币数量 */}
+                <div>
+                  <Label className="text-gray-700 mb-2 block">充幣數量</Label>
+                  <Input
+                    type="number"
+                    value={cryptoAmount}
+                    onChange={(e) => setCryptoAmount(e.target.value)}
+                    placeholder="請輸入充幣數量"
+                    className="h-12 bg-gray-50 border-0 rounded-lg"
+                    required
+                  />
+                  {selectedCrypto && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      最低: {selectedCrypto.minAmount} | 最高: {selectedCrypto.maxAmount}
+                    </div>
+                  )}
+                </div>
+
+                {/* 支付凭证 */}
+                <div>
+                  <Label className="text-gray-700 mb-2 block">支付憑證</Label>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handlePaymentProofChange(e)}
+                      className="hidden"
+                      id="payment-proof"
+                    />
+                    <label
+                      htmlFor="payment-proof"
+                      className="block w-full h-32 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-center"
+                    >
+                      {paymentProofPreview ? (
+                        <img
+                          src={paymentProofPreview}
+                          alt="支付凭证"
+                          className="w-full h-full object-contain rounded-lg"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center">
+                          <Camera className="w-10 h-10 text-gray-400 mb-2" />
+                          <span className="text-sm text-gray-500">點擊上傳支付憑證</span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                </div>
+
+            {/* 错误提示 */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* 提交按钮 */}
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base font-medium rounded-lg"
+            >
+              {isSubmitting ? '提交中...' : '提交'}
+            </Button>
+          </form>
+        </div>
+          )}
+
+          {/* 入金记录 */}
+          {activeTab === 'records' && (
+            <div className="px-4 py-2">
+              {isLoadingRecords ? (
+                <div className="text-center py-12">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="mt-3 text-sm text-gray-500">加載中...</p>
+                </div>
+              ) : depositRecords.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="inline-block w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <FileText className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500">暫無入金記錄</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {depositRecords.map((record) => (
+                    <div
+                      key={record.id}
+                      className="bg-gray-50 rounded-xl p-4 border border-gray-100"
+                    >
+                      {/* 记录头部 */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <DollarSign className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">
+                            {record.cryptoCode}
+                          </span>
+                        </div>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            record.status === 'approved'
+                              ? 'bg-green-100 text-green-700'
+                              : record.status === 'rejected'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}
+                        >
+                          {record.status === 'approved'
+                            ? '已通過'
+                            : record.status === 'rejected'
+                            ? '已拒絕'
+                            : '申請中'}
+                        </span>
+                      </div>
+
+                      {/* 记录详情 */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">數量</span>
+                          <span className="text-gray-900 font-medium">
+                            {record.amount}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">時間</span>
+                          <span className="text-gray-900">
+                            {new Date(record.createdAt).toLocaleString('zh-TW', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        {record.status === 'rejected' && record.rejectReason && (
+                          <div className="mt-2 p-2 bg-red-50 rounded-lg">
+                            <p className="text-xs text-red-600">
+                              拒絕原因: {record.rejectReason}
+                            </p>
+                          </div>
+                        )}
+                        {record.status === 'approved' && (
+                          <div className="mt-2 p-2 bg-green-50 rounded-lg">
+                            <p className="text-xs text-green-600">
+                              已到賬: {record.amount} {record.cryptoCode}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </AuthGuard>
+    </PageShell>
+  );
+}

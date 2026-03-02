@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>在线客服</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    #chat-container {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container"></div>
+
+  <script type="text/javascript">
+    window._MICHAT = window._MICHAT || function () {
+      (_MICHAT.a = _MICHAT.a || []).push(arguments)
+    };
+    _MICHAT("cptid", "93f03ad9985955116d");
+    _MICHAT("host", "mdbhklink.gongzhonghaokefu.cn");
+
+    (function (m, d, q, j, s) {
+      j = d.createElement(q), s = d.getElementsByTagName(q)[0];
+      j.async = true;
+      j.charset = "UTF-8";
+      j.src = ("https:" == document.location.protocol ? "https://" : "http://") + "mdbhklink.gongzhonghaokefu.cn/Web/js/loader.js";
+      s.parentNode.insertBefore(j, s);
+    })(window, document, "script");
+  </script>
+</body>
+</html>
