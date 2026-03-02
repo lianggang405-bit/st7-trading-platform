@@ -3,8 +3,8 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 检查Supabase环境变量是否配置
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const useSupabase = supabaseUrl && supabaseServiceKey;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const useSupabase = supabaseUrl && supabaseAnonKey;
 
 // GET - 获取公告列表（仅返回展示的公告）
 export async function GET(request: NextRequest) {

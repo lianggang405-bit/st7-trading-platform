@@ -24,17 +24,49 @@ export async function GET(request: NextRequest) {
 
     // 处理模拟账户逻辑
     if (isDemo) {
-      const { findAccountByEmail } = await import('@/lib/demo-account-storage');
-      
       let userEmail = '';
       const demoMatch = token.match(/^token_demo_(.+)_(\d+)$/);
       if (demoMatch) {
         userEmail = demoMatch[1];
       }
 
+      // 1. 尝试从数据库查找持久化的模拟账户
+      const { data: dbDemoUser } = await supabase
+        .from('users')
+        .select('balance')
+        .eq('email', userEmail)
+        .eq('is_demo', true)
+        .single();
+
+      if (dbDemoUser) {
+        const balance = dbDemoUser.balance;
+        const equity = balance; // 简化处理
+        const usedMargin = 0;   // 简化处理
+        const freeMargin = balance;
+        const floatingProfit = 0;
+        const lockedBalance = 0;
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            balance,
+            equity,
+            usedMargin,
+            freeMargin,
+            floatingProfit,
+            lockedBalance,
+          },
+        });
+      }
+
+      // 2. 如果数据库中没找到，尝试从内存查找 (兼容旧逻辑)
+      const { findAccountByEmail } = await import('@/lib/demo-account-storage');
+      
       const demoUser = findAccountByEmail(userEmail);
 
       if (!demoUser) {
+        // 如果都没找到，但因为是 demo token，我们可以尝试返回默认数据或创建一个临时的
+        // 这里保持原逻辑返回 404，或者可以考虑返回默认 100000
         return NextResponse.json(
           {
             success: false,

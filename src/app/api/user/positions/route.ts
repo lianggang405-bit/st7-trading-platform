@@ -161,16 +161,70 @@ export async function POST(request: NextRequest) {
       // 动态导入 demo-account-storage 以避免在非必要时加载
       const { findAccountByEmail, updateAccountBalance } = await import('@/lib/demo-account-storage');
       
-      // 模拟账户 token 格式通常包含 email，或者我们需要从 userId 反查
-      // 假设 userId 在模拟模式下可能就是 email 或关联 ID
-      // 这里简化处理：如果是 demo token，我们尝试解析 email
-      // token_demo_EMAIL_TIMESTAMP
+      // 模拟账户 token 格式通常包含 email
       let userEmail = '';
       const demoMatch = token.match(/^token_demo_(.+)_(\d+)$/);
       if (demoMatch) {
         userEmail = demoMatch[1];
       }
 
+      // 1. 尝试从数据库查找持久化的模拟账户
+      const { data: dbDemoUser } = await supabase
+        .from('users')
+        .select('id, balance')
+        .eq('email', userEmail)
+        .eq('is_demo', true)
+        .single();
+
+      if (dbDemoUser) {
+        if (dbDemoUser.balance < margin) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: '余额不足',
+            },
+            { status: 400 }
+          );
+        }
+
+        // 更新数据库中的模拟账户余额
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ balance: dbDemoUser.balance - margin })
+          .eq('id', dbDemoUser.id);
+
+        if (updateError) {
+          console.error('[Positions API] Error updating demo balance:', updateError);
+          return NextResponse.json(
+            {
+              success: false,
+              error: '扣除保证金失败',
+            },
+            { status: 500 }
+          );
+        }
+
+        // 创建模拟订单 (不写入数据库，只返回成功，由前端维护或通过其他 API 获取)
+        const orderId = `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        return NextResponse.json({
+          success: true,
+          data: {
+            id: orderId,
+            symbol,
+            side,
+            volume,
+            openPrice: price,
+            currentPrice: price,
+            profit: 0,
+            openTime: new Date().toISOString(),
+            leverage,
+            margin,
+          },
+        });
+      }
+
+      // 2. 如果数据库没找到，尝试内存查找 (兼容旧逻辑)
       const demoUser = findAccountByEmail(userEmail);
       
       if (!demoUser || demoUser.balance < margin) {
