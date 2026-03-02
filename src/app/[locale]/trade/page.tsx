@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { AuthGuard } from '../../../components/auth-guard';
 import { Price } from '../../../components/data';
 import { KlineChart } from '../../../components/trade/kline-chart';
+import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useAuthStore } from '../../../stores/authStore';
 import { useMarketStore } from '../../../stores/marketStore';
 import { usePositionStore } from '../../../stores/positionStore';
@@ -30,6 +31,19 @@ export default function TradePage() {
   const { positions, openPosition, closePosition, updatePositions } = usePositionStore();
   const { freeMargin, onOpenPosition, equity, usedMargin, balance } = useAssetStore();
   const { marginLevel, warning, danger, updateRisk } = useRiskControlStore();
+
+  // 确认对话框状态
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
 
   // 调试日志
   console.log('[TradePage] Current asset state:', {
@@ -170,7 +184,7 @@ export default function TradePage() {
     // 挂单交易：使用挂单价格；市价交易：使用当前价格
     const orderPrice = tradeMode === 'pending' ? pendingPrice : symbolData.price;
     const orderType = tradeMode === 'pending' ? 'limit' : 'market';
-    
+
     // 验证挂单价格
     if (tradeMode === 'pending' && pendingPrice <= 0) {
       alert('请输入有效的挂单价格');
@@ -185,38 +199,70 @@ export default function TradePage() {
       return;
     }
 
-    console.log('[TradePage] handleSubmit called:', {
-      currentSymbol,
-      side,
-      volume,
-      orderPrice,
-      orderType,
-      leverage,
-      margin,
-      freeMargin,
+    const action = tradeMode === 'pending' ? '挂单' : '市价';
+    const direction = side === 'buy' ? '买涨' : '买跌';
+    const symbolName = formatSymbol(currentSymbol);
+
+    // 显示确认对话框
+    setConfirmDialog({
+      open: true,
+      title: `确认${action}${direction}`,
+      description: (
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span className="text-gray-500">交易对：</span>
+            <span className="font-semibold">{symbolName}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">方向：</span>
+            <span className={`font-semibold ${side === 'buy' ? 'text-green-500' : 'text-red-500'}`}>
+              {direction}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">价格：</span>
+            <span className="font-semibold">{orderPrice.toFixed(4)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">数量：</span>
+            <span className="font-semibold">{volume}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">杠杆：</span>
+            <span className="font-semibold">{leverage}x</span>
+          </div>
+          <div className="flex justify-between border-t pt-2 mt-2">
+            <span className="text-gray-500">保证金：</span>
+            <span className="font-bold text-blue-500">{margin.toFixed(2)} USDT</span>
+          </div>
+        </div>
+      ),
+      onConfirm: async () => {
+        console.log('[TradePage] handleSubmit called:', {
+          currentSymbol,
+          side,
+          volume,
+          orderPrice,
+          orderType,
+          leverage,
+          margin,
+          freeMargin,
+        });
+
+        openPosition({
+          symbol: currentSymbol,
+          side,
+          volume,
+          price: orderPrice,
+          orderType,
+          leverage,
+        }).then((result) => {
+          console.log('[TradePage] openPosition result:', result);
+        });
+
+        alert(`${action}${direction}成功！`);
+      },
     });
-
-    openPosition({
-      symbol: currentSymbol,
-      side,
-      volume,
-      price: orderPrice,
-      orderType, // 传递订单类型
-      leverage,
-    }).then((result) => {
-      console.log('[TradePage] openPosition result:', result);
-    });
-
-    // 注意：onOpenPosition 现在在 positionStore 中自动调用，这里不需要重复调用
-    // 如果在 positionStore 中已经调用，这里注释掉以避免重复调用
-    // onOpenPosition({
-    //   volume,
-    //   price: orderPrice,
-    //   margin,
-    // });
-
-    const action = tradeMode === 'pending' ? '挂单' : '';
-    alert(`${action}${side === 'buy' ? '买涨' : '买跌'}成功！`);
   };
 
   const getPricePrecision = (price: number) => {
@@ -624,6 +670,17 @@ export default function TradePage() {
           </div>
         </div>
       </div>
+
+      {/* 确认对话框 */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmText="确认交易"
+        cancelText="取消"
+      />
     </AuthGuard>
   );
 }

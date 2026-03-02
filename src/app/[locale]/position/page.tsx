@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
 import { Price } from '../../../components/data';
+import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useAuthStore } from '../../../stores/authStore';
 import { useMarketStore } from '../../../stores/marketStore';
 import { usePositionStore } from '../../../stores/positionStore';
@@ -23,6 +24,19 @@ export default function PositionPage() {
   const { positions, closePosition, updatePositions } = usePositionStore();
   const { updateFloatingProfit, onClosePosition, equity, usedMargin, balance, freeMargin } = useAssetStore();
   const { marginLevel, warning, danger, updateRisk, checkAndForceClose } = useRiskControlStore();
+
+  // 确认对话框状态
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
 
   // 调试日志
   console.log('[PositionPage] Current asset state:', {
@@ -50,14 +64,61 @@ export default function PositionPage() {
     router.push('/login');
   };
 
-  const handleClosePosition = async (id: string) => {
-    const result = await closePosition(id);
-
-    if (!result.success) {
-      console.error('平仓失败:', result.error);
-      // TODO: 显示错误提示给用户
-      alert(`平仓失败: ${result.error}`);
+  const handleClosePosition = (id: string) => {
+    const position = positions.find(pos => pos.id === id);
+    if (!position) {
+      closePosition(id);
+      return;
     }
+
+    const symbolName = formatSymbol(position.symbol);
+    const direction = position.side === 'buy' ? '买涨' : '买跌';
+    const profit = position.profit;
+    const profitColor = profit >= 0 ? 'text-green-500' : 'text-red-500';
+
+    setConfirmDialog({
+      open: true,
+      title: '确认平仓',
+      description: (
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span className="text-gray-500">交易对：</span>
+            <span className="font-semibold">{symbolName}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">方向：</span>
+            <span className={`font-semibold ${position.side === 'buy' ? 'text-green-500' : 'text-red-500'}`}>
+              {direction}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">开仓价格：</span>
+            <span className="font-semibold">{position.openPrice.toFixed(4)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">当前价格：</span>
+            <span className="font-semibold">{position.currentPrice.toFixed(4)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">数量：</span>
+            <span className="font-semibold">{position.volume}</span>
+          </div>
+          <div className="flex justify-between border-t pt-2 mt-2">
+            <span className="text-gray-500">盈亏：</span>
+            <span className={`font-bold ${profitColor}`}>
+              {profit >= 0 ? '+' : ''}{profit.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      ),
+      onConfirm: async () => {
+        const result = await closePosition(id);
+        if (!result.success) {
+          console.error('平仓失败:', result.error);
+          alert(`平仓失败: ${result.error}`);
+        }
+      },
+    });
   };
 
   const totalProfit = positions.reduce((sum, pos) => sum + pos.profit, 0);
@@ -241,6 +302,17 @@ export default function PositionPage() {
               )}
             </div>
           </div>
+
+          {/* 确认对话框 */}
+          <ConfirmDialog
+            open={confirmDialog.open}
+            onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+            title={confirmDialog.title}
+            description={confirmDialog.description}
+            onConfirm={confirmDialog.onConfirm}
+            confirmText="确认平仓"
+            cancelText="取消"
+          />
         </AuthGuard>
       )}
     </PageShell>

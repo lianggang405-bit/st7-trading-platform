@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { ChevronLeft, X } from 'lucide-react';
 import { AuthGuard } from '@/components/auth-guard';
 import { PageShell } from '@/components/layout/page-shell';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useAuthStore } from '@/stores/authStore';
 import { usePositionStore } from '@/stores/positionStore';
 import { formatSymbol } from '@/lib/formatSymbol';
@@ -16,6 +17,19 @@ export default function PendingOrdersPage() {
   const { isHydrated } = useAuthStore();
   const { pendingOrders, cancelOrder, syncPendingOrders } = usePositionStore();
 
+  // 确认对话框状态
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
+
   // 从后端同步挂单列表
   useEffect(() => {
     if (isHydrated) {
@@ -24,16 +38,54 @@ export default function PendingOrdersPage() {
   }, [isHydrated, syncPendingOrders]);
 
   // 取消挂单
-  const handleCancelOrder = async (id: string) => {
-    try {
-      const result = await cancelOrder(id);
-      if (!result.success) {
-        alert(`取消掛單失敗: ${result.error}`);
-      }
-    } catch (err) {
-      alert('取消掛單失敗');
-      console.error('Failed to cancel order:', err);
-    }
+  const handleCancelOrder = (id: string) => {
+    const order = pendingOrders.find((pos) => pos.id === id);
+    if (!order) return;
+
+    const symbolName = formatSymbol(order.symbol);
+    const direction = order.side === 'buy' ? '買入' : '賣出';
+
+    setConfirmDialog({
+      open: true,
+      title: '確認取消掛單',
+      description: (
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span className="text-gray-500">交易對：</span>
+            <span className="font-semibold">{symbolName}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">方向：</span>
+            <span className={`font-semibold ${order.side === 'buy' ? 'text-green-500' : 'text-red-500'}`}>
+              {direction}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">委託價格：</span>
+            <span className="font-semibold">{order.openPrice.toFixed(4)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">數量：</span>
+            <span className="font-semibold">{order.volume}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">保證金：</span>
+            <span className="font-semibold">{order.margin ? order.margin.toFixed(2) : '-'}</span>
+          </div>
+        </div>
+      ),
+      onConfirm: async () => {
+        try {
+          const result = await cancelOrder(id);
+          if (!result.success) {
+            alert(`取消掛單失敗: ${result.error}`);
+          }
+        } catch (err) {
+          alert('取消掛單失敗');
+          console.error('Failed to cancel order:', err);
+        }
+      },
+    });
   };
 
   const getPricePrecision = (price: number) => {
@@ -140,6 +192,17 @@ export default function PendingOrdersPage() {
               )}
             </div>
           </div>
+
+          {/* 确认对话框 */}
+          <ConfirmDialog
+            open={confirmDialog.open}
+            onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+            title={confirmDialog.title}
+            description={confirmDialog.description}
+            onConfirm={confirmDialog.onConfirm}
+            confirmText="確認取消"
+            cancelText="取消"
+          />
         </AuthGuard>
       )}
     </PageShell>
