@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -52,12 +52,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: depositRequest,
-      message: '鍏ラ噾璇锋眰宸叉彁浜わ紝璇风瓑寰呭鏍?,
+      message: '入金请求已提交，请等待审核',
     });
   } catch (error) {
-    console.error('鎻愪氦鍏ラ噾璇锋眰澶辫触:', error);
+    console.error('提交入金请求失败:', error);
     return NextResponse.json(
-      { error: '鎻愪氦鍏ラ噾璇锋眰澶辫触' },
+      { error: '提交入金请求失败' },
       { status: 500 }
     );
   }

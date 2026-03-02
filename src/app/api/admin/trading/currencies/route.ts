@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 妫€鏌upabase鐜鍙橀噺鏄惁閰嶇疆
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 灏濊瘯瀵煎叆鍜屽垵濮嬪寲Supabase
+    // 尝试导入和初始化Supabase
     let supabase;
     try {
       const { createClient } = await import('@supabase/supabase-js');
@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1)
       .order(sort, { ascending: order === 'asc' });
 
-    // 濡傛灉鏈夋悳绱㈡潯浠?    if (search) {
+    // 如果有搜索条件
+    if (search) {
       query = query.or(`currency.ilike.%${search}%`);
     }
 
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Supabase error:', error);
-      // 濡傛灉琛ㄤ笉瀛樺湪鎴栨煡璇㈠け璐ワ紝杩斿洖妯℃嫙鏁版嵁
+      // 如果表不存在或查询失败，返回模拟数据
       const mockData = generateMockData(page, limit);
       return NextResponse.json({
         success: true,
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 鏍煎紡鍖栨椂闂达細灏?ISO 鏍煎紡杞崲涓?"2024/08/15 GMT+1 02:45" 鏍煎紡
+    // 格式化时间：将 ISO 格式转换为 "2024/08/15 GMT+1 02:45" 格式
     const formattedCurrencies = data?.map((item: any) => ({
       id: item.id,
       currency: item.currency,
