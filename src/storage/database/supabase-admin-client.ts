@@ -8,3 +8,5 @@ export const supabaseAdmin = supabaseUrl && supabaseServiceKey
   : null;
 
 export const isSupabaseAdminEnabled = !!supabaseAdmin;
+
+export const getSupabaseAdminClient = () => supabaseAdmin;

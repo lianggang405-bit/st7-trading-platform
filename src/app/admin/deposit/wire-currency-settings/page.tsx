@@ -49,7 +49,7 @@ import {
 } from '@/components/ui/pagination';
 import { useToast } from '@/hooks/use-toast';
 
-interface WireCurrency {
+export interface WireCurrency {
   id: number;
   currencyName: string;
   usdPrice: number;

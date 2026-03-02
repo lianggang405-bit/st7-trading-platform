@@ -11,3 +11,8 @@ export const supabase = supabaseUrl && supabaseAnonKey
 export const getSupabaseClient = () => supabase;
 
 export const isSupabaseEnabled = !!supabase;
+
+export const getSupabaseCredentials = () => ({
+  url: supabaseUrl,
+  anonKey: supabaseAnonKey,
+});
