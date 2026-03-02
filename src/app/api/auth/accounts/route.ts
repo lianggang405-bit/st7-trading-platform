@@ -55,11 +55,12 @@ export async function POST(request: NextRequest) {
 
     // 创建账户
     const newAccount = createDemoAccount({
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
       email,
       password,
-      status: 'normal',
-      registeredAt: new Date().toISOString(),
-      lastLoginAt: null,
+      username: email.split('@')[0],
+      balance: 100000,
+      accountType: accountType || 'demo',
     });
 
     return NextResponse.json({
