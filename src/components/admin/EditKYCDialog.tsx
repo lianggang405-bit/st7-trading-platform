@@ -57,7 +57,7 @@ export default function EditKYCDialog({
   useEffect(() => {
     if (kyc) {
       setStatus(kyc.status);
-      setRejectReason(kyc.rejectReason === '—' ? '' : kyc.rejectReason);
+      setRejectReason(kyc.rejectReason && kyc.rejectReason !== '—' ? kyc.rejectReason : '');
     }
   }, [kyc]);
 
@@ -101,7 +101,7 @@ export default function EditKYCDialog({
   const handleCancel = () => {
     if (kyc) {
       setStatus(kyc.status);
-      setRejectReason(kyc.rejectReason === '—' ? '' : kyc.rejectReason);
+      setRejectReason(kyc.rejectReason && kyc.rejectReason !== '—' ? kyc.rejectReason : '');
     }
     onOpenChange(false);
   };
