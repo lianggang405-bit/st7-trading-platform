@@ -4,10 +4,10 @@ import { supabase } from '@/lib/supabase';
 // GET - 获取单个管理员详情
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
 
     const { data, error } = await supabase
       .from('administrators')
@@ -36,10 +36,10 @@ export async function GET(
 // PATCH - 更新管理员
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     const body = await request.json();
 
     // 检查记录是否存在
@@ -88,10 +88,10 @@ export async function PATCH(
 // DELETE - 删除管理员
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
 
     // 删除数据
     const { error } = await supabase
