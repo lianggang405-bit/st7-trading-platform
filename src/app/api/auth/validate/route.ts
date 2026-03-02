@@ -20,25 +20,36 @@ export async function POST(request: NextRequest) {
     }
 
     // 优先从数据库查找
-    const { data: dbUser, error: dbError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single();
+    let dbUser = null;
+    let dbError = null;
+
+    if (supabase) {
+      const result = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
+      dbUser = result.data;
+      dbError = result.error;
+    } else {
+      console.warn('[Validate API] Supabase client not initialized, skipping DB check');
+    }
 
     console.log('[Validate API] Database query result:', { dbUser, dbError });
 
-    if (!dbError && dbUser) {
+    if (dbUser) {
       // 验证密码
       const passwordMatch = await bcrypt.compare(password, dbUser.password_hash);
       console.log('[Validate API] Password match:', passwordMatch);
 
       if (passwordMatch) {
         // 更新最后登录时间
-        await supabase
-          .from('users')
-          .update({ last_login_at: new Date().toISOString() })
-          .eq('id', dbUser.id);
+        if (supabase) {
+          await supabase
+            .from('users')
+            .update({ last_login_at: new Date().toISOString() })
+            .eq('id', dbUser.id);
+        }
 
         return NextResponse.json({
           success: true,

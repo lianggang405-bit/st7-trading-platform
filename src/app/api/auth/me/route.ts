@@ -34,6 +34,17 @@ export async function GET(request: NextRequest) {
     const userId = match[1];
 
     // 从数据库查询用户信息
+    if (!supabase) {
+       console.error('[Get User API] Supabase client not initialized');
+       return NextResponse.json(
+         {
+           success: false,
+           error: '系统配置错误：数据库连接失败',
+         },
+         { status: 500 }
+       );
+    }
+
     const { data: user, error } = await supabase
       .from('users')
       .select('*')

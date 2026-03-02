@@ -19,12 +19,35 @@ export async function POST(request: NextRequest) {
 
     // console.log('[Register API] Supabase URL:', supabase.supabaseUrl);
 
+    // 检查数据库连接
+    if (!supabase) {
+      console.error('[Register API] Supabase client not initialized');
+      return NextResponse.json(
+        {
+          success: false,
+          error: '系统配置错误：数据库连接失败',
+        },
+        { status: 500 }
+      );
+    }
+
     // 检查邮箱是否已存在
-    const { data: existingUser } = await supabase
+    const { data: existingUser, error: checkError } = await supabase
       .from('users')
       .select('id')
       .eq('email', email)
       .single();
+
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "No rows found"
+      console.error('[Register API] Error checking user:', checkError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: '检查用户失败',
+        },
+        { status: 500 }
+      );
+    }
 
     console.log('[Register API] Existing user check:', existingUser);
 
