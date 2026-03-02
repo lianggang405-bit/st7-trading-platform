@@ -18,8 +18,56 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.substring(7);
-    const match = token.match(/^token_(.+)_(\d+)$/);
+    
+    // 检查是否为模拟账户
+    const isDemo = token.includes('demo');
 
+    // 处理模拟账户逻辑
+    if (isDemo) {
+      const { findAccountByEmail } = await import('@/lib/demo-account-storage');
+      
+      let userEmail = '';
+      const demoMatch = token.match(/^token_demo_(.+)_(\d+)$/);
+      if (demoMatch) {
+        userEmail = demoMatch[1];
+      }
+
+      const demoUser = findAccountByEmail(userEmail);
+
+      if (!demoUser) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: '模拟账户不存在',
+          },
+          { status: 404 }
+        );
+      }
+
+      // 模拟账户资产信息 (暂不计算持仓盈亏，直接返回余额)
+      // 如果需要更精确的模拟，需要将模拟订单也持久化存储
+      const balance = demoUser.balance;
+      const equity = balance; // 简化处理：权益 = 余额
+      const usedMargin = 0;   // 简化处理
+      const freeMargin = balance;
+      const floatingProfit = 0;
+      const lockedBalance = 0;
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          balance,
+          equity,
+          usedMargin,
+          freeMargin,
+          floatingProfit,
+          lockedBalance,
+        },
+      });
+    }
+
+    // 真实账户逻辑
+    const match = token.match(/^token_(.+)_(\d+)$/);
     if (!match) {
       return NextResponse.json(
         {
