@@ -3,8 +3,8 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // Check if Supabase environment variables are configured
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const useSupabase = supabaseUrl && supabaseServiceKey;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const useSupabase = supabaseUrl && supabaseAnonKey;
 
 // GET - Get info list
 export async function GET(request: NextRequest) {
@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
 
     // If Supabase is not configured, return mock data
     if (!useSupabase) {
+      console.warn('Supabase not configured, returning mock data');
       const mockData = generateMockData(page, limit, search);
       return NextResponse.json({
         success: true,
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!supabase) {
+        console.warn('Supabase client is null, returning mock data');
         const mockData = generateMockData(page, limit, search);
         return NextResponse.json({
           success: true,
@@ -131,19 +133,11 @@ export async function POST(request: NextRequest) {
 
     // If Supabase is not configured, return success response but do not actually create
     if (!useSupabase) {
+      console.error('Missing Supabase configuration');
       return NextResponse.json({
-        success: true,
-        info: {
-          id: Math.floor(Math.random() * 1000),
-          title,
-          type,
-          language,
-          sort,
-          coverImage,
-          isShow,
-          keywords,
-        },
-      });
+        success: false,
+        error: 'Database configuration missing',
+      }, { status: 500 });
     }
 
     // Try to import and initialize Supabase
@@ -153,34 +147,17 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('Failed to initialize Supabase:', error);
       return NextResponse.json({
-        success: true,
-        info: {
-          id: Math.floor(Math.random() * 1000),
-          title,
-          type,
-          language,
-          sort,
-          coverImage,
-          isShow,
-          keywords,
-        },
-      });
+        success: false,
+        error: 'Failed to initialize database client',
+      }, { status: 500 });
     }
 
     if (!supabase) {
+        console.error('Supabase client is null');
         return NextResponse.json({
-            success: true,
-            info: {
-              id: Math.floor(Math.random() * 1000),
-              title,
-              type,
-              language,
-              sort,
-              coverImage,
-              isShow,
-              keywords,
-            },
-          });
+            success: false,
+            error: 'Database connection failed',
+          }, { status: 500 });
     }
 
     const { data, error } = await supabase
@@ -202,6 +179,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
+      console.error('Supabase insert error:', error);
       throw error;
     }
 

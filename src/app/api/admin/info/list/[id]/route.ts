@@ -3,8 +3,8 @@ import { getSupabaseAdminClient } from '@/storage/database/supabase-admin-client
 
 // 检查Supabase环境变量是否配置
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const useSupabase = supabaseUrl && supabaseServiceKey;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const useSupabase = supabaseUrl && supabaseAnonKey;
 
 // PUT - 更新信息
 export async function PUT(
@@ -16,12 +16,16 @@ export async function PUT(
     const body = await request.json();
     const { title, type, language, sort, coverImage, isShow, keywords, summary, content } = body;
 
-    // 如果没有配置Supabase，返回成功响应但不实际更新
+    // 如果没有配置Supabase，返回错误响应
     if (!useSupabase) {
-      return NextResponse.json({
-        success: true,
-        message: 'Info updated successfully',
-      });
+      console.error('Missing Supabase configuration');
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database configuration missing',
+        },
+        { status: 500 }
+      );
     }
 
     // 尝试导入和初始化Supabase (使用管理员客户端)
@@ -30,10 +34,13 @@ export async function PUT(
       supabase = getSupabaseAdminClient();
     } catch (error) {
       console.error('Failed to initialize Supabase Admin:', error);
-      return NextResponse.json({
-        success: true,
-        message: 'Info updated successfully',
-      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to initialize database client',
+        },
+        { status: 500 }
+      );
     }
 
     // 确保客户端存在
@@ -64,6 +71,7 @@ export async function PUT(
       .eq('id', infoId);
 
     if (error) {
+      console.error('Supabase update error:', error);
       throw error;
     }
 
@@ -79,7 +87,7 @@ export async function PUT(
         error: 'Failed to update info',
       },
       { status: 500 }
-    );
+      );
   }
 }
 
@@ -91,12 +99,16 @@ export async function DELETE(
   try {
     const { id: infoId } = await params;
 
-    // 如果没有配置Supabase，返回成功响应但不实际删除
+    // 如果没有配置Supabase，返回错误响应
     if (!useSupabase) {
-      return NextResponse.json({
-        success: true,
-        message: 'Info deleted successfully',
-      });
+      console.error('Missing Supabase configuration');
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database configuration missing',
+        },
+        { status: 500 }
+      );
     }
 
     // 尝试导入和初始化Supabase (使用管理员客户端)
@@ -105,10 +117,13 @@ export async function DELETE(
       supabase = getSupabaseAdminClient();
     } catch (error) {
       console.error('Failed to initialize Supabase Admin:', error);
-      return NextResponse.json({
-        success: true,
-        message: 'Info deleted successfully',
-      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to initialize database client',
+        },
+        { status: 500 }
+      );
     }
 
     // 确保客户端存在
@@ -129,6 +144,7 @@ export async function DELETE(
       .eq('id', infoId);
 
     if (error) {
+      console.error('Supabase delete error:', error);
       throw error;
     }
 
