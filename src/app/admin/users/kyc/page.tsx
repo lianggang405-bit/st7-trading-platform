@@ -44,6 +44,7 @@ interface KYCRequest {
   rejectReason?: string;
   idCardFront?: string;
   idCardBack?: string;
+  reviewTime?: string;
 }
 
 export default function KYCManagementPage() {
