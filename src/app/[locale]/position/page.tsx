@@ -50,18 +50,14 @@ export default function PositionPage() {
     router.push('/login');
   };
 
-  const handleClosePosition = (id: string) => {
-    const position = positions.find(pos => pos.id === id);
-    if (!position) {
-      closePosition(id);
-      return;
+  const handleClosePosition = async (id: string) => {
+    const result = await closePosition(id);
+
+    if (!result.success) {
+      console.error('平仓失败:', result.error);
+      // TODO: 显示错误提示给用户
+      alert(`平仓失败: ${result.error}`);
     }
-    const margin = position.openPrice * position.volume * 0.1;
-    onClosePosition({
-      profit: position.profit,
-      margin: margin,
-    });
-    closePosition(id);
   };
 
   const totalProfit = positions.reduce((sum, pos) => sum + pos.profit, 0);

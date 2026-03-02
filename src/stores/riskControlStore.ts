@@ -1,18 +1,5 @@
 import { create } from 'zustand';
-
-/**
- * 持仓数据接口（用于强平时访问持仓信息）
- */
-export interface Position {
-  id: string;
-  symbol: string;
-  side: 'buy' | 'sell';
-  volume: number;
-  openPrice: number;
-  currentPrice: number;
-  profit: number;
-  openTime: string;
-}
+import type { Position } from './positionStore';
 
 /**
  * 风控控制 Store
@@ -141,7 +128,7 @@ export const useRiskControlStore = create<RiskControlState>((set, get) => ({
 
     // 执行强平：强平所有持仓
     positions.forEach((pos) => {
-      const margin = pos.openPrice * pos.volume * 0.1;
+      const margin = pos.openPrice * pos.volume / (pos.leverage || 1);
 
       // 结算盈亏并释放保证金
       onClosePosition({
