@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdminClient } from '@/storage/database/supabase-admin-client';
 import bcrypt from 'bcrypt';
 
 // POST - 用户注册
 export async function POST(request: NextRequest) {
+  const supabase = getSupabaseAdminClient();
+
   try {
     const { email, password, accountType = 'demo' } = await request.json();
 

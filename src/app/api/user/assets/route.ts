@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdminClient } from '@/storage/database/supabase-admin-client';
 import { getBatchRealPrices } from '@/lib/market-data-source';
 
 // GET - 获取用户资产信息
 export async function GET(request: NextRequest) {
+  const supabase = getSupabaseAdminClient();
+  
   try {
     // 从 Authorization header 获取 token
     const authHeader = request.headers.get('authorization');

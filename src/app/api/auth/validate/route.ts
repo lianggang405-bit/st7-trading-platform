@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdminClient } from '@/storage/database/supabase-admin-client';
 import bcrypt from 'bcrypt';
 import { findAccountByEmail } from '@/lib/demo-account-storage';
 import { validateUser } from '@/lib/user-mock-data';
 
 // POST - 验证用户登录
 export async function POST(request: NextRequest) {
+  const supabase = getSupabaseAdminClient();
+
   try {
     const { email, password } = await request.json();
 
