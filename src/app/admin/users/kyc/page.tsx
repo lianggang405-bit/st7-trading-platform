@@ -39,11 +39,11 @@ interface KYCRequest {
   email: string;
   realName: string;
   idNumber: string;
+  idCardFront?: string;
+  idCardBack?: string;
   applyTime: string;
   status: 'pending' | 'approved' | 'rejected';
   rejectReason?: string;
-  idCardFront?: string;
-  idCardBack?: string;
   reviewTime?: string;
 }
 

@@ -29,12 +29,12 @@ interface KYCRequest {
   email: string;
   realName: string;
   idNumber: string;
-  idCardFront: string;
-  idCardBack: string;
+  idCardFront?: string;
+  idCardBack?: string;
   applyTime: string;
-  reviewTime: string;
+  reviewTime?: string;
   status: 'pending' | 'approved' | 'rejected';
-  rejectReason: string;
+  rejectReason?: string;
 }
 
 interface EditKYCDialogProps {
