@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/select';
 import RechargeDialog from '@/components/admin/RechargeDialog';
 import CreditScoreDialog from '@/components/admin/CreditScoreDialog';
+import EditUserDialog from '@/components/admin/EditUserDialog';
 import {
   Search,
   Plus,
@@ -57,6 +58,8 @@ interface User {
   creditScore: number;
   createdAt: string;
   lastLoginAt: string;
+  remark?: string;
+  username?: string;
 }
 
 export default function UserListPage() {
@@ -72,6 +75,8 @@ export default function UserListPage() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [creditScoreDialogOpen, setCreditScoreDialogOpen] = useState(false);
   const [selectedUserForCreditScore, setSelectedUserForCreditScore] = useState<User | null>(null);
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState<User | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -163,6 +168,15 @@ export default function UserListPage() {
   };
 
   const handleCreditScoreSuccess = () => {
+    fetchUsers();
+  };
+
+  const handleEditUser = (user: User) => {
+    setSelectedUserForEdit(user);
+    setEditUserDialogOpen(true);
+  };
+
+  const handleEditUserSuccess = () => {
     fetchUsers();
   };
 
@@ -361,7 +375,7 @@ export default function UserListPage() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-gray-400 hover:text-white"
-                        onClick={() => toast.info(`编辑用户: ${user.email}`)}
+                        onClick={() => handleEditUser(user)}
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -436,6 +450,14 @@ export default function UserListPage() {
         onOpenChange={setCreditScoreDialogOpen}
         user={selectedUserForCreditScore}
         onSuccess={handleCreditScoreSuccess}
+      />
+
+      {/* 用户编辑弹窗 */}
+      <EditUserDialog
+        open={editUserDialogOpen}
+        onOpenChange={setEditUserDialogOpen}
+        user={selectedUserForEdit}
+        onSuccess={handleEditUserSuccess}
       />
     </div>
   );

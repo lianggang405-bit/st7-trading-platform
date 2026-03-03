@@ -48,6 +48,8 @@ export async function GET(request: NextRequest) {
       lastLoginAt: user.last_login_at
         ? new Date(user.last_login_at).toLocaleString('zh-CN')
         : '从未登录',
+      remark: user.remark || '—',
+      username: user.username || '',
     })) || [];
 
     return NextResponse.json({

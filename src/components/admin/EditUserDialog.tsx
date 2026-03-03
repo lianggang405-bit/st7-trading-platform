@@ -30,7 +30,7 @@ interface User {
   userLevel: string;
   status: string;
   balance: number;
-  remark: string;
+  remark?: string;
   createdAt: string;
   lastLoginAt: string;
   username?: string;
@@ -67,7 +67,7 @@ export default function EditUserDialog({
         status: user.status || '正常',
         balance: user.balance.toString(),
         password: '',
-        remark: user.remark === '—' ? '' : user.remark,
+        remark: (user.remark === '—' || !user.remark) ? '' : user.remark,
       });
     }
   }, [user]);
@@ -119,7 +119,7 @@ export default function EditUserDialog({
         status: user.status === '正常' ? '正常' : user.status === '禁用' ? '禁用' : '冻结',
         balance: user.balance.toString(),
         password: '',
-        remark: user.remark === '—' ? '' : user.remark,
+        remark: (user.remark === '—' || !user.remark) ? '' : user.remark,
       });
     }
     onOpenChange(false);
