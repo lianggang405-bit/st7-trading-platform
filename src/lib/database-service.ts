@@ -261,19 +261,56 @@ class DatabaseService {
   }): Promise<DatabaseApplication | null> {
     const client = getSupabaseClient();
 
-    // 直接使用 Supabase 客户端插入数据
-    const { data, error } = await client
-      .from('applications')
-      .insert(applicationData)
-      .select()
-      .single();
+    console.log('[DatabaseService] Creating application with data:', {
+      user_id: applicationData.user_id,
+      type: applicationData.type,
+      has_real_name: !!applicationData.real_name,
+      has_id_card: !!applicationData.id_card,
+      has_front_url: !!applicationData.id_card_front_url,
+      has_back_url: !!applicationData.id_card_back_url,
+    });
 
-    if (error) {
-      console.error('[DatabaseService] Failed to create application:', error);
-      return null;
+    // 重试逻辑：如果遇到 schema 缓存错误，重试最多 3 次
+    let lastError: any = null;
+    const maxRetries = 3;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const { data, error } = await client
+          .from('applications')
+          .insert(applicationData)
+          .select()
+          .single();
+
+        if (error) {
+          console.error(`[DatabaseService] Attempt ${attempt} failed:`, error);
+          lastError = error;
+
+          // 如果是 schema 缓存错误且还有重试机会，等待后重试
+          if (error.code === 'PGRST204' && attempt < maxRetries) {
+            console.log(`[DatabaseService] Retrying... (${attempt}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 500)); // 等待 500ms
+            continue;
+          }
+
+          return null;
+        }
+
+        console.log('[DatabaseService] Application created successfully:', data);
+        return data;
+      } catch (err) {
+        console.error(`[DatabaseService] Attempt ${attempt} exception:`, err);
+        lastError = err;
+
+        if (attempt < maxRetries) {
+          console.log(`[DatabaseService] Retrying... (${attempt}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
     }
 
-    return data;
+    console.error('[DatabaseService] All attempts failed, last error:', lastError);
+    return null;
   }
 
   /**
