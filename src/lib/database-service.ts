@@ -245,6 +245,7 @@ class DatabaseService {
 
     return data ? { ...data, user: undefined } : null;
   }
+
   /**
    * 创建申请
    */
@@ -270,47 +271,20 @@ class DatabaseService {
       has_back_url: !!applicationData.id_card_back_url,
     });
 
-    // 重试逻辑：如果遇到 schema 缓存错误，重试最多 3 次
-    let lastError: any = null;
-    const maxRetries = 3;
+    // 直接使用 Supabase 客户端插入数据
+    const { data, error } = await client
+      .from('applications')
+      .insert(applicationData)
+      .select()
+      .single();
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const { data, error } = await client
-          .from('applications')
-          .insert(applicationData)
-          .select()
-          .single();
-
-        if (error) {
-          console.error(`[DatabaseService] Attempt ${attempt} failed:`, error);
-          lastError = error;
-
-          // 如果是 schema 缓存错误且还有重试机会，等待后重试
-          if (error.code === 'PGRST204' && attempt < maxRetries) {
-            console.log(`[DatabaseService] Retrying... (${attempt}/${maxRetries})`);
-            await new Promise(resolve => setTimeout(resolve, 500)); // 等待 500ms
-            continue;
-          }
-
-          return null;
-        }
-
-        console.log('[DatabaseService] Application created successfully:', data);
-        return data;
-      } catch (err) {
-        console.error(`[DatabaseService] Attempt ${attempt} exception:`, err);
-        lastError = err;
-
-        if (attempt < maxRetries) {
-          console.log(`[DatabaseService] Retrying... (${attempt}/${maxRetries})`);
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
+    if (error) {
+      console.error('[DatabaseService] Failed to create application:', error);
+      return null;
     }
 
-    console.error('[DatabaseService] All attempts failed, last error:', lastError);
-    return null;
+    console.log('[DatabaseService] Application created successfully:', data);
+    return data;
   }
 
   /**
