@@ -116,6 +116,7 @@ export async function POST(
       data: {
         profit,
         closePrice,
+        status: 'closed',
       },
     });
   } catch (error) {

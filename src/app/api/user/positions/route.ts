@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/storage/database/supabase-admin-client';
 import { getBatchRealPrices } from '@/lib/market-data-source';
+import { createDemoOrder } from '@/lib/create-demo-order';
 
 // GET - 获取持仓列表
 export async function GET(request: NextRequest) {
@@ -481,6 +482,7 @@ export async function POST(request: NextRequest) {
         openTime: order.created_at,
         leverage: order.leverage,
         margin: order.margin,
+        status: order.status,  // ✅ 添加 status 字段
       },
     });
   } catch (error) {
