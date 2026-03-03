@@ -38,6 +38,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status'); // status: 'open' | 'pending' | 'closed' | null (all)
 
+    console.log('[Positions API] GET request:', { userId, status });
+
     // 构建查询
     let query = supabase
       .from('orders')
@@ -47,10 +49,13 @@ export async function GET(request: NextRequest) {
     // 如果指定了状态，过滤；否则查询所有状态
     if (status) {
       query = query.eq('status', status);
+      console.log('[Positions API] Filtering by status:', status);
     }
 
     const { data: positions, error } = await query
       .order('created_at', { ascending: false });
+
+    console.log('[Positions API] Query result:', { positions: positions?.length, error: error?.message });
 
     if (error) {
       console.error('[Positions API] Error:', error);
@@ -93,6 +98,8 @@ export async function GET(request: NextRequest) {
         status: pos.status,  // ✅ 添加 status 字段
       };
     }) || [];
+
+    console.log('[Positions API] Formatted positions:', formattedPositions.length);
 
     return NextResponse.json({
       success: true,
@@ -214,6 +221,8 @@ export async function POST(request: NextRequest) {
 
         // 根据订单类型设置状态
         const orderStatus = orderType === 'market' ? 'open' : 'pending';
+
+        console.log('[Positions API] Creating order:', { orderId, orderType, orderStatus, symbol, side });
 
         const { data: order, error: insertError } = await supabase
           .from('orders')

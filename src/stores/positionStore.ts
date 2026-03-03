@@ -266,11 +266,17 @@ export const usePositionStore = create<PositionState>((set, get) => ({
   // 从后端同步挂单
   syncPendingOrders: async () => {
     try {
+      console.log('[PositionStore] Fetching pending orders...');
       const result = await tradingApi.getOrders({ status: 'pending' });
 
+      console.log('[PositionStore] Pending orders result:', result);
+
       if (result.success && result.orders) {
+        console.log('[PositionStore] Setting pending orders:', result.orders);
         set({ pendingOrders: result.orders });
         console.log('[PositionStore] Synced pending orders from backend:', result.orders);
+      } else {
+        console.warn('[PositionStore] Failed to fetch pending orders:', result.error);
       }
     } catch (error) {
       console.warn('[PositionStore] Failed to sync pending orders from backend:', error);
