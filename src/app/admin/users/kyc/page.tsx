@@ -26,6 +26,7 @@ import {
   Filter,
   Eye,
   Edit,
+  Trash2,
   ChevronUp,
   ChevronDown,
 } from 'lucide-react';
@@ -155,6 +156,26 @@ export default function KYCManagementPage() {
     }
   };
 
+  const handleDelete = async (requestId: number) => {
+    if (!confirm('确定要删除此实名认证记录吗？此操作不可恢复！')) return;
+
+    try {
+      const response = await fetch(`/api/admin/users/kyc/${requestId}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success('删除成功');
+        fetchRequests();
+      } else {
+        toast.error('删除失败');
+      }
+    } catch (error) {
+      console.error('Failed to delete KYC:', error);
+      toast.error('删除失败');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* 面包屑导航 */}
@@ -220,7 +241,7 @@ export default function KYCManagementPage() {
                 <TableHead className="bg-slate-800 text-gray-400">拒绝备注</TableHead>
                 <TableHead className="bg-slate-800 text-gray-400">证件照正面</TableHead>
                 <TableHead className="bg-slate-800 text-gray-400">证件照反面</TableHead>
-                <TableHead className="bg-slate-800 text-gray-400 w-24">操作</TableHead>
+                <TableHead className="bg-slate-800 text-gray-400 w-32">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -281,6 +302,14 @@ export default function KYCManagementPage() {
                         }}
                       >
                         <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        onClick={() => handleDelete(request.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </TableCell>

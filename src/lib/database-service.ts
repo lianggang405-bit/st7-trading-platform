@@ -307,6 +307,21 @@ class DatabaseService {
   }
 
   /**
+   * 删除申请
+   */
+  async deleteApplication(id: number): Promise<boolean> {
+    const client = getSupabaseClient();
+    const { error } = await client.from('applications').delete().eq('id', id);
+
+    if (error) {
+      console.error('[DatabaseService] Failed to delete application:', error);
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * 获取市场调控记录
    */
   async getMarketAdjustments(limit?: number): Promise<DatabaseMarketAdjustment[]> {
