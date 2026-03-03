@@ -147,6 +147,15 @@ export default function SymbolsPage() {
     );
   };
 
+  const getSymbolIcon = (symbol: string) => {
+    // 使用交易对的首字母作为图标
+    return (
+      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+        <span className="text-white font-bold text-sm">{symbol.substring(0, 2)}</span>
+      </div>
+    );
+  };
+
   const getVisibilityBadge = (isVisible: boolean) => {
     return isVisible ? (
       <Badge className="bg-green-500/10 text-green-400">展示内容</Badge>
@@ -238,15 +247,7 @@ export default function SymbolsPage() {
                   <TableCell className="text-blue-400 font-medium">{symbol.id}</TableCell>
                   <TableCell className="text-gray-300">{symbol.name}</TableCell>
                   <TableCell className="text-gray-400">{symbol.alias}</TableCell>
-                  <TableCell>
-                    <div className="w-8 h-8 bg-slate-700 rounded flex items-center justify-center">
-                      {symbol.icon ? (
-                        <span className="text-lg">{symbol.icon}</span>
-                      ) : (
-                        <span className="text-gray-500 text-sm">📊</span>
-                      )}
-                    </div>
-                  </TableCell>
+                  <TableCell>{getSymbolIcon(symbol.name)}</TableCell>
                   <TableCell>{getTypeBadge(symbol.type)}</TableCell>
                   <TableCell className="text-gray-400">{symbol.sort}</TableCell>
                   <TableCell>{getVisibilityBadge(symbol.isVisible)}</TableCell>

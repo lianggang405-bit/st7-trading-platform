@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { recordMockUsage } from '@/lib/mock-monitor';
+import { verifyAdminToken } from '@/lib/admin-auth';
 
 const supabase = getSupabaseClient();
 
@@ -114,5 +115,85 @@ export async function GET(request: NextRequest) {
       limit: parseInt(searchParams.get('limit') || '15'),
       isMock: true, // ✅ 添加 mock 数据标识
     });
+  }
+}
+
+// POST - 创建品种
+export async function POST(request: NextRequest) {
+  try {
+    const adminToken = request.cookies.get('admin_token')?.value ||
+                      request.headers.get('authorization')?.replace('Bearer ', '');
+
+    // 验证管理员权限
+    const admin = verifyAdminToken(adminToken || '');
+    if (!admin) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const {
+      symbol,
+      currency_id,
+      is_visible = true,
+      min_order_size = 0.001,
+      max_order_size = 999999,
+      contract_fee = 0.1,
+    } = body;
+
+    // 验证必填字段
+    if (!symbol || !currency_id) {
+      return NextResponse.json(
+        { error: 'Symbol and currency_id are required' },
+        { status: 400 }
+      );
+    }
+
+    // 检查交易对是否已存在
+    const { data: existing } = await supabase
+      .from('trading_pairs')
+      .select('id')
+      .eq('symbol', symbol)
+      .single();
+
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Symbol already exists' },
+        { status: 409 }
+      );
+    }
+
+    // 创建交易对
+    const { data, error } = await supabase
+      .from('trading_pairs')
+      .insert({
+        symbol,
+        currency_id,
+        is_visible,
+        min_order_size,
+        max_order_size,
+        contract_fee,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[Create Symbol] Error:', error);
+      return NextResponse.json(
+        { error: 'Failed to create symbol' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: '品种创建成功',
+      symbol: data,
+    });
+  } catch (error) {
+    console.error('[Create Symbol] Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
