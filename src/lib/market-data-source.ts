@@ -8,6 +8,37 @@
 // Binance API 配置
 const BINANCE_API_URL = 'https://api.binance.com';
 
+// ✅ 价格缓存（有效期 30 秒）
+const priceCache = new Map<string, { price: number; timestamp: number }>();
+const CACHE_TTL = 30000; // 30 秒
+
+/**
+ * 从缓存获取价格（如果未过期）
+ */
+function getCachedPrice(symbol: string): number | null {
+  const cached = priceCache.get(symbol);
+  if (!cached) return null;
+
+  const now = Date.now();
+  if (now - cached.timestamp < CACHE_TTL) {
+    return cached.price;
+  }
+
+  // 缓存过期，删除
+  priceCache.delete(symbol);
+  return null;
+}
+
+/**
+ * 更新价格缓存
+ */
+function updatePriceCache(symbol: string, price: number): void {
+  priceCache.set(symbol, {
+    price,
+    timestamp: Date.now(),
+  });
+}
+
 /**
  * 获取交易对的实时价格（从 Binance）
  *
@@ -15,41 +46,67 @@ const BINANCE_API_URL = 'https://api.binance.com';
  * @returns 价格
  */
 export async function getPriceFromBinance(symbol: string): Promise<number | null> {
-  try {
-    // 将交易对转换为 Binance 格式
-    // BTCUSD -> BTCUSDT
-    const binanceSymbol = symbol.replace('USD', 'USDT');
-
-    const response = await fetch(
-      `${BINANCE_API_URL}/api/v3/ticker/price?symbol=${binanceSymbol}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // 设置超时时间 5 秒
-        signal: AbortSignal.timeout(5000),
-      }
-    );
-
-    if (!response.ok) {
-      console.warn(`[MarketDataSource] Failed to fetch price for ${symbol} from Binance`);
-      return null;
-    }
-
-    const data = await response.json();
-    const price = parseFloat(data.price);
-
-    if (isNaN(price)) {
-      console.warn(`[MarketDataSource] Invalid price for ${symbol}: ${data.price}`);
-      return null;
-    }
-
-    return price;
-  } catch (error) {
-    console.warn(`[MarketDataSource] Error fetching price for ${symbol}:`, error);
-    return null;
+  // ✅ 先尝试从缓存获取
+  const cachedPrice = getCachedPrice(symbol);
+  if (cachedPrice !== null) {
+    console.log(`[MarketDataSource] Using cached price for ${symbol}: ${cachedPrice}`);
+    return cachedPrice;
   }
+
+  // ✅ 增加重试机制（最多重试 3 次）
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // 将交易对转换为 Binance 格式
+      // BTCUSD -> BTCUSDT
+      const binanceSymbol = symbol.replace('USD', 'USDT');
+
+      const response = await fetch(
+        `${BINANCE_API_URL}/api/v3/ticker/price?symbol=${binanceSymbol}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          // ✅ 增加超时时间到 10 秒
+          signal: AbortSignal.timeout(10000),
+        }
+      );
+
+      if (!response.ok) {
+        console.warn(`[MarketDataSource] Failed to fetch price for ${symbol} from Binance (attempt ${attempt}/${maxRetries})`);
+        if (attempt < maxRetries) {
+          // 等待 1 秒后重试
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+        return null;
+      }
+
+      const data = await response.json();
+      const price = parseFloat(data.price);
+
+      if (isNaN(price)) {
+        console.warn(`[MarketDataSource] Invalid price for ${symbol}: ${data.price}`);
+        return null;
+      }
+
+      // ✅ 更新缓存
+      updatePriceCache(symbol, price);
+
+      return price;
+    } catch (error) {
+      console.warn(`[MarketDataSource] Error fetching price for ${symbol} (attempt ${attempt}/${maxRetries}):`, error);
+      if (attempt < maxRetries) {
+        // 等待 1 秒后重试
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continue;
+      }
+      return null;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -106,9 +163,29 @@ export async function getPriceChangeFromBinance(symbol: string): Promise<{
  */
 export async function getBatchPricesFromBinance(symbols: string[]): Promise<{ [symbol: string]: number }> {
   const result: { [symbol: string]: number } = {};
+  const uncachedSymbols: string[] = [];
+
+  // ✅ 第一步：检查缓存
+  for (const symbol of symbols) {
+    const cachedPrice = getCachedPrice(symbol);
+    if (cachedPrice !== null) {
+      result[symbol] = cachedPrice;
+    } else {
+      uncachedSymbols.push(symbol);
+    }
+  }
+
+  // 如果全部命中缓存，直接返回
+  if (uncachedSymbols.length === 0) {
+    console.log('[MarketDataSource] All prices from cache');
+    return result;
+  }
+
+  // ✅ 第二步：只请求未命中的价格
+  console.log(`[MarketDataSource] Fetching ${uncachedSymbols.length} uncached prices from Binance`);
 
   // 将交易对转换为 Binance 格式
-  const binanceSymbols = symbols.map(s => s.replace('USD', 'USDT'));
+  const binanceSymbols = uncachedSymbols.map(s => s.replace('USD', 'USDT'));
 
   try {
     const response = await fetch(
@@ -125,7 +202,7 @@ export async function getBatchPricesFromBinance(symbols: string[]): Promise<{ [s
     if (!response.ok) {
       console.warn('[MarketDataSource] Failed to fetch batch prices from Binance');
       // 降级到单个请求
-      for (const symbol of symbols) {
+      for (const symbol of uncachedSymbols) {
         const price = await getPriceFromBinance(symbol);
         if (price !== null) {
           result[symbol] = price;
@@ -143,12 +220,14 @@ export async function getBatchPricesFromBinance(symbols: string[]): Promise<{ [s
 
       if (!isNaN(price)) {
         result[originalSymbol] = price;
+        // ✅ 更新缓存
+        updatePriceCache(originalSymbol, price);
       }
     }
   } catch (error) {
     console.warn('[MarketDataSource] Error fetching batch prices:', error);
     // 降级到单个请求
-    for (const symbol of symbols) {
+    for (const symbol of uncachedSymbols) {
       const price = await getPriceFromBinance(symbol);
       if (price !== null) {
         result[symbol] = price;
@@ -395,46 +474,4 @@ function getFallbackTicker(symbol: string): { price: number; change: number } {
   };
 
   return fallbackTickers[symbol] || { price: 100, change: 0 };
-}
-
-/**
- * 价格缓存（避免频繁请求外部 API）
- */
-const priceCache: { [symbol: string]: { price: number; timestamp: number } } = {};
-const CACHE_TTL = 2000; // 缓存有效期 2 秒
-
-/**
- * 获取带缓存的实时价格
- *
- * @param symbol 交易对符号
- * @returns 价格
- */
-export async function getCachedRealPrice(symbol: string): Promise<number> {
-  const now = Date.now();
-  const cached = priceCache[symbol];
-
-  // 如果缓存有效，返回缓存
-  if (cached && now - cached.timestamp < CACHE_TTL) {
-    return cached.price;
-  }
-
-  // 否则获取新价格
-  const price = await getRealPrice(symbol);
-
-  // 更新缓存
-  priceCache[symbol] = {
-    price,
-    timestamp: now,
-  };
-
-  return price;
-}
-
-/**
- * 清除价格缓存
- */
-export function clearPriceCache(): void {
-  for (const key in priceCache) {
-    delete priceCache[key];
-  }
 }
