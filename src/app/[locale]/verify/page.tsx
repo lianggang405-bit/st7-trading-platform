@@ -6,6 +6,7 @@ import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
 import { useAuthStore } from '../../../stores/authStore';
 import { toast } from 'sonner';
+import { SuccessDialog } from '../../../components/ui/success-dialog';
 
 export default function VerifyPage() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function VerifyPage() {
   const [realName, setRealName] = useState('');
   const [idNumber, setIdNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'front' | 'back') => {
     const file = e.target.files?.[0];
@@ -63,8 +65,8 @@ export default function VerifyPage() {
       console.log('[Verify Page] Response data:', data);
 
       if (response.ok && data.success) {
-        toast.success('你的申請已提交，請等待系統審核，有需要請聯繫客服');
-        router.back();
+        // 显示成功弹窗
+        setShowSuccessDialog(true);
       } else {
         toast.error(data.error || '提交失敗');
       }
@@ -233,6 +235,15 @@ export default function VerifyPage() {
               </div>
             </div>
           </div>
+
+          {/* 成功提示弹窗 */}
+          <SuccessDialog
+            open={showSuccessDialog}
+            onOpenChange={setShowSuccessDialog}
+            title="提交成功"
+            message="你的申請已提交，請等待系統審核，有需要請聯繫客服"
+            onConfirm={() => router.back()}
+          />
         </div>
       </AuthGuard>
     </PageShell>
