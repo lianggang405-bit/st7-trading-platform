@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
@@ -17,6 +17,37 @@ export default function VerifyPage() {
   const [idNumber, setIdNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
+  const [showPendingDialog, setShowPendingDialog] = useState(false);
+  const [showApprovedDialog, setShowApprovedDialog] = useState(false);
+
+  // 页面加载时查询实名认证状态
+  useEffect(() => {
+    if (isHydrated && user) {
+      fetchVerificationStatus();
+    }
+  }, [isHydrated, user]);
+
+  const fetchVerificationStatus = async () => {
+    try {
+      const response = await fetch('/api/user/verification/status', {
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setVerificationStatus(data.status);
+        // 如果有待审核或已通过的申请，显示相应弹窗
+        if (data.status === 'pending') {
+          setShowPendingDialog(true);
+        } else if (data.status === 'approved') {
+          setShowApprovedDialog(true);
+        }
+      }
+    } catch (error) {
+      console.error('[Verify Page] Failed to fetch verification status:', error);
+    }
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'front' | 'back') => {
     const file = e.target.files?.[0];
@@ -35,6 +66,18 @@ export default function VerifyPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 检查实名认证状态
+    if (verificationStatus === 'pending') {
+      setShowPendingDialog(true);
+      return;
+    }
+
+    if (verificationStatus === 'approved') {
+      setShowApprovedDialog(true);
+      return;
+    }
+
     if (!realName || !idNumber) {
       toast.error('請完整填寫所有信息');
       return;
@@ -67,6 +110,8 @@ export default function VerifyPage() {
       if (response.ok && data.success) {
         // 显示成功弹窗
         setShowSuccessDialog(true);
+        // 更新状态为 pending
+        setVerificationStatus('pending');
       } else {
         toast.error(data.error || '提交失敗');
       }
@@ -242,6 +287,24 @@ export default function VerifyPage() {
             onOpenChange={setShowSuccessDialog}
             title="提交成功"
             message="你的申請已提交，請等待系統審核，有需要請聯繫客服"
+            onConfirm={() => router.back()}
+          />
+
+          {/* 审核中弹窗 */}
+          <SuccessDialog
+            open={showPendingDialog}
+            onOpenChange={setShowPendingDialog}
+            title="審核中"
+            message="你的申請已提交，請等待系統審核，如需幫助請聯繫客服！"
+            onConfirm={() => router.back()}
+          />
+
+          {/* 已通过弹窗 */}
+          <SuccessDialog
+            open={showApprovedDialog}
+            onOpenChange={setShowApprovedDialog}
+            title="已通過"
+            message="你的實名申請已通過，如需幫助請聯繫客服！"
             onConfirm={() => router.back()}
           />
         </div>
