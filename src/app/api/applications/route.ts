@@ -172,15 +172,40 @@ export async function POST(req: NextRequest) {
       let application;
 
       if (type === 'verification') {
-        // 实名认证申请 - 使用 applications 表
+        // 实名认证申请 - 直接保存 Base64 到数据库
+        console.log('[Applications] Saving verification request...');
+        console.log('[Applications] frontImage type:', typeof body.frontImage);
+        console.log('[Applications] frontImage starts with:', body.frontImage?.substring(0, 30));
+        console.log('[Applications] frontImage length:', body.frontImage?.length);
+        console.log('[Applications] backImage length:', body.backImage?.length);
+
+        // 验证是否是 Base64 格式
+        const isValidBase64 = (str: string | undefined) => {
+          if (!str) return false;
+          // Base64 图片应该以 data:image/ 开头
+          return str.startsWith('data:image/');
+        };
+
+        if (!isValidBase64(body.frontImage)) {
+          console.error('[Applications] ERROR: frontImage is not a valid Base64 string!');
+          console.error('[Applications] frontImage:', body.frontImage?.substring(0, 100));
+        }
+        if (!isValidBase64(body.backImage)) {
+          console.error('[Applications] ERROR: backImage is not a valid Base64 string!');
+          console.error('[Applications] backImage:', body.backImage?.substring(0, 100));
+        }
+
         application = await databaseService.createApplication({
           user_id: userId,
           type: 'verification',
           real_name: body.realName,
           id_card: body.idCard,
-          id_card_front_url: body.frontImage, // 保存证件照正面
-          id_card_back_url: body.backImage,   // 保存证件照反面
+          id_card_front_url: body.frontImage, // 保存 Base64 字符串
+          id_card_back_url: body.backImage,   // 保存 Base64 字符串
         });
+
+        console.log('[Applications] Saved application ID:', application?.id);
+        console.log('[Applications] Saved frontImage length:', application?.id_card_front_url?.length);
       } else {
         // 入金/出金申请 - 使用 applications 表
         application = await databaseService.createApplication({
