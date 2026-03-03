@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { recordMockUsage } from '@/lib/mock-monitor';
 
 const supabase = getSupabaseClient();
 
@@ -60,6 +61,8 @@ export async function GET(request: NextRequest) {
     // ✅ 如果出错，返回 mock 数据
     if (error) {
       console.warn('[Symbols API] Table query failed, using mock data:', error.message);
+      // ✅ 记录 mock 数据使用
+      recordMockUsage('/api/admin/trading/symbols');
       const mockData = generateMockSymbols(page, limit, search);
       return NextResponse.json({
         success: true,
@@ -67,6 +70,7 @@ export async function GET(request: NextRequest) {
         total: 5,
         page,
         limit,
+        isMock: true, // ✅ 添加 mock 数据标识
       });
     }
 
@@ -89,11 +93,14 @@ export async function GET(request: NextRequest) {
       total: count,
       page,
       limit,
+      isMock: false, // ✅ 添加真实数据标识
     });
   } catch (error) {
     console.error('Failed to fetch symbols:', error);
     // ✅ 返回 mock 数据作为兜底
     const searchParams = request.nextUrl.searchParams;
+    // ✅ 记录 mock 数据使用
+    recordMockUsage('/api/admin/trading/symbols');
     const mockData = generateMockSymbols(
       parseInt(searchParams.get('page') || '1'),
       parseInt(searchParams.get('limit') || '15'),
@@ -105,6 +112,7 @@ export async function GET(request: NextRequest) {
       total: 5,
       page: parseInt(searchParams.get('page') || '1'),
       limit: parseInt(searchParams.get('limit') || '15'),
+      isMock: true, // ✅ 添加 mock 数据标识
     });
   }
 }
