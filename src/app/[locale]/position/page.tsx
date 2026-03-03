@@ -29,7 +29,7 @@ export default function PositionPage() {
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     title: string;
-    description: string;
+    description: React.ReactNode;
     onConfirm: () => void;
   }>({
     open: false,
