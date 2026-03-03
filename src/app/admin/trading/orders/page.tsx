@@ -117,6 +117,16 @@ export default function ProjectOrdersPage() {
     }
   };
 
+  const handleView = (order: ProjectOrder) => {
+    toast.info(`查看订单: ${order.id}`);
+    // TODO: 打开查看对话框
+  };
+
+  const handleEdit = (order: ProjectOrder) => {
+    toast.info(`编辑订单: ${order.id}`);
+    // TODO: 打开编辑对话框
+  };
+
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { color: string; text: string }> = {
       HAVE_IN_HAND: { color: 'bg-blue-500/10 text-blue-400', text: 'HAVE IN HAND' },
@@ -232,10 +242,20 @@ export default function ProjectOrdersPage() {
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
                         <MoreVertical className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-gray-400 hover:text-white"
+                        onClick={() => handleView(order)}
+                      >
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-gray-400 hover:text-white"
+                        onClick={() => handleEdit(order)}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button

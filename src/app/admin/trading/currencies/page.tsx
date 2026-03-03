@@ -112,6 +112,16 @@ export default function CurrencyKxesPage() {
     }
   };
 
+  const handleView = (currency: any) => {
+    toast.info(`查看货币: ${currency.name}`);
+    // TODO: 打开查看对话框
+  };
+
+  const handleEdit = (currency: any) => {
+    toast.info(`编辑货币: ${currency.name}`);
+    // TODO: 打开编辑对话框
+  };
+
   return (
     <div className="space-y-6">
       {/* 面包屑导航 */}
@@ -196,10 +206,20 @@ export default function CurrencyKxesPage() {
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
                         <MoreVertical className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-gray-400 hover:text-white"
+                        onClick={() => handleView(currency)}
+                      >
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-gray-400 hover:text-white"
+                        onClick={() => handleEdit(currency)}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button

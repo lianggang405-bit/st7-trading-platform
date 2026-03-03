@@ -357,7 +357,12 @@ export default function UserListPage() {
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-gray-400 hover:text-white"
+                        onClick={() => toast.info(`编辑用户: ${user.email}`)}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button

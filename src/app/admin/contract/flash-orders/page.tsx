@@ -121,6 +121,16 @@ export default function FlashOrdersPage() {
     }
   };
 
+  const handleView = (order: any) => {
+    toast.info(`查看秒合约订单: ${order.id}`);
+    // TODO: 打开查看对话框
+  };
+
+  const handleEdit = (order: any) => {
+    toast.info(`编辑秒合约订单: ${order.id}`);
+    // TODO: 打开编辑对话框
+  };
+
   const formatPrice = (value: number) => {
     return value.toFixed(8);
   };
@@ -266,10 +276,20 @@ export default function FlashOrdersPage() {
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
                           <MoreVertical className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-white"
+                          onClick={() => handleView(order)}
+                        >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-white"
+                          onClick={() => handleEdit(order)}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button

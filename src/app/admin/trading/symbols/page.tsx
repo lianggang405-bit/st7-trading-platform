@@ -123,6 +123,16 @@ export default function SymbolsPage() {
     }
   };
 
+  const handleView = (symbol: Symbol) => {
+    toast.info(`查看品种: ${symbol.name}`);
+    // TODO: 打开查看对话框
+  };
+
+  const handleEdit = (symbol: Symbol) => {
+    toast.info(`编辑品种: ${symbol.name}`);
+    // TODO: 打开编辑对话框
+  };
+
   const getTypeBadge = (type: string) => {
     const typeMap: Record<string, string> = {
       Metal: 'Metal',
@@ -247,10 +257,20 @@ export default function SymbolsPage() {
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
                         <MoreVertical className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-gray-400 hover:text-white"
+                        onClick={() => handleView(symbol)}
+                      >
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-gray-400 hover:text-white"
+                        onClick={() => handleEdit(symbol)}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button
