@@ -1,67 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-
-// GET - 获取实名认证详情
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id: requestId } = await params;
-
-    // 获取实名认证详情
-    const { data: kycRequest, error } = await supabase
-      .from('kyc_requests')
-      .select('*')
-      .eq('id', requestId)
-      .single();
-
-    if (error) {
-      console.error('Error fetching KYC request:', error);
-      return NextResponse.json(
-        { success: false, error: 'KYC request not found' },
-        { status: 404 }
-      );
-    }
-
-    // 获取关联的用户信息
-    const { data: user } = await supabase
-      .from('users')
-      .select('email')
-      .eq('id', kycRequest.user_id)
-      .single();
-
-    // 格式化数据
-    const formattedKYC = {
-      id: kycRequest.id,
-      userId: kycRequest.user_id,
-      email: user?.email || '',
-      realName: kycRequest.real_name || '—',
-      idNumber: kycRequest.id_number || '—',
-      idCardFront: kycRequest.id_card_front_url || '',
-      idCardBack: kycRequest.id_card_back_url || '',
-      applyTime: kycRequest.created_at
-        ? new Date(kycRequest.created_at).toLocaleString('zh-CN')
-        : '—',
-      reviewTime: kycRequest.updated_at
-        ? new Date(kycRequest.updated_at).toLocaleString('zh-CN')
-        : '—',
-      status: kycRequest.status || 'pending',
-      rejectReason: kycRequest.reject_reason || '—',
-    };
-
-    return NextResponse.json({
-      success: true,
-      kyc: formattedKYC,
-    });
-  } catch (error) {
-    console.error('Error in GET /api/admin/users/kyc/[id]:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
+import { verifyAdminToken } from '@/lib/admin-auth';
+import { databaseService } from '@/lib/database-service';
 
 // PATCH - 更新实名认证状态
 export async function PATCH(
@@ -69,51 +8,45 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: requestId } = await params;
+    const { id } = await params;
+    const adminToken = request.cookies.get('admin_token')?.value ||
+                      request.headers.get('authorization')?.replace('Bearer ', '');
+
+    // 验证管理员权限
+    const admin = verifyAdminToken(adminToken || '');
+    if (!admin) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { status, rejectReason } = body;
 
-    const updateData: any = {
+    if (!status || !['approved', 'rejected'].includes(status)) {
+      return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    }
+
+    if (status === 'rejected' && !rejectReason) {
+      return NextResponse.json({ error: 'Reject reason is required' }, { status: 400 });
+    }
+
+    // 更新申请状态（实际是更新 applications 表中的 type=verification 的记录）
+    const updatedApplication = await databaseService.updateApplicationStatus(
+      parseInt(id),
       status,
-      updated_at: new Date().toISOString(),
-    };
+      admin.username,
+      status === 'rejected' ? rejectReason : undefined
+    );
 
-    if (rejectReason) {
-      updateData.reject_reason = rejectReason;
-    }
-
-    const { data, error } = await supabase
-      .from('kyc_requests')
-      .update(updateData)
-      .eq('id', requestId)
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    // 如果审核通过，更新用户表的实名认证状态
-    if (status === 'approved') {
-      await supabase
-        .from('users')
-        .update({ is_verified: true })
-        .eq('id', data.user_id);
+    if (!updatedApplication) {
+      return NextResponse.json({ error: 'Application not found' }, { status: 404 });
     }
 
     return NextResponse.json({
       success: true,
-      message: 'KYC request updated successfully',
-      data,
+      application: updatedApplication,
     });
   } catch (error) {
-    console.error('Failed to update KYC request:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to update KYC request',
-      },
-      { status: 500 }
-    );
+    console.error('[Admin KYC PATCH] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

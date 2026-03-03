@@ -20,7 +20,23 @@ export async function GET(req: NextRequest) {
 
     // 使用数据库服务获取所有申请，然后过滤当前用户的申请
     const allApplications = await databaseService.getApplications();
-    const userApplications = allApplications.filter((app) => app.user_id === userId);
+    const userApplications = allApplications
+      .filter((app) => app.user_id === userId)
+      .map((app) => ({
+        id: app.id,
+        type: app.type,
+        status: app.status,
+        amount: app.amount,
+        bankName: app.bank_name,
+        bankAccount: app.bank_account,
+        realName: app.real_name,
+        idCard: app.id_card,
+        rejectReason: app.reject_reason,
+        createdAt: app.created_at,
+        updatedAt: app.updated_at,
+        reviewedBy: app.reviewed_by,
+        reviewedAt: app.reviewed_at,
+      }));
 
     return NextResponse.json({
       success: true,

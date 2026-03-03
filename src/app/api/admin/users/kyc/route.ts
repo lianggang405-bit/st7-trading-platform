@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { databaseService } from '@/lib/database-service';
 
 // GET - 获取实名认证列表
 export async function GET(request: NextRequest) {
@@ -12,57 +13,75 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'all';
 
-    const offset = (page - 1) * limit;
+    // 从 applications 表获取所有实名认证申请
+    let applications = await databaseService.getApplications({
+      status: status !== 'all' ? (status as 'pending' | 'approved' | 'rejected') : undefined,
+    });
 
-    let query = supabase
-      .from('kyc_requests')
-      .select('*', { count: 'exact' })
-      .range(offset, offset + limit - 1)
-      .order(sort, { ascending: order === 'asc' });
+    // 过滤只保留实名认证类型的申请
+    let kycApplications = applications.filter(app => app.type === 'verification');
 
-    // 状态过滤
-    if (status !== 'all') {
-      query = query.eq('status', status);
-    }
-
-    // 搜索条件
+    // 搜索过滤
     if (search) {
-      query = query.or(`real_name.ilike.%${search}%,id_number.ilike.%${search}%`);
-    }
-
-    const { data, error, count } = await query;
-
-    if (error) {
-      throw error;
+      const searchLower = search.toLowerCase();
+      kycApplications = kycApplications.filter(app =>
+        (app.real_name && app.real_name.toLowerCase().includes(searchLower)) ||
+        (app.id_card && app.id_card.toLowerCase().includes(searchLower))
+      );
     }
 
     // 获取用户邮箱信息
-    const userIds = data?.map((req: any) => req.user_id) || [];
-    const { data: users } = await supabase
-      .from('users')
-      .select('id, email')
-      .in('id', userIds);
+    const userIds = kycApplications.map(app => app.user_id);
+    const users = await Promise.all(
+      userIds.map(async (userId) => {
+        const user = await databaseService.getUserById(userId);
+        return user;
+      })
+    );
 
-    const userMap = new Map(users?.map((u: any) => [u.id, u.email]));
+    const userMap = new Map(
+      users.filter((u): u is NonNullable<typeof u> => u !== null).map(u => [u.id, u.email])
+    );
 
     // 格式化数据
-    const formattedRequests = data?.map((req: any) => ({
-      id: req.id,
-      userId: req.user_id,
-      email: userMap.get(req.user_id) || '—',
-      realName: req.real_name,
-      idNumber: req.id_number,
-      applyTime: new Date(req.created_at).toLocaleString('zh-CN'),
-      status: req.status,
-      rejectReason: req.reject_reason,
-      idCardFront: req.id_card_front,
-      idCardBack: req.id_card_back,
-    })) || [];
+    const formattedRequests = kycApplications.map(app => ({
+      id: app.id,
+      userId: app.user_id,
+      email: userMap.get(app.user_id) || '—',
+      realName: app.real_name || '—',
+      idNumber: app.id_card || '—',
+      applyTime: new Date(app.created_at).toLocaleString('zh-CN'),
+      status: app.status,
+      rejectReason: app.reject_reason || '',
+      idCardFront: '', // 暂时不支持图片
+      idCardBack: '', // 暂时不支持图片
+    }));
+
+    // 排序
+    formattedRequests.sort((a, b) => {
+      let valueA: any = a[sort as keyof typeof a];
+      let valueB: any = b[sort as keyof typeof b];
+
+      if (sort === 'id') {
+        valueA = parseInt(valueA as string);
+        valueB = parseInt(valueB as string);
+      }
+
+      if (order === 'asc') {
+        return valueA > valueB ? 1 : -1;
+      } else {
+        return valueA < valueB ? 1 : -1;
+      }
+    });
+
+    // 分页
+    const offset = (page - 1) * limit;
+    const paginatedRequests = formattedRequests.slice(offset, offset + limit);
 
     return NextResponse.json({
       success: true,
-      requests: formattedRequests,
-      total: count,
+      requests: paginatedRequests,
+      total: formattedRequests.length,
       page,
       limit,
     });
