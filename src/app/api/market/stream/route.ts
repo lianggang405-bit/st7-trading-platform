@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getPriceFromBinance } from '@/lib/market-data-source';
 import { getRandomChange } from '@/lib/market-generator';
+import { monitorAndTriggerOrders } from '@/lib/order-monitor';
 
 /**
  * GET /api/market/stream
@@ -88,6 +89,11 @@ export async function GET(request: NextRequest) {
             type: 'update',
             data: updates,
             timestamp: Date.now(),
+          });
+
+          // 异步检查订单触发（不阻塞 SSE 流）
+          monitorAndTriggerOrders().catch(error => {
+            console.error('[MarketStream] Order monitoring error:', error);
           });
         } catch (error) {
           console.error('[MarketStream] Error fetching market data:', error);
