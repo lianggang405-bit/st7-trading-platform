@@ -9,6 +9,7 @@ import { AuthProvider } from '../../components/providers/auth-provider';
 import '../globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://forexpl.shop'),
   title: {
     default: 'ST7全球交易平台-专业数字资产交易',
     template: '%s | ST7全球交易平台',

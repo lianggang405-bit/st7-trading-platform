@@ -7,7 +7,7 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 const nextConfig: NextConfig = {
   // outputFileTracingRoot: path.resolve(__dirname, '../../'),
   /* config options here */
-  allowedDevOrigins: ['*.dev.coze.site'],
+  allowedDevOrigins: ['*.dev.coze.site', 'forexpl.shop', 'www.forexpl.shop'],
   images: {
     remotePatterns: [
       {
