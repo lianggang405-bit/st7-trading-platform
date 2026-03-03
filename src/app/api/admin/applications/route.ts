@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminToken } from '@/lib/admin-auth';
-import { databaseService } from '@/lib/database-service';
+import { mockDataService } from '@/lib/mock-data-service';
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,18 +16,38 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
     const type = searchParams.get('type');
 
-    const applications = await databaseService.getApplications({
-      status: status && ['pending', 'approved', 'rejected'].includes(status)
+    // 使用 mockDataService 获取申请数据（与前端统一）
+    const applications = mockDataService.getApplications(
+      status && ['pending', 'approved', 'rejected'].includes(status)
         ? (status as 'pending' | 'approved' | 'rejected')
         : undefined,
-      type: type && ['deposit', 'withdraw', 'verification'].includes(type)
+      type && ['deposit', 'withdraw', 'verification'].includes(type)
         ? (type as 'deposit' | 'withdraw' | 'verification')
-        : undefined,
-    });
+        : undefined
+    );
+
+    // 转换为管理端需要的格式
+    const formattedApplications = applications.map(app => ({
+      id: app.id,
+      userId: app.userId,
+      type: app.type,
+      status: app.status,
+      amount: app.amount,
+      bankName: app.bankName,
+      bankAccount: app.bankAccount,
+      realName: app.realName,
+      idCard: app.idCard,
+      rejectReason: app.rejectReason,
+      createdAt: app.createdAt,
+      updatedAt: app.updatedAt,
+      reviewedBy: app.reviewedBy,
+      reviewedAt: app.reviewedAt,
+      user: app.user,
+    }));
 
     return NextResponse.json({
       success: true,
-      applications,
+      applications: formattedApplications,
     });
   } catch (error) {
     console.error('[Admin Applications] Error:', error);

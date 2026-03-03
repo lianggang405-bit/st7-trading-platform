@@ -247,6 +247,23 @@ class MockDataService {
     return app;
   }
 
+  // 添加申请
+  addApplication(application: Omit<MockApplication, 'id' | 'createdAt' | 'updatedAt' | 'status'>): MockApplication {
+    const newApplication: MockApplication = {
+      id: this.appIdCounter++,
+      ...application,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.applications.unshift(newApplication);
+
+    console.log(`[MockDataService] Added application: ${application.type} for user ${application.userId}`);
+
+    return newApplication;
+  }
+
   // 获取市场调控记录
   getMarketAdjustments(symbol?: string, limit: number = 50): MockMarketAdjustment[] {
     let result = [...this.marketAdjustments];

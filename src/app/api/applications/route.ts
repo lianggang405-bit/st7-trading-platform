@@ -72,6 +72,17 @@ export async function POST(req: NextRequest) {
         // TODO: 保存文件到对象存储
         // 这里暂时只记录文件信息
         console.log('[Applications] Crypto deposit - Currency ID:', currencyId, 'Amount:', amount, 'File:', proof.name);
+
+        // 创建数字货币充值申请
+        const application = mockDataService.addApplication({
+          userId,
+          type: 'deposit',
+          amount,
+          bankName: 'Crypto',
+          bankAccount: currencyId,
+        });
+
+        return NextResponse.json({ success: true, application });
       } else if (type === 'bank') {
         // 银行卡充值
         const bankId = formData.get('bankId') as string;
@@ -83,11 +94,22 @@ export async function POST(req: NextRequest) {
         // TODO: 保存文件到对象存储
         // 这里暂时只记录文件信息
         console.log('[Applications] Bank deposit - Bank ID:', bankId, 'Amount:', amount, 'File:', proof.name);
+
+        // 创建银行充值申请
+        const application = mockDataService.addApplication({
+          userId,
+          type: 'deposit',
+          amount,
+          bankName: bankId,
+          bankAccount: 'N/A',
+        });
+
+        return NextResponse.json({ success: true, application });
       } else {
         return NextResponse.json({ error: 'Invalid application type' }, { status: 400 });
       }
     } else {
-      // 处理 JSON（旧入金页面）
+      // 处理 JSON（旧入金页面和实名认证）
       const body = await req.json();
       type = body.type;
       amount = body.amount;
@@ -120,28 +142,36 @@ export async function POST(req: NextRequest) {
           );
         }
       }
+
+      // 创建申请记录并保存到 MockDataService
+      let application;
+
+      if (type === 'verification') {
+        // 实名认证申请
+        application = mockDataService.addApplication({
+          userId,
+          type: 'verification',
+          realName: body.realName,
+          idCard: body.idCard,
+        });
+      } else {
+        // 入金/出金申请
+        application = mockDataService.addApplication({
+          userId,
+          type,
+          amount,
+          bankName,
+          bankAccount,
+        });
+      }
+
+      console.log('[Applications] Created application:', application);
+
+      return NextResponse.json({
+        success: true,
+        application,
+      });
     }
-
-    // 创建申请记录
-    const application = {
-      id: Date.now(),
-      userId,
-      type,
-      amount: amount?.toString(),
-      bankName,
-      bankAccount,
-      status: 'pending' as const,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // TODO: 保存到数据库
-    console.log('[Applications] Created application:', application);
-
-    return NextResponse.json({
-      success: true,
-      application,
-    });
   } catch (error) {
     console.error('[Applications POST] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

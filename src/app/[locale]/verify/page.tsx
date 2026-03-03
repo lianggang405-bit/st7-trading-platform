@@ -61,7 +61,7 @@ export default function VerifyPage() {
       console.log('[Verify Page] Response data:', data);
 
       if (response.ok && data.success) {
-        toast.success('實名認證已提交，等待審核通過');
+        toast.success('你的申請已提交，請等待系統審核，有需要請聯繫客服');
         router.back();
       } else {
         toast.error(data.error || '提交失敗');
