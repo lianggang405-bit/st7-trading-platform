@@ -17,13 +17,21 @@ export default function PositionPage() {
   const router = useRouter();
   const pathname = usePathname();
   const locale = pathname.split('/')[1];
-  const { user, logout, isHydrated } = useAuthStore();
+  const { user, logout, isHydrated, isLogin } = useAuthStore();
   const marketState = useMarketStore();
   const symbols = marketState?.symbols ?? [];
   const tick = marketState?.tick;
-  const { positions, closePosition, updatePositions } = usePositionStore();
+  const { positions, closePosition, updatePositions, syncFromBackend } = usePositionStore();
   const { updateFloatingProfit, onClosePosition, equity, usedMargin, balance, freeMargin } = useAssetStore();
   const { marginLevel, warning, danger, updateRisk, checkAndForceClose } = useRiskControlStore();
+
+  // 页面加载时，同步后端数据
+  useEffect(() => {
+    if (isHydrated && isLogin) {
+      syncFromBackend();
+      useAssetStore.getState().syncFromBackend();
+    }
+  }, [isHydrated, isLogin, syncFromBackend]);
 
   // 确认对话框状态
   const [confirmDialog, setConfirmDialog] = useState<{

@@ -57,6 +57,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // 初始化资产
         useAssetStore.getState().initWithUser(user);
 
+        // 登录成功后，同步后端数据
+        usePositionStore.getState().syncFromBackend();
+        usePositionStore.getState().syncPendingOrders();
+        useAssetStore.getState().syncFromBackend();
+
         console.log(`[AuthStore] User logged in via API: ${user.id} (${user.email}, type: ${user.accountType})`);
       } else {
         // API 验证失败，尝试使用 Mock 数据
@@ -95,6 +100,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         // 初始化资产
         useAssetStore.getState().initWithUser(user);
+
+        // 登录成功后，同步后端数据
+        usePositionStore.getState().syncFromBackend();
+        usePositionStore.getState().syncPendingOrders();
+        useAssetStore.getState().syncFromBackend();
 
         console.log(`[AuthStore] User logged in via Mock: ${user.id} (${user.email}, type: ${user.accountType})`);
       }

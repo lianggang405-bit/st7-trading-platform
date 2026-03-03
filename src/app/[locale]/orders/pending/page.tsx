@@ -14,7 +14,7 @@ export default function PendingOrdersPage() {
   const router = useRouter();
   const pathname = usePathname();
   const locale = pathname.split('/')[1];
-  const { isHydrated } = useAuthStore();
+  const { isHydrated, isLogin } = useAuthStore();
   const { pendingOrders, cancelOrder, syncPendingOrders } = usePositionStore();
 
   // 确认对话框状态
@@ -32,10 +32,10 @@ export default function PendingOrdersPage() {
 
   // 从后端同步挂单列表
   useEffect(() => {
-    if (isHydrated) {
+    if (isHydrated && isLogin) {
       syncPendingOrders();
     }
-  }, [isHydrated, syncPendingOrders]);
+  }, [isHydrated, isLogin, syncPendingOrders]);
 
   // 取消挂单
   const handleCancelOrder = (id: string) => {
