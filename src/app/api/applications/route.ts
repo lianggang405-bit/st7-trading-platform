@@ -18,9 +18,9 @@ export async function GET(req: NextRequest) {
 
     const userId = parseInt(userIdMatch[1]);
 
-    // 使用数据库服务获取所有申请，然后过滤当前用户的申请
+    // 1. 从 applications 表获取入金、出金、旧版实名认证申请
     const allApplications = await databaseService.getApplications();
-    const userApplications = allApplications
+    const applications = allApplications
       .filter((app) => app.user_id === userId)
       .map((app) => ({
         id: app.id,
@@ -38,9 +38,37 @@ export async function GET(req: NextRequest) {
         reviewedAt: app.reviewed_at,
       }));
 
+    // 2. 从 kyc_requests 表获取新版实名认证申请
+    const kycRequests = await databaseService.getKYCRequests();
+    const kycApplications = kycRequests
+      .filter((kyc) => kyc.user_id === userId)
+      .map((kyc) => ({
+        id: kyc.id,
+        type: 'verification' as const,
+        status: kyc.status,
+        amount: undefined,
+        bankName: undefined,
+        bankAccount: undefined,
+        realName: kyc.real_name,
+        idCard: kyc.id_number,
+        rejectReason: kyc.reject_reason,
+        createdAt: kyc.created_at,
+        updatedAt: kyc.updated_at,
+        reviewedBy: undefined,
+        reviewedAt: undefined,
+      }));
+
+    // 3. 合并两个数据源
+    const allUserApplications = [...applications, ...kycApplications];
+
+    // 4. 按创建时间降序排序
+    allUserApplications.sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
     return NextResponse.json({
       success: true,
-      applications: userApplications,
+      applications: allUserApplications,
     });
   } catch (error) {
     console.error('[Applications GET] Error:', error);
