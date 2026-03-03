@@ -33,6 +33,7 @@ import {
 import { toast } from 'sonner';
 import Image from 'next/image';
 import EditKYCDialog from '@/components/admin/EditKYCDialog';
+import ImagePreview from '@/components/admin/ImagePreview';
 
 interface KYCRequest {
   id: number;
@@ -60,6 +61,9 @@ export default function KYCManagementPage() {
   const [pageSize] = useState(15);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedKYC, setSelectedKYC] = useState<KYCRequest | null>(null);
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const [previewImageSrc, setPreviewImageSrc] = useState('');
+  const [previewImageAlt, setPreviewImageAlt] = useState('');
 
   useEffect(() => {
     fetchRequests();
@@ -256,7 +260,14 @@ export default function KYCManagementPage() {
                   <TableCell className="text-gray-400">{request.rejectReason || '—'}</TableCell>
                   <TableCell>
                     {request.idCardFront ? (
-                      <div className="relative w-12 h-8 bg-slate-700 rounded overflow-hidden cursor-pointer hover:opacity-80">
+                      <div 
+                        className="relative w-12 h-8 bg-slate-700 rounded overflow-hidden cursor-pointer hover:opacity-80"
+                        onClick={() => {
+                          setPreviewImageSrc(request.idCardFront!);
+                          setPreviewImageAlt('身份证正面');
+                          setImagePreviewOpen(true);
+                        }}
+                      >
                         <Image
                           src={request.idCardFront}
                           alt="证件正面"
@@ -270,7 +281,14 @@ export default function KYCManagementPage() {
                   </TableCell>
                   <TableCell>
                     {request.idCardBack ? (
-                      <div className="relative w-12 h-8 bg-slate-700 rounded overflow-hidden cursor-pointer hover:opacity-80">
+                      <div 
+                        className="relative w-12 h-8 bg-slate-700 rounded overflow-hidden cursor-pointer hover:opacity-80"
+                        onClick={() => {
+                          setPreviewImageSrc(request.idCardBack!);
+                          setPreviewImageAlt('身份证反面');
+                          setImagePreviewOpen(true);
+                        }}
+                      >
                         <Image
                           src={request.idCardBack}
                           alt="证件反面"
@@ -366,6 +384,14 @@ export default function KYCManagementPage() {
         onOpenChange={setEditDialogOpen}
         kyc={selectedKYC}
         onSuccess={fetchRequests}
+      />
+
+      {/* 图片预览 */}
+      <ImagePreview
+        open={imagePreviewOpen}
+        onOpenChange={setImagePreviewOpen}
+        src={previewImageSrc}
+        alt={previewImageAlt}
       />
     </div>
   );
