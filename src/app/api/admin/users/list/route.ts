@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
       userLevel: '普通会员',
       status: user.is_active ? 'normal' : 'disabled',
       balance: user.balance || 0,
+      creditScore: user.credit_score || 100,
       createdAt: new Date(user.created_at).toLocaleString('zh-CN'),
       lastLoginAt: user.last_login_at
         ? new Date(user.last_login_at).toLocaleString('zh-CN')
