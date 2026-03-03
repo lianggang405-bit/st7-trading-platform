@@ -75,21 +75,22 @@ export async function GET(request: NextRequest) {
       const openPrice = pos.price;
       const volume = pos.quantity;
       const isLong = pos.side === 'buy';
-      
+
       // 计算盈亏: (当前价格 - 开仓价格) * 数量 * (做多为1，做空为-1)
       let profit = (currentPrice - openPrice) * volume * (isLong ? 1 : -1);
-      
+
       return {
         id: pos.id,
         symbol: pos.symbol,
         side: pos.side,
         volume: pos.quantity,
         openPrice: pos.price,
-        currentPrice: currentPrice, 
+        currentPrice: currentPrice,
         profit: profit,
         openTime: pos.created_at,
         leverage: pos.leverage || 1,
         margin: pos.margin || 0,
+        status: pos.status,  // ✅ 添加 status 字段
       };
     }) || [];
 
@@ -262,6 +263,7 @@ export async function POST(request: NextRequest) {
             openTime: order.created_at,
             leverage: order.leverage,
             margin: order.margin,
+            status: order.status,  // ✅ 添加 status 字段
           },
         });
       }
@@ -375,6 +377,7 @@ export async function POST(request: NextRequest) {
           openTime: order.created_at,
           leverage: order.leverage,
           margin: order.margin,
+          status: order.status,  // ✅ 添加 status 字段
         },
       });
     }
