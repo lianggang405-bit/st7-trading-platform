@@ -278,6 +278,19 @@ export default function EditUserDialog({
               />
             </div>
           </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="lastLoginAt" className="text-right text-gray-400">
+              最后登录时间
+            </Label>
+            <div className="col-span-3">
+              <Input
+                id="lastLoginAt"
+                value={user?.lastLoginAt || ''}
+                disabled
+                className="bg-slate-900/50 border-slate-700 text-gray-500"
+              />
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button
@@ -293,7 +306,7 @@ export default function EditUserDialog({
             disabled={loading}
             className="bg-slate-700 hover:bg-slate-600 text-white"
           >
-            {loading ? '处理中...' : '运行操作'}
+            {loading ? '保存中...' : '保存'}
           </Button>
         </DialogFooter>
       </DialogContent>
