@@ -97,13 +97,15 @@ export const useAssetStore = create<AssetState>((set, get) => ({
   onClosePosition: ({ profit, margin }) => {
     set((state) => {
       const newBalance = state.balance + profit;
-      const newUsedMargin = state.usedMargin - margin;
+      const newUsedMargin = Math.max(0, state.usedMargin - margin); // 防止负数
       const newFreeMargin = newBalance - newUsedMargin;
+      const newEquity = newBalance + state.floatingProfit; // 更新 equity
 
       return {
         balance: newBalance,
         usedMargin: newUsedMargin,
         freeMargin: newFreeMargin,
+        equity: newEquity,
       };
     });
   },

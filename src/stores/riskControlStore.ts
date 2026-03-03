@@ -90,8 +90,12 @@ export const useRiskControlStore = create<RiskControlState>((set, get) => ({
       return;
     }
 
+    // 防止负数 equity 导致的风险率异常
+    const safeEquity = Math.max(0, equity);
+    const safeUsedMargin = Math.max(usedMargin, 0.01); // 防止除以0
+
     // 计算保证金率
-    const marginLevel = (equity / usedMargin) * 100;
+    const marginLevel = (safeEquity / safeUsedMargin) * 100;
 
     // 判断风险等级
     const warning = marginLevel >= 80 && marginLevel < 100;
