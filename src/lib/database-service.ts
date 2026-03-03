@@ -260,6 +260,72 @@ class DatabaseService {
     id_card_front_url?: string;
     id_card_back_url?: string;
   }): Promise<DatabaseApplication | null> {
+    // 对于实名认证申请，临时将图片数据存储到现有字段中，等待 schema 缓存刷新
+    // schema 缓存问题：PostgREST 无法识别新添加的字段（id_card_front_url, id_card_back_url, extra_data）
+    // 临时方案：
+    // - id_card: 存储身份证号（最多50字符）
+    // - reject_reason: 存储两张图片的 JSON 数据
+    if (applicationData.type === 'verification' && applicationData.id_card_front_url && applicationData.id_card_back_url) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.COZE_SUPABASE_URL || '';
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.COZE_SUPABASE_ANON_KEY || '';
+      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.COZE_SUPABASE_SERVICE_ROLE_KEY || '';
+
+      const apiKey = supabaseServiceKey || supabaseAnonKey;
+
+      // 创建临时数据结构（存储图片到 reject_reason）
+      const tempImageData = JSON.stringify({
+        frontImage: applicationData.id_card_front_url,
+        backImage: applicationData.id_card_back_url
+      });
+
+      try {
+        const response = await fetch(`${supabaseUrl}/rest/v1/applications`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': apiKey,
+            'Authorization': `Bearer ${apiKey}`,
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
+            user_id: applicationData.user_id,
+            type: 'verification',
+            status: 'pending',
+            real_name: applicationData.real_name,
+            id_card: applicationData.id_card, // 存储身份证号
+            reject_reason: tempImageData // 临时存储图片数据
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[DatabaseService] REST API error:', response.status, errorText);
+          return null;
+        }
+
+        const data = await response.json();
+        const result = data[0] as DatabaseApplication;
+
+        // 从临时字段中提取图片数据
+        if (result) {
+          try {
+            const imageData = JSON.parse(result.reject_reason || '{}');
+            result.id_card_front_url = imageData.frontImage;
+            result.id_card_back_url = imageData.backImage;
+            result.reject_reason = null; // 清除临时存储
+          } catch (e) {
+            console.error('[DatabaseService] Failed to parse temporary image data:', e);
+          }
+        }
+
+        return result;
+      } catch (error) {
+        console.error('[DatabaseService] Failed to create verification application:', error);
+        return null;
+      }
+    }
+
+    // 对于其他类型的申请（入金、出金），使用 Supabase 客户端
     const client = getSupabaseClient();
     const { data, error } = await client.from('applications').insert(applicationData).select().single();
 
