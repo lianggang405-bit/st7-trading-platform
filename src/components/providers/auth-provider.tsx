@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Inspector } from 'react-dev-inspector';
 import { useAuthStore } from '../../stores/authStore';
 
 /**
@@ -29,10 +28,5 @@ export function AuthProvider({
     hydrateFromCookie();
   }, [hydrateFromCookie]);
 
-  return (
-    <>
-      {isDev && <Inspector />}
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }
