@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminToken } from '@/lib/admin-auth';
-import { mockDataService } from '@/lib/mock-data-service';
+import { databaseService } from '@/lib/database-service';
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,38 +16,48 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
     const type = searchParams.get('type');
 
-    // 使用 mockDataService 获取申请数据（与前端统一）
-    const applications = mockDataService.getApplications(
-      status && ['pending', 'approved', 'rejected'].includes(status)
+    // 使用数据库服务获取申请数据
+    const applications = await databaseService.getApplications({
+      status: status && ['pending', 'approved', 'rejected'].includes(status)
         ? (status as 'pending' | 'approved' | 'rejected')
         : undefined,
-      type && ['deposit', 'withdraw', 'verification'].includes(type)
+      type: type && ['deposit', 'withdraw', 'verification'].includes(type)
         ? (type as 'deposit' | 'withdraw' | 'verification')
-        : undefined
-    );
+        : undefined,
+    });
 
-    // 转换为管理端需要的格式
-    const formattedApplications = applications.map(app => ({
-      id: app.id,
-      userId: app.userId,
-      type: app.type,
-      status: app.status,
-      amount: app.amount,
-      bankName: app.bankName,
-      bankAccount: app.bankAccount,
-      realName: app.realName,
-      idCard: app.idCard,
-      rejectReason: app.rejectReason,
-      createdAt: app.createdAt,
-      updatedAt: app.updatedAt,
-      reviewedBy: app.reviewedBy,
-      reviewedAt: app.reviewedAt,
-      user: app.user,
-    }));
+    // 关联用户信息
+    const applicationsWithUser = await Promise.all(
+      applications.map(async (app) => {
+        const user = await databaseService.getUserById(app.user_id);
+        return {
+          id: app.id,
+          userId: app.user_id,
+          type: app.type,
+          status: app.status,
+          amount: app.amount,
+          bankName: app.bank_name,
+          bankAccount: app.bank_account,
+          realName: app.real_name,
+          idCard: app.id_card,
+          rejectReason: app.reject_reason,
+          createdAt: app.created_at,
+          updatedAt: app.updated_at,
+          reviewedBy: app.reviewed_by,
+          reviewedAt: app.reviewed_at,
+          user: user ? {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            accountType: user.account_type,
+          } : undefined,
+        };
+      })
+    );
 
     return NextResponse.json({
       success: true,
-      applications: formattedApplications,
+      applications: applicationsWithUser,
     });
   } catch (error) {
     console.error('[Admin Applications] Error:', error);

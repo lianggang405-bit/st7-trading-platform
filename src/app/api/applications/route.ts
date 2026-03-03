@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mockDataService } from '@/lib/mock-data-service';
+import { databaseService } from '@/lib/database-service';
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,10 +18,9 @@ export async function GET(req: NextRequest) {
 
     const userId = parseInt(userIdMatch[1]);
 
-    // 使用模拟数据服务获取用户的申请列表
-    // 注意：模拟数据服务返回所有申请，这里我们在内存中过滤
-    const allApplications = mockDataService.getApplications();
-    const userApplications = allApplications.filter((app: any) => app.userId === userId);
+    // 使用数据库服务获取所有申请，然后过滤当前用户的申请
+    const allApplications = await databaseService.getApplications();
+    const userApplications = allApplications.filter((app) => app.user_id === userId);
 
     return NextResponse.json({
       success: true,
@@ -74,13 +73,17 @@ export async function POST(req: NextRequest) {
         console.log('[Applications] Crypto deposit - Currency ID:', currencyId, 'Amount:', amount, 'File:', proof.name);
 
         // 创建数字货币充值申请
-        const application = mockDataService.addApplication({
-          userId,
+        const application = await databaseService.createApplication({
+          user_id: userId,
           type: 'deposit',
           amount,
-          bankName: 'Crypto',
-          bankAccount: currencyId,
+          bank_name: 'Crypto',
+          bank_account: currencyId,
         });
+
+        if (!application) {
+          return NextResponse.json({ error: 'Failed to create application' }, { status: 500 });
+        }
 
         return NextResponse.json({ success: true, application });
       } else if (type === 'bank') {
@@ -96,13 +99,17 @@ export async function POST(req: NextRequest) {
         console.log('[Applications] Bank deposit - Bank ID:', bankId, 'Amount:', amount, 'File:', proof.name);
 
         // 创建银行充值申请
-        const application = mockDataService.addApplication({
-          userId,
+        const application = await databaseService.createApplication({
+          user_id: userId,
           type: 'deposit',
           amount,
-          bankName: bankId,
-          bankAccount: 'N/A',
+          bank_name: bankId,
+          bank_account: 'N/A',
         });
+
+        if (!application) {
+          return NextResponse.json({ error: 'Failed to create application' }, { status: 500 });
+        }
 
         return NextResponse.json({ success: true, application });
       } else {
@@ -143,26 +150,30 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 创建申请记录并保存到 MockDataService
+      // 创建申请记录并保存到数据库
       let application;
 
       if (type === 'verification') {
         // 实名认证申请
-        application = mockDataService.addApplication({
-          userId,
+        application = await databaseService.createApplication({
+          user_id: userId,
           type: 'verification',
-          realName: body.realName,
-          idCard: body.idCard,
+          real_name: body.realName,
+          id_card: body.idCard,
         });
       } else {
         // 入金/出金申请
-        application = mockDataService.addApplication({
-          userId,
+        application = await databaseService.createApplication({
+          user_id: userId,
           type,
           amount,
-          bankName,
-          bankAccount,
+          bank_name: bankName,
+          bank_account: bankAccount,
         });
+      }
+
+      if (!application) {
+        return NextResponse.json({ error: 'Failed to create application' }, { status: 500 });
       }
 
       console.log('[Applications] Created application:', application);
