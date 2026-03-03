@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
-import { Inspector } from 'react-dev-inspector';
 import { notFound } from 'next/navigation';
 import { locales } from '../../../i18n';
 import { BottomTab } from '../../components/layout/bottom-tab';
