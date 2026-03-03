@@ -28,27 +28,13 @@ export interface DatabaseApplication {
   bank_account?: string;
   real_name?: string;
   id_card?: string;
-  id_card_front?: string; // 证件照正面图片 URL
-  id_card_back?: string; // 证件照反面图片 URL
+  id_card_front_url?: string; // 证件照正面图片 URL
+  id_card_back_url?: string; // 证件照反面图片 URL
   reject_reason?: string;
   created_at: string;
   updated_at: string;
   reviewed_by?: string;
   reviewed_at?: string;
-}
-
-// KYC 认证请求接口
-export interface DatabaseKYCRequest {
-  id: number;
-  user_id: number;
-  real_name: string;
-  id_number: string;
-  id_card_front_url?: string;
-  id_card_back_url?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  reject_reason?: string;
-  created_at: string;
-  updated_at: string;
 }
 
 // 市场调控记录接口
@@ -271,99 +257,14 @@ class DatabaseService {
     bank_account?: string;
     real_name?: string;
     id_card?: string;
+    id_card_front_url?: string;
+    id_card_back_url?: string;
   }): Promise<DatabaseApplication | null> {
     const client = getSupabaseClient();
     const { data, error } = await client.from('applications').insert(applicationData).select().single();
 
     if (error) {
       console.error('[DatabaseService] Failed to create application:', error);
-      return null;
-    }
-
-    return data;
-  }
-
-  /**
-   * 创建 KYC 认证请求
-   */
-  async createKYCRequest(kycData: {
-    user_id: number;
-    real_name: string;
-    id_number: string;
-    id_card_front_url?: string;
-    id_card_back_url?: string;
-  }): Promise<DatabaseKYCRequest | null> {
-    const client = getSupabaseClient();
-    const { data, error } = await client.from('kyc_requests').insert(kycData).select().single();
-
-    if (error) {
-      console.error('[DatabaseService] Failed to create KYC request:', error);
-      return null;
-    }
-
-    return data;
-  }
-
-  /**
-   * 根据 ID 获取 KYC 请求
-   */
-  async getKYCRequestById(id: number): Promise<DatabaseKYCRequest | null> {
-    const client = getSupabaseClient();
-    const { data, error } = await client.from('kyc_requests').select('*').eq('id', id).single();
-
-    if (error) {
-      console.error('[DatabaseService] Failed to fetch KYC request:', error);
-      return null;
-    }
-
-    return data;
-  }
-
-  /**
-   * 获取 KYC 请求列表
-   */
-  async getKYCRequests(filters?: {
-    status?: 'pending' | 'approved' | 'rejected';
-  }): Promise<DatabaseKYCRequest[]> {
-    const client = getSupabaseClient();
-    let query = client.from('kyc_requests').select('*').order('created_at', { ascending: false });
-
-    if (filters?.status) {
-      query = query.eq('status', filters.status);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('[DatabaseService] Failed to fetch KYC requests:', error);
-      throw new Error('Failed to fetch KYC requests');
-    }
-
-    return data || [];
-  }
-
-  /**
-   * 更新 KYC 请求状态
-   */
-  async updateKYCRequestStatus(
-    id: number,
-    status: 'approved' | 'rejected',
-    rejectReason?: string
-  ): Promise<DatabaseKYCRequest | null> {
-    const client = getSupabaseClient();
-    const updateData: any = {
-      status,
-      updated_at: new Date().toISOString(),
-    };
-
-    if (rejectReason) {
-      updateData.reject_reason = rejectReason;
-    }
-
-    const { data, error } = await client.from('kyc_requests').update(updateData).eq('id', id).select().single();
-
-    if (error) {
-      console.error('[DatabaseService] Failed to update KYC request status:', error);
       return null;
     }
 

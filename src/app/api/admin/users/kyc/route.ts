@@ -12,22 +12,23 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'all';
 
-    // 从 kyc_requests 表获取所有实名认证申请
-    let kycRequests = await databaseService.getKYCRequests({
+    // 从 applications 表获取实名认证申请
+    let applications = await databaseService.getApplications({
       status: status !== 'all' ? (status as 'pending' | 'approved' | 'rejected') : undefined,
+      type: 'verification',
     });
 
     // 搜索过滤
     if (search) {
       const searchLower = search.toLowerCase();
-      kycRequests = kycRequests.filter(req =>
-        (req.real_name && req.real_name.toLowerCase().includes(searchLower)) ||
-        (req.id_number && req.id_number.toLowerCase().includes(searchLower))
+      applications = applications.filter(app =>
+        (app.real_name && app.real_name.toLowerCase().includes(searchLower)) ||
+        (app.id_card && app.id_card.toLowerCase().includes(searchLower))
       );
     }
 
     // 获取用户邮箱信息
-    const userIds = kycRequests.map(req => req.user_id);
+    const userIds = applications.map(app => app.user_id);
     const users = await Promise.all(
       userIds.map(async (userId) => {
         const user = await databaseService.getUserById(userId);
@@ -40,17 +41,17 @@ export async function GET(request: NextRequest) {
     );
 
     // 格式化数据
-    const formattedRequests = kycRequests.map(req => ({
-      id: req.id,
-      userId: req.user_id,
-      email: userMap.get(req.user_id) || '—',
-      realName: req.real_name || '—',
-      idNumber: req.id_number || '—',
-      applyTime: new Date(req.created_at).toLocaleString('zh-CN'),
-      status: req.status,
-      rejectReason: req.reject_reason || '',
-      idCardFront: req.id_card_front_url || '', // 返回证件照正面
-      idCardBack: req.id_card_back_url || '',   // 返回证件照反面
+    const formattedRequests = applications.map(app => ({
+      id: app.id,
+      userId: app.user_id,
+      email: userMap.get(app.user_id) || '—',
+      realName: app.real_name || '—',
+      idNumber: app.id_card || '—',
+      applyTime: new Date(app.created_at).toLocaleString('zh-CN'),
+      status: app.status,
+      rejectReason: app.reject_reason || '',
+      idCardFront: app.id_card_front_url || '', // 返回证件照正面
+      idCardBack: app.id_card_back_url || '',   // 返回证件照反面
     }));
 
     // 排序
