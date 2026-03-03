@@ -64,7 +64,7 @@ export default function EditUserDialog({
       setFormData({
         email: user.email,
         inviteCode: user.inviteCode,
-        status: user.status === '正常' ? '正常' : user.status === '禁用' ? '禁用' : '冻结',
+        status: user.status || '正常',
         balance: user.balance.toString(),
         password: '',
         remark: user.remark === '—' ? '' : user.remark,
@@ -211,7 +211,7 @@ export default function EditUserDialog({
                 onValueChange={(value) => setFormData({ ...formData, status: value })}
               >
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                  <SelectValue />
+                  <SelectValue placeholder="选择一个选项" />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-700 border-slate-600 text-white">
                   <SelectItem value="正常">正常</SelectItem>
