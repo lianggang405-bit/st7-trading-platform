@@ -29,21 +29,20 @@ export async function PATCH(
       return NextResponse.json({ error: 'Reject reason is required' }, { status: 400 });
     }
 
-    // 更新申请状态（实际是更新 applications 表中的 type=verification 的记录）
-    const updatedApplication = await databaseService.updateApplicationStatus(
+    // 更新 KYC 请求状态
+    const updatedKYC = await databaseService.updateKYCRequestStatus(
       parseInt(id),
       status,
-      admin.username,
       status === 'rejected' ? rejectReason : undefined
     );
 
-    if (!updatedApplication) {
-      return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+    if (!updatedKYC) {
+      return NextResponse.json({ error: 'KYC request not found' }, { status: 404 });
     }
 
     return NextResponse.json({
       success: true,
-      application: updatedApplication,
+      application: updatedKYC,
     });
   } catch (error) {
     console.error('[Admin KYC PATCH] Error:', error);

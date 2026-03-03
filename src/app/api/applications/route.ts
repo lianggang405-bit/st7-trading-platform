@@ -170,15 +170,16 @@ export async function POST(req: NextRequest) {
       let application;
 
       if (type === 'verification') {
-        // 实名认证申请
-        application = await databaseService.createApplication({
+        // 实名认证申请 - 使用 kyc_requests 表
+        application = await databaseService.createKYCRequest({
           user_id: userId,
-          type: 'verification',
           real_name: body.realName,
-          id_card: body.idCard,
+          id_number: body.idCard,
+          id_card_front_url: body.frontImage, // 保存证件照正面
+          id_card_back_url: body.backImage,   // 保存证件照反面
         });
       } else {
-        // 入金/出金申请
+        // 入金/出金申请 - 使用 applications 表
         application = await databaseService.createApplication({
           user_id: userId,
           type,

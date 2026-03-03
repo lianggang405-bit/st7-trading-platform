@@ -51,6 +51,8 @@ export default function VerifyPage() {
           type: 'verification',
           realName: realName.trim(),
           idCard: idNumber.trim(),
+          frontImage: frontImage, // 发送证件照正面
+          backImage: backImage,   // 发送证件照反面
         }),
       });
 
