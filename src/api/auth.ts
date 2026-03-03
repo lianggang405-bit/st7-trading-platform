@@ -40,10 +40,15 @@ export async function login(params: LoginParams): Promise<{ success: boolean; us
   const response = await apiClient.post<any>('/api/auth/validate', params);
 
   if (response.success && response.data?.user) {
-    // 生成并保存 token
+    // 生成并保存 token（统一格式：token_<userId>_<timestamp>）
     const token = `token_${response.data.user.id}_${Date.now()}`;
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(response.data.user));
+
+    // 同步到 cookie（确保后续 API 调用可以获取 token）
+    if (typeof document !== 'undefined') {
+      document.cookie = `token=${token}; path=/; max-age=86400; SameSite=lax`;
+    }
 
     return {
       success: true,
@@ -84,8 +89,10 @@ export async function logout(): Promise<void> {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
 
-  // 清除 cookie
-  document.cookie = 'token=; path=/; max-age=0';
+  // 清除 cookie（确保使用 SameSite=lax）
+  if (typeof document !== 'undefined') {
+    document.cookie = 'token=; path=/; max-age=0; SameSite=lax';
+  }
 }
 
 /**

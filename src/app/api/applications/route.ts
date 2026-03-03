@@ -10,8 +10,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 从 token 解析用户 ID (格式: mock_token_<userId>_<timestamp>)
-    const userIdMatch = token.match(/mock_token_(\d+)_/);
+    // 从 token 解析用户 ID (格式: token_<userId>_<timestamp>)
+    const userIdMatch = token.match(/token_(\d+)_/);
     if (!userIdMatch) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 从 token 解析用户 ID (格式: mock_token_<userId>_<timestamp>)
-    const userIdMatch = token.match(/mock_token_(\d+)_/);
+    // 从 token 解析用户 ID (格式: token_<userId>_<timestamp>)
+    const userIdMatch = token.match(/token_(\d+)_/);
     if (!userIdMatch) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }

@@ -41,9 +41,12 @@ export default function VerifyPage() {
     setIsSubmitting(true);
 
     try {
+      console.log('[Verify Page] Submitting verification request...');
+
       const response = await fetch('/api/applications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // 确保发送 cookie
         body: JSON.stringify({
           type: 'verification',
           realName: realName.trim(),
@@ -51,16 +54,20 @@ export default function VerifyPage() {
         }),
       });
 
-      const data = await response.json();
+      console.log('[Verify Page] Response status:', response.status);
+      console.log('[Verify Page] Response headers:', Object.fromEntries(response.headers.entries()));
 
-      if (data.success) {
+      const data = await response.json();
+      console.log('[Verify Page] Response data:', data);
+
+      if (response.ok && data.success) {
         toast.success('實名認證已提交，等待審核通過');
         router.back();
       } else {
         toast.error(data.error || '提交失敗');
       }
     } catch (err) {
-      console.error('Verification error:', err);
+      console.error('[Verify Page] Verification error:', err);
       toast.error('網絡錯誤，請稍後重試');
     } finally {
       setIsSubmitting(false);

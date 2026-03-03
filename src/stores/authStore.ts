@@ -79,8 +79,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           createdAt: mockUser.createdAt,
         };
 
-        // 生成模拟 token
-        const token = `mock_token_${user.id}_${Date.now()}`;
+        // 生成模拟 token（统一格式：token_<userId>_<timestamp>）
+        const token = `token_${user.id}_${Date.now()}`;
 
         // 保存到 localStorage
         localStorage.setItem('token', token);
