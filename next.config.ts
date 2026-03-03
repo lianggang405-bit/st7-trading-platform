@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
         hostname: 'images.unsplash.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'code.coze.cn',
+        pathname: '/**',
+      },
     ],
   },
 };

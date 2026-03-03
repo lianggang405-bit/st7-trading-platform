@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseService } from '@/lib/database-service';
 
-// PUT - 更新用户信用分
-export async function PUT(
+// PATCH - 更新用户信用分
+export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -43,10 +43,11 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
+      message: '信用分更新成功',
       user: updatedUser,
     });
   } catch (error) {
-    console.error('Error in PUT /api/admin/users/[id]/credit-score:', error);
+    console.error('Error in PATCH /api/admin/users/[id]/credit-score:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
