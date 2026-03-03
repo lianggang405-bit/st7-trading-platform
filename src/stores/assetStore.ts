@@ -58,8 +58,8 @@ export const useAssetStore = create<AssetState>((set, get) => ({
 
   // 开仓时计算保证金
   onOpenPosition: ({ volume, price, margin }) => {
-    // 如果提供了 margin（考虑杠杆），使用它；否则使用默认计算
-    const finalMargin = margin || (price * volume * 0.1);
+    // 如果提供了 margin（考虑杠杆），使用它；否则使用默认计算（10倍杠杆）
+    const finalMargin = margin || (price * volume / 10);
 
     console.log('[AssetStore] onOpenPosition called:', {
       volume,

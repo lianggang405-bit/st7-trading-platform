@@ -163,8 +163,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 计算保证金
-    const margin = (price * volume * 0.1) / leverage;
+    // 计算保证金（统一使用杠杆模式）
+    const margin = (price * volume) / leverage;
 
     // 检查是否为模拟账户 token
     const isDemo = token.includes('demo');
