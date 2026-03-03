@@ -207,38 +207,28 @@ export default function EditKYCDialog({
           <div className="space-y-2">
             <Label className="text-gray-300">证件照正面</Label>
             {kyc?.idCardFront && (
-              <div className="relative">
-                <div className="bg-slate-900 rounded-lg overflow-hidden min-h-[200px] flex items-center justify-center mb-2">
-                  <Image
-                    src={kyc.idCardFront}
-                    alt="证件照正面"
-                    width={600}
-                    height={400}
-                    className="object-contain max-w-full"
-                  />
-                </div>
-                <div className="text-gray-500 text-xs break-all">
-                  {kyc.idCardFront}
-                </div>
+              <div className="bg-slate-900 rounded-lg overflow-hidden min-h-[200px] flex items-center justify-center">
+                <Image
+                  src={kyc.idCardFront}
+                  alt="证件照正面"
+                  width={600}
+                  height={400}
+                  className="object-contain max-w-full"
+                />
               </div>
             )}
           </div>
           <div className="space-y-2">
             <Label className="text-gray-300">证件照反面</Label>
             {kyc?.idCardBack && (
-              <div className="relative">
-                <div className="bg-slate-900 rounded-lg overflow-hidden min-h-[200px] flex items-center justify-center mb-2">
-                  <Image
-                    src={kyc.idCardBack}
-                    alt="证件照反面"
-                    width={600}
-                    height={400}
-                    className="object-contain max-w-full"
-                  />
-                </div>
-                <div className="text-gray-500 text-xs break-all">
-                  {kyc.idCardBack}
-                </div>
+              <div className="bg-slate-900 rounded-lg overflow-hidden min-h-[200px] flex items-center justify-center">
+                <Image
+                  src={kyc.idCardBack}
+                  alt="证件照反面"
+                  width={600}
+                  height={400}
+                  className="object-contain max-w-full"
+                />
               </div>
             )}
           </div>
