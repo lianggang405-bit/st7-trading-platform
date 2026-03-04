@@ -147,13 +147,25 @@ export async function POST(request: NextRequest) {
           currency,
           protocol,
           address,
-          usd_price: usdPrice,
+          usdPrice: usdPrice,
           status: status || 'active'
         }
       }, { status: 201 });
     }
 
-    return NextResponse.json({ success: true, address: cryptoAddress }, { status: 201 });
+    // 转换数据格式以匹配前端期望
+    const formattedAddress = {
+      id: cryptoAddress.id,
+      currency: cryptoAddress.currency,
+      protocol: cryptoAddress.protocol,
+      address: cryptoAddress.address,
+      status: cryptoAddress.status,
+      usdPrice: cryptoAddress.usd_price,
+      createdAt: cryptoAddress.created_at,
+      updatedAt: cryptoAddress.updated_at,
+    };
+
+    return NextResponse.json({ success: true, address: formattedAddress }, { status: 201 });
   } catch (error) {
     console.error('Error in POST crypto addresses:', error);
     // ✅ 返回模拟数据
@@ -164,7 +176,7 @@ export async function POST(request: NextRequest) {
         currency: 'BTC',
         protocol: 'ERC20',
         address: '0x1a2b3c4d5e6f...',
-        usd_price: 95000,
+        usdPrice: 95000,
         status: 'active'
       }
     }, { status: 201 });

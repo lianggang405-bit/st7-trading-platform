@@ -68,7 +68,19 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, address: cryptoAddress });
+    // 转换数据格式以匹配前端期望
+    const formattedAddress = {
+      id: cryptoAddress.id,
+      currency: cryptoAddress.currency,
+      protocol: cryptoAddress.protocol,
+      address: cryptoAddress.address,
+      status: cryptoAddress.status,
+      usdPrice: cryptoAddress.usd_price,
+      createdAt: cryptoAddress.created_at,
+      updatedAt: cryptoAddress.updated_at,
+    };
+
+    return NextResponse.json({ success: true, address: formattedAddress });
   } catch (error) {
     console.error('Error in PATCH crypto address:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
