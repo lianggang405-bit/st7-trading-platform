@@ -15,40 +15,68 @@ const mockCurrencies = [
 export async function GET(request: NextRequest) {
   try {
     // 首先尝试从 crypto_addresses 表获取加密货币配置
-    try {
-      const { data, error } = await supabase
-        .from('crypto_addresses')
-        .select('*')
-        .eq('status', 'active')
-        .order('id');
-
-      if (!error && data) {
-        // 转换数据格式
-        const currencies = data.map((item: any) => ({
-          id: item.id,
-          code: item.currency,
-          name: item.currency,
-          nameEn: item.currency,
-          symbol: item.currency,
-          protocol: item.protocol || item.network, // 添加协议字段
-          walletAddress: item.address,
-          qrCode: '',
-          minAmount: 0,
-          maxAmount: 0,
-          fee: 0,
-          feeType: 'fixed' as const,
-        }));
-
-        return NextResponse.json({
-          success: true,
-          currencies,
-        });
+    let data: any;
+    let error: any;
+    
+    // 第一次尝试
+    const firstResult = await supabase
+      .from('crypto_addresses')
+      .select('*')
+      .eq('status', 'active')
+      .order('id');
+    
+    data = firstResult.data;
+    error = firstResult.error;
+    
+    // 如果遇到 schema cache 错误，尝试刷新 schema cache 并重试
+    if (error && error.message && error.message.includes('schema cache')) {
+      console.log('[Crypto Currencies API] Schema cache error detected, trying to refresh...');
+      
+      // 刷新 schema cache：通过执行一个简单的查询来刷新
+      try {
+        await supabase.from('crypto_addresses').select('id').limit(1);
+        console.log('[Crypto Currencies API] Schema cache refreshed, retrying query...');
+        
+        // 重试查询
+        const retryResult = await supabase
+          .from('crypto_addresses')
+          .select('*')
+          .eq('status', 'active')
+          .order('id');
+        
+        data = retryResult.data;
+        error = retryResult.error;
+      } catch (retryError: any) {
+        console.error('[Crypto Currencies API] Retry also failed:', retryError);
+        // 保持原始错误
       }
-    } catch (dbError) {
-      console.warn('[Crypto Currencies API] Database query failed, using mock data:', dbError);
+    }
+
+    if (!error && data) {
+      // 转换数据格式
+      const currencies = data.map((item: any) => ({
+        id: item.id,
+        code: item.currency,
+        name: item.currency,
+        nameEn: item.currency,
+        symbol: item.currency,
+        protocol: item.protocol || item.network, // 添加协议字段
+        walletAddress: item.address,
+        qrCode: '',
+        minAmount: 0,
+        maxAmount: 0,
+        fee: 0,
+        feeType: 'fixed' as const,
+      }));
+
+      return NextResponse.json({
+        success: true,
+        currencies,
+      });
     }
 
     // 如果数据库查询失败，返回模拟数据
+    console.warn('[Crypto Currencies API] Database query failed, using mock data:', error);
     return NextResponse.json({
       success: true,
       currencies: mockCurrencies,
