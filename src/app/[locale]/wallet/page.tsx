@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
 import { useAuthStore } from '../../../stores/authStore';
+import { useAssetStore } from '../../../stores/assetStore';
 
 export interface Wallet {
   address: string;
@@ -15,6 +16,7 @@ export interface Wallet {
 export default function WalletAuthorizePage() {
   const router = useRouter();
   const { user, logout, isHydrated } = useAuthStore();
+  const { balance, syncFromBackend } = useAssetStore();
 
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [newWalletAddress, setNewWalletAddress] = useState('');
@@ -78,6 +80,23 @@ export default function WalletAuthorizePage() {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
+  // 同步后端余额数据
+  useEffect(() => {
+    if (user && isHydrated) {
+      syncFromBackend();
+    }
+  }, [user, isHydrated, syncFromBackend]);
+
+  // 格式化余额显示
+  const formatBalance = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
   return (
     <PageShell loading={!isHydrated}>
       <AuthGuard>
@@ -86,7 +105,18 @@ export default function WalletAuthorizePage() {
         <nav className="bg-white shadow-sm">
           <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-gray-900">Wallet Authorize</h1>
+              {/* 左上角余额展示 */}
+              <div className="flex items-center gap-6">
+                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg p-4 shadow-lg">
+                  <div className="flex flex-col">
+                    <span className="text-indigo-100 text-sm font-medium">可用余额</span>
+                    <span className="text-white text-2xl font-bold mt-1">
+                      {formatBalance(balance)}
+                    </span>
+                  </div>
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900">Wallet Authorize</h1>
+              </div>
               <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-600">
                   User ID: {user?.id}
