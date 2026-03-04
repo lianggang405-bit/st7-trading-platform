@@ -40,8 +40,11 @@ export async function PATCH(
     const { id } = await params;
     const addressId = parseInt(id);
     const body = await request.json();
+    
+    console.log('[CryptoAddresses PATCH] Received request:', { id, addressId, body });
 
     if (isNaN(addressId)) {
+      console.log('[CryptoAddresses PATCH] Invalid address ID:', id);
       return NextResponse.json({ success: false, error: 'Invalid address ID' }, { status: 400 });
     }
 
@@ -56,6 +59,8 @@ export async function PATCH(
     if (body.usdPrice !== undefined) updateData.usd_price = body.usdPrice;
     if (body.status !== undefined) updateData.status = body.status;
 
+    console.log('[CryptoAddresses PATCH] Update data:', updateData);
+
     const { data: cryptoAddress, error } = await supabase
       .from('crypto_addresses')
       .update(updateData)
@@ -63,8 +68,10 @@ export async function PATCH(
       .select()
       .single();
 
+    console.log('[CryptoAddresses PATCH] Supabase response:', { data: cryptoAddress, error });
+
     if (error) {
-      console.error('Failed to update crypto address:', error);
+      console.error('[CryptoAddresses PATCH] Failed to update crypto address:', error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
@@ -80,9 +87,10 @@ export async function PATCH(
       updatedAt: cryptoAddress.updated_at,
     };
 
+    console.log('[CryptoAddresses PATCH] Returning success response:', formattedAddress);
     return NextResponse.json({ success: true, address: formattedAddress });
   } catch (error) {
-    console.error('Error in PATCH crypto address:', error);
+    console.error('[CryptoAddresses PATCH] Error in PATCH crypto address:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

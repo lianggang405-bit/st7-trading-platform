@@ -276,16 +276,20 @@ export default function CryptoAddressesPage() {
       return;
     }
 
+    console.log('[CryptoAddresses] Submitting form:', { dialogMode, editingId, formData });
     setIsSubmitting(true);
     try {
       if (dialogMode === 'create') {
         // 创建新地址
+        console.log('[CryptoAddresses] Creating new address...');
         const response = await adminFetch('/api/admin/wallet/crypto-addresses', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
+        console.log('[CryptoAddresses] POST response:', response);
         const data = await response.json();
+        console.log('[CryptoAddresses] POST data:', data);
         if (data.success) {
           toast.success('地址添加成功');
           handleCloseDialog();
@@ -295,12 +299,15 @@ export default function CryptoAddressesPage() {
         }
       } else {
         // 更新现有地址
+        console.log('[CryptoAddresses] Updating address:', editingId);
         const response = await adminFetch(`/api/admin/wallet/crypto-addresses/${editingId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
+        console.log('[CryptoAddresses] PATCH response:', response);
         const data = await response.json();
+        console.log('[CryptoAddresses] PATCH data:', data);
         if (data.success) {
           toast.success('地址更新成功');
           handleCloseDialog();
@@ -310,7 +317,7 @@ export default function CryptoAddressesPage() {
         }
       }
     } catch (error) {
-      console.error('Failed to save address:', error);
+      console.error('[CryptoAddresses] Failed to save address:', error);
       toast.error(dialogMode === 'create' ? '添加失败' : '更新失败');
     } finally {
       setIsSubmitting(false);
