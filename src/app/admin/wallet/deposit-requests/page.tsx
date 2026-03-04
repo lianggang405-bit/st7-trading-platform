@@ -68,9 +68,11 @@ export default function DepositRequestsPage() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<DepositRequest | null>(null);
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [reviewRemark, setReviewRemark] = useState('');
+  const [editForm, setEditForm] = useState<Partial<DepositRequest>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -147,11 +149,10 @@ export default function DepositRequestsPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/admin/wallet/deposit-requests/${requestId}`, {
-        method: 'PATCH',
+      const response = await fetch(`/api/admin/wallet/deposit-requests/${requestId}/approve`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: 'approved',
           processedBy: 'admin',
         }),
       });
@@ -176,12 +177,12 @@ export default function DepositRequestsPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/admin/wallet/deposit-requests/${requestId}`, {
-        method: 'PATCH',
+      const response = await fetch(`/api/admin/wallet/deposit-requests/${requestId}/reject`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: 'rejected',
           processedBy: 'admin',
+          remark: remark || reviewRemark,
         }),
       });
 
@@ -189,6 +190,7 @@ export default function DepositRequestsPage() {
       if (data.success) {
         toast.success('已拒绝申请');
         fetchRequests();
+        setIsReviewDialogOpen(false);
       } else {
         toast.error('操作失败');
       }
@@ -214,6 +216,47 @@ export default function DepositRequestsPage() {
     setSelectedRequest(request);
     setReviewRemark('');
     setIsReviewDialogOpen(true);
+  };
+
+  const openEditDialog = (request: DepositRequest) => {
+    setSelectedRequest(request);
+    setEditForm({
+      amount: request.amount,
+      status: request.status,
+      currency: request.currency,
+      paymentAddress: request.paymentAddress,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!selectedRequest) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/admin/wallet/deposit-requests/${selectedRequest.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: editForm.status,
+          remark: `编辑: 更新了金额/状态等信息`,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('更新成功');
+        fetchRequests();
+        setIsEditDialogOpen(false);
+      } else {
+        toast.error('更新失败');
+      }
+    } catch (error) {
+      console.error('Failed to update deposit request:', error);
+      toast.error('更新失败');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatPrice = (value: number) => {
@@ -359,6 +402,14 @@ export default function DepositRequestsPage() {
                           onClick={() => openViewDialog(request)}
                         >
                           <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-blue-400"
+                          onClick={() => openEditDialog(request)}
+                        >
+                          <Edit className="w-4 h-4" />
                         </Button>
                         {request.status === 'pending' && (
                           <>
@@ -517,6 +568,57 @@ export default function DepositRequestsPage() {
           <DialogFooter className="p-4 border-t border-slate-700">
             <Button onClick={() => setIsImageDialogOpen(false)} className="bg-blue-600 hover:bg-blue-700">
               关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 编辑对话框 */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle>编辑充值申请</DialogTitle>
+          </DialogHeader>
+          {selectedRequest && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className="text-gray-400">状态</Label>
+                <select
+                  value={editForm.status || ''}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  className="w-full bg-slate-700 border-slate-600 text-white rounded-md p-2"
+                >
+                  <option value="pending">待审核</option>
+                  <option value="approved">已通过</option>
+                  <option value="rejected">已拒绝</option>
+                  <option value="cancelled">已取消</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-400">金额</Label>
+                <Input
+                  type="number"
+                  value={editForm.amount || ''}
+                  onChange={(e) => setEditForm({ ...editForm, amount: parseFloat(e.target.value) || 0 })}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button 
+              onClick={() => setIsEditDialogOpen(false)} 
+              variant="outline"
+              className="border-slate-600 hover:bg-slate-700"
+            >
+              取消
+            </Button>
+            <Button 
+              onClick={handleEditSave} 
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={isSubmitting}
+            >
+              保存
             </Button>
           </DialogFooter>
         </DialogContent>

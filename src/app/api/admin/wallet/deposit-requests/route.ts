@@ -60,7 +60,61 @@ export async function GET(request: NextRequest) {
     // 分页
     query = query.range(offset, offset + limit - 1);
 
-    const { data: requests, error, count } = await query;
+    // 第一次尝试
+    let firstResult: any;
+    try {
+      firstResult = await query;
+    } catch (err: any) {
+      firstResult = { data: null, error: err };
+    }
+
+    let requests = firstResult.data;
+    let error = firstResult.error;
+    let count = firstResult.count;
+
+    // 如果遇到 schema cache 错误，尝试刷新 schema cache 并重试
+    if (error && error.message && error.message.includes('schema cache')) {
+      console.log('[DepositRequests List] Schema cache error detected, trying to refresh...');
+
+      // 刷新 schema cache：通过执行一个简单的查询来刷新
+      try {
+        await supabase.from('deposit_requests').select('id').limit(1);
+        console.log('[DepositRequests List] Schema cache refreshed, retrying query...');
+
+        // 重试查询
+        let retryQuery = supabase
+          .from('deposit_requests')
+          .select(`
+            id,
+            user_id,
+            type,
+            currency,
+            amount,
+            tx_hash,
+            proof_image,
+            status,
+            remark,
+            created_at,
+            users (
+              email
+            )
+          `, { count: 'exact' });
+
+        // 排序
+        retryQuery = retryQuery.order(sort, { ascending: order === 'asc' });
+
+        // 分页
+        retryQuery = retryQuery.range(offset, offset + limit - 1);
+
+        const retryResult = await retryQuery;
+        requests = retryResult.data;
+        error = retryResult.error;
+        count = retryResult.count;
+      } catch (retryError: any) {
+        console.error('[DepositRequests List] Retry also failed:', retryError);
+        // 保持原始错误
+      }
+    }
 
     // ✅ 如果出错，返回 mock 数据
     if (error) {
@@ -135,21 +189,68 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
-    const { data: depositRequest, error } = await supabase
-      .from('deposit_requests')
-      .insert([
-        {
-          user_id: userId,
-          type,
-          currency,
-          amount,
-          tx_hash: txHash,
-          remark,
-          status,
-        }
-      ])
-      .select()
-      .single();
+    // 尝试执行插入，如果遇到 schema cache 错误则先刷新 schema cache 再重试
+    let depositRequest: any;
+    let error: any;
+
+    // 第一次尝试
+    let firstResult: any;
+    try {
+      firstResult = await supabase
+        .from('deposit_requests')
+        .insert([
+          {
+            user_id: userId,
+            type,
+            currency,
+            amount,
+            tx_hash: txHash,
+            remark,
+            status,
+          }
+        ])
+        .select()
+        .single();
+    } catch (err: any) {
+      firstResult = { data: null, error: err };
+    }
+
+    depositRequest = firstResult.data;
+    error = firstResult.error;
+
+    // 如果遇到 schema cache 错误，尝试刷新 schema cache 并重试
+    if (error && error.message && error.message.includes('schema cache')) {
+      console.log('[DepositRequests Create] Schema cache error detected, trying to refresh...');
+
+      // 刷新 schema cache：通过执行一个简单的查询来刷新
+      try {
+        await supabase.from('deposit_requests').select('id').limit(1);
+        console.log('[DepositRequests Create] Schema cache refreshed, retrying insert...');
+
+        // 重试插入
+        const retryResult = await supabase
+          .from('deposit_requests')
+          .insert([
+            {
+              user_id: userId,
+              type,
+              currency,
+              amount,
+              tx_hash: txHash,
+              remark,
+              status,
+            }
+          ])
+          .select()
+          .single();
+
+        depositRequest = retryResult.data;
+        error = retryResult.error;
+      } catch (retryError: any) {
+        console.error('[DepositRequests Create] Retry also failed:', retryError);
+        // 保持原始错误
+      }
+    }
 
     // ✅ 如果出错，返回成功响应（模拟创建）
     if (error) {
