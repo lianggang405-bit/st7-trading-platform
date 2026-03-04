@@ -35,16 +35,32 @@ export function LanguageSelector() {
 
   const currentLanguage = languages.find(lang => lang.code === currentLocale);
 
+  // 台湾旗帜 SVG 组件
+  const TaiwanFlag = () => (
+    <span className="inline-flex items-center justify-center w-6 h-4 bg-green-600 rounded-sm overflow-hidden">
+      <div className="absolute w-4 h-4 bg-red-600 rounded-full top-0 left-0"></div>
+    </span>
+  );
+
   return (
     <div className="relative">
       {/* 触发按钮 */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1.5 hover:bg-gray-200 active:bg-gray-300 transition-colors"
+        className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1.5 hover:bg-gray-200 active:bg-gray-300 transition-colors"
         aria-label="选择语言"
       >
-        <span className="text-lg">{currentLanguage?.flag || '🇹🇼'}</span>
-        <span className="text-xs text-gray-700 font-medium">{currentLanguage?.nativeName || '繁體中文'}</span>
+        {currentLocale === 'zh-TW' ? (
+          <span className="inline-flex items-center justify-center w-6 h-4 bg-red-600 rounded-sm relative overflow-hidden">
+            <div className="absolute w-4 h-4 bg-blue-600 rounded-full top-0 left-0 flex items-center justify-center">
+              <div className="w-2 h-0.5 bg-white"></div>
+              <div className="absolute w-0.5 h-2 bg-white"></div>
+            </div>
+          </span>
+        ) : (
+          <span className="text-lg">{currentLanguage?.flag}</span>
+        )}
+        <span className="hidden sm:block text-xs text-gray-700 font-medium">{currentLanguage?.nativeName || '繁體中文'}</span>
         <svg
           className={`h-4 w-4 text-gray-600 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
@@ -74,7 +90,16 @@ export function LanguageSelector() {
                   currentLocale === language.code ? 'bg-blue-50' : ''
                 }`}
               >
-                <span className="text-xl">{language.flag}</span>
+                {language.code === 'zh-TW' ? (
+                  <span className="inline-flex items-center justify-center w-7 h-5 bg-red-600 rounded-sm relative overflow-hidden">
+                    <div className="absolute w-5 h-5 bg-blue-600 rounded-full top-0 left-0 flex items-center justify-center">
+                      <div className="w-2.5 h-0.5 bg-white"></div>
+                      <div className="absolute w-0.5 h-2.5 bg-white"></div>
+                    </div>
+                  </span>
+                ) : (
+                  <span className="text-xl">{language.flag}</span>
+                )}
                 <div className="text-left flex-1">
                   <div className="text-sm text-gray-900 font-medium">{language.name}</div>
                   <div className="text-xs text-gray-500">{language.nativeName}</div>

@@ -13,7 +13,7 @@ export const languages: Language[] = [
     code: 'zh-TW',
     name: '繁体中文',
     nativeName: '繁體中文',
-    flag: '🇹🇼',
+    flag: '🏳️', // 使用更兼容的旗帜作为备用
   },
   {
     code: 'en',
