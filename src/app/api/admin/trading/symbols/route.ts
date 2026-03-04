@@ -27,6 +27,29 @@ function generateMockSymbols(page: number, limit: number, search: string = '') {
   return filtered.slice(offset, offset + limit);
 }
 
+// 获取外汇交易对别名
+function getForexAlias(symbol: string): string {
+  const aliases: { [key: string]: string } = {
+    EURUSD: 'Euro/US Dollar',
+    GBPUSD: 'British Pound/US Dollar',
+    USDJPY: 'US Dollar/Japanese Yen',
+    USDCHF: 'US Dollar/Swiss Franc',
+    EURAUD: 'Euro/Australian Dollar',
+    EURGBP: 'Euro/British Pound',
+    EURJPY: 'Euro/Japanese Yen',
+    GBPAUD: 'British Pound/Australian Dollar',
+    GBPNZD: 'British Pound/New Zealand Dollar',
+    GBPJPY: 'British Pound/Japanese Yen',
+    AUDUSD: 'Australian Dollar/US Dollar',
+    AUDJPY: 'Australian Dollar/Japanese Yen',
+    NZDUSD: 'New Zealand Dollar/US Dollar',
+    NZDJPY: 'New Zealand Dollar/Japanese Yen',
+    CADJPY: 'Canadian Dollar/Japanese Yen',
+    CHFJPY: 'Swiss Franc/Japanese Yen',
+  };
+  return aliases[symbol] || symbol;
+}
+
 // GET - 获取品种列表
 export async function GET(request: NextRequest) {
   try {
@@ -39,18 +62,12 @@ export async function GET(request: NextRequest) {
 
     const offset = (page - 1) * limit;
 
-    // ✅ 使用 trading_pairs 表代替 symbols 表
+    // ✅ 直接使用 trading_pairs 表，不依赖 currencies 表
     let query = supabase
       .from('trading_pairs')
-      .select(`
-        *,
-        currencies (
-          id,
-          currency
-        )
-      `, { count: 'exact' })
+      .select('*', { count: 'exact' })
       .range(offset, offset + limit - 1)
-      .order(sort, { ascending: order === 'asc' });
+      .order('id', { ascending: order === 'asc' });
 
     // 如果有搜索条件
     if (search) {
@@ -76,17 +93,55 @@ export async function GET(request: NextRequest) {
     }
 
     // ✅ 格式化数据，将 trading_pairs 转换为 symbols 格式
-    const formattedSymbols = data?.map((pair: any) => ({
-      id: pair.id,
-      name: pair.symbol,
-      alias: pair.currencies?.currency || pair.symbol,
-      icon: `/icons/${pair.symbol.toLowerCase()}.png`,
-      type: 'forex', // 默认为外汇
-      sort: 0,
-      isVisible: pair.is_visible !== false,
-      flashContractFee: pair.contract_fee || 1.0,
-      contractSize: 100,
-    })) || [];
+    const formattedSymbols = data?.map((pair: any) => {
+      const symbol = pair.symbol.toUpperCase();
+      let type = 'forex';
+      let alias = pair.symbol;
+
+      // 根据交易对确定类型和别名
+      if (symbol.includes('BTC') || symbol.includes('ETH') || symbol.includes('LTC') ||
+          symbol.includes('SOL') || symbol.includes('XRP') || symbol.includes('DOGE')) {
+        type = 'crypto';
+        if (symbol.includes('BTC')) alias = 'Bitcoin';
+        else if (symbol.includes('ETH')) alias = 'Ethereum';
+        else if (symbol.includes('LTC')) alias = 'Litecoin';
+        else if (symbol.includes('SOL')) alias = 'Solana';
+        else if (symbol.includes('XRP')) alias = 'Ripple';
+        else if (symbol.includes('DOGE')) alias = 'Dogecoin';
+      } else if (symbol.includes('XAU')) {
+        type = 'metal';
+        alias = 'Gold';
+      } else if (symbol.includes('XAG')) {
+        type = 'metal';
+        alias = 'Silver';
+      } else if (symbol.includes('USOIL') || symbol.includes('UKOIL')) {
+        type = 'energy';
+        alias = symbol.includes('USOIL') ? 'US Crude Oil' : 'UK Crude Oil';
+      } else if (symbol.includes('NGAS')) {
+        type = 'energy';
+        alias = 'Natural Gas';
+      } else if (symbol.includes('US500') || symbol.includes('ND25') || symbol.includes('AUS200')) {
+        type = 'indices';
+        if (symbol.includes('US500')) alias = 'S&P 500';
+        else if (symbol.includes('ND25')) alias = 'NASDAQ 100';
+        else if (symbol.includes('AUS200')) alias = 'ASX 200';
+      } else {
+        // 外汇交易对
+        alias = getForexAlias(symbol);
+      }
+
+      return {
+        id: pair.id,
+        name: pair.symbol,
+        alias: alias,
+        icon: `/icons/${pair.symbol.toLowerCase()}.png`,
+        type: type,
+        sort: pair.id - 30, // 调整排序，从0开始
+        isVisible: pair.is_visible !== false,
+        flashContractFee: pair.contract_fee || 1.0,
+        contractSize: 100,
+      };
+    }) || [];
 
     return NextResponse.json({
       success: true,

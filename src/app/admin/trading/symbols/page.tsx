@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +47,7 @@ interface Symbol {
 }
 
 export default function SymbolsPage() {
+  const router = useRouter();
   const [symbols, setSymbols] = useState<Symbol[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -124,13 +126,11 @@ export default function SymbolsPage() {
   };
 
   const handleView = (symbol: Symbol) => {
-    toast.info(`查看品种: ${symbol.name}`);
-    // TODO: 打开查看对话框
+    router.push(`/admin/trading/symbols/${symbol.id}/view`);
   };
 
   const handleEdit = (symbol: Symbol) => {
-    toast.info(`编辑品种: ${symbol.name}`);
-    // TODO: 打开编辑对话框
+    router.push(`/admin/trading/symbols/${symbol.id}/edit`);
   };
 
   const getTypeBadge = (type: string) => {
