@@ -83,6 +83,27 @@ export default function ContractOrdersPage() {
   });
   const [editLoading, setEditLoading] = useState(false);
 
+  // 创建新订单相关状态
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    account: '',
+    symbol: '',
+    tradeType: '买入',
+    status: '待成交',
+    originalPrice: 0,
+    openPrice: 0,
+    currentPrice: 0,
+    takeProfit: 0,
+    stopLoss: 0,
+    lots: 0,
+    leverage: 100,
+    initialMargin: 0,
+    availableMargin: 0,
+    fee: 0,
+    profit: 0,
+  });
+  const [createLoading, setCreateLoading] = useState(false);
+
   useEffect(() => {
     fetchOrders();
   }, [currentPage, sortField, sortOrder]);
@@ -194,6 +215,60 @@ export default function ContractOrdersPage() {
     }
   };
 
+  // 处理创建新订单
+  const handleCreate = () => {
+    setCreateForm({
+      account: '',
+      symbol: '',
+      tradeType: '买入',
+      status: '待成交',
+      originalPrice: 0,
+      openPrice: 0,
+      currentPrice: 0,
+      takeProfit: 0,
+      stopLoss: 0,
+      lots: 0,
+      leverage: 100,
+      initialMargin: 0,
+      availableMargin: 0,
+      fee: 0,
+      profit: 0,
+    });
+    setCreateDialogOpen(true);
+  };
+
+  const handleCreateSubmit = async () => {
+    // 基础验证
+    if (!createForm.account || !createForm.symbol) {
+      toast.error('请填写必填字段');
+      return;
+    }
+
+    setCreateLoading(true);
+    try {
+      const response = await fetch('/api/admin/contract/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(createForm),
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success('创建成功');
+        setCreateDialogOpen(false);
+        fetchOrders();
+      } else {
+        toast.error(data.error || '创建失败');
+      }
+    } catch (error) {
+      console.error('Failed to create order:', error);
+      toast.error('创建失败');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   const formatPrice = (value: number) => {
     return value.toFixed(9);
   };
@@ -251,7 +326,7 @@ export default function ContractOrdersPage() {
           <Button variant="outline" size="icon" className="border-slate-600 hover:bg-slate-700">
             <Filter className="w-4 h-4" />
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700">
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleCreate}>
             <Plus className="w-4 h-4 mr-2" />
             创建合约订单
           </Button>
@@ -549,10 +624,10 @@ export default function ContractOrdersPage() {
                   onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                   className="w-full bg-slate-700 border-slate-600 text-white rounded-md px-3 py-2 mt-1"
                 >
-                  <option value="进行中">进行中</option>
+                  <option value="持仓中">持仓中</option>
                   <option value="已平仓">已平仓</option>
                   <option value="已取消">已取消</option>
-                  <option value="已完成">已完成</option>
+                  <option value="待成交">待成交</option>
                 </select>
               </div>
 
@@ -618,6 +693,213 @@ export default function ContractOrdersPage() {
               className="bg-blue-600 hover:bg-blue-700"
             >
               {editLoading ? '保存中...' : '保存'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 创建新订单对话框 */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>创建合约订单</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              填写新的合约订单信息
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="create-account" className="text-gray-400">账号 *</Label>
+                <Input
+                  id="create-account"
+                  value={createForm.account}
+                  onChange={(e) => setCreateForm({ ...createForm, account: e.target.value })}
+                  placeholder="请输入账号"
+                  className="bg-slate-700 border-slate-600 text-white mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="create-symbol" className="text-gray-400">品种 *</Label>
+                <Input
+                  id="create-symbol"
+                  value={createForm.symbol}
+                  onChange={(e) => setCreateForm({ ...createForm, symbol: e.target.value })}
+                  placeholder="请输入品种"
+                  className="bg-slate-700 border-slate-600 text-white mt-1"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="create-tradeType" className="text-gray-400">交易类型</Label>
+                <select
+                  id="create-tradeType"
+                  value={createForm.tradeType}
+                  onChange={(e) => setCreateForm({ ...createForm, tradeType: e.target.value })}
+                  className="w-full bg-slate-700 border-slate-600 text-white rounded-md px-3 py-2 mt-1"
+                >
+                  <option value="买入">买入</option>
+                  <option value="卖出">卖出</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="create-status" className="text-gray-400">状态</Label>
+                <select
+                  id="create-status"
+                  value={createForm.status}
+                  onChange={(e) => setCreateForm({ ...createForm, status: e.target.value })}
+                  className="w-full bg-slate-700 border-slate-600 text-white rounded-md px-3 py-2 mt-1"
+                >
+                  <option value="待成交">待成交</option>
+                  <option value="持仓中">持仓中</option>
+                  <option value="已平仓">已平仓</option>
+                  <option value="已取消">已取消</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="create-originalPrice" className="text-gray-400">原始价</Label>
+                <Input
+                  id="create-originalPrice"
+                  type="number"
+                  step="0.000000001"
+                  value={createForm.originalPrice}
+                  onChange={(e) => setCreateForm({ ...createForm, originalPrice: parseFloat(e.target.value) || 0 })}
+                  className="bg-slate-700 border-slate-600 text-white mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="create-openPrice" className="text-gray-400">开仓价格</Label>
+                <Input
+                  id="create-openPrice"
+                  type="number"
+                  step="0.000000001"
+                  value={createForm.openPrice}
+                  onChange={(e) => setCreateForm({ ...createForm, openPrice: parseFloat(e.target.value) || 0 })}
+                  className="bg-slate-700 border-slate-600 text-white mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="create-currentPrice" className="text-gray-400">当前价格</Label>
+                <Input
+                  id="create-currentPrice"
+                  type="number"
+                  step="0.000000001"
+                  value={createForm.currentPrice}
+                  onChange={(e) => setCreateForm({ ...createForm, currentPrice: parseFloat(e.target.value) || 0 })}
+                  className="bg-slate-700 border-slate-600 text-white mt-1"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="create-takeProfit" className="text-gray-400">止盈价</Label>
+                <Input
+                  id="create-takeProfit"
+                  type="number"
+                  step="0.000000001"
+                  value={createForm.takeProfit}
+                  onChange={(e) => setCreateForm({ ...createForm, takeProfit: parseFloat(e.target.value) || 0 })}
+                  className="bg-slate-700 border-slate-600 text-white mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="create-stopLoss" className="text-gray-400">止损价</Label>
+                <Input
+                  id="create-stopLoss"
+                  type="number"
+                  step="0.000000001"
+                  value={createForm.stopLoss}
+                  onChange={(e) => setCreateForm({ ...createForm, stopLoss: parseFloat(e.target.value) || 0 })}
+                  className="bg-slate-700 border-slate-600 text-white mt-1"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-4">
+              <div>
+                <Label htmlFor="create-lots" className="text-gray-400">手数</Label>
+                <Input
+                  id="create-lots"
+                  type="number"
+                  value={createForm.lots}
+                  onChange={(e) => setCreateForm({ ...createForm, lots: parseInt(e.target.value) || 0 })}
+                  className="bg-slate-700 border-slate-600 text-white mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="create-leverage" className="text-gray-400">倍数</Label>
+                <Input
+                  id="create-leverage"
+                  type="number"
+                  value={createForm.leverage}
+                  onChange={(e) => setCreateForm({ ...createForm, leverage: parseInt(e.target.value) || 100 })}
+                  className="bg-slate-700 border-slate-600 text-white mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="create-fee" className="text-gray-400">手续费</Label>
+                <Input
+                  id="create-fee"
+                  type="number"
+                  step="0.000000001"
+                  value={createForm.fee}
+                  onChange={(e) => setCreateForm({ ...createForm, fee: parseFloat(e.target.value) || 0 })}
+                  className="bg-slate-700 border-slate-600 text-white mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="create-profit" className="text-gray-400">盈亏</Label>
+                <Input
+                  id="create-profit"
+                  type="number"
+                  step="0.000000001"
+                  value={createForm.profit}
+                  onChange={(e) => setCreateForm({ ...createForm, profit: parseFloat(e.target.value) || 0 })}
+                  className="bg-slate-700 border-slate-600 text-white mt-1"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="create-initialMargin" className="text-gray-400">初始保证金</Label>
+                <Input
+                  id="create-initialMargin"
+                  type="number"
+                  step="0.000000001"
+                  value={createForm.initialMargin}
+                  onChange={(e) => setCreateForm({ ...createForm, initialMargin: parseFloat(e.target.value) || 0 })}
+                  className="bg-slate-700 border-slate-600 text-white mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="create-availableMargin" className="text-gray-400">可用保证金</Label>
+                <Input
+                  id="create-availableMargin"
+                  type="number"
+                  step="0.000000001"
+                  value={createForm.availableMargin}
+                  onChange={(e) => setCreateForm({ ...createForm, availableMargin: parseFloat(e.target.value) || 0 })}
+                  className="bg-slate-700 border-slate-600 text-white mt-1"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCreateDialogOpen(false)}
+              className="border-slate-600 hover:bg-slate-700"
+            >
+              取消
+            </Button>
+            <Button
+              onClick={handleCreateSubmit}
+              disabled={createLoading}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {createLoading ? '创建中...' : '创建'}
             </Button>
           </DialogFooter>
         </DialogContent>
