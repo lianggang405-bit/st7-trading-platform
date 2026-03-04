@@ -106,29 +106,15 @@ export default function AdminLayout({
       children: [
         { name: '用户钱包', href: '/admin/wallet/user-wallets' },
         { name: '财务记录', href: '/admin/wallet/financial-records' },
-      ]
-    },
-    {
-      name: '充币设置',
-      href: '/admin/deposit-settings',
-      icon: FileText,
-      children: [
-        { name: '电汇币种设置', href: '/admin/deposit-settings/wire-currencies' },
-        { name: '电汇信息设置', href: '/admin/deposit-settings/wire-info' },
-        { name: '数字货币地址设置', href: '/admin/deposit-settings/crypto-addresses' },
-        { name: '充币申请', href: '/admin/deposit-settings/deposit-requests' },
-        { name: '银行卡充币申请', href: '/admin/deposit-settings/bank-requests' },
-      ]
-    },
-    {
-      name: '提币设置',
-      href: '/admin/withdraw-settings',
-      icon: FileText,
-      children: [
-        { name: '数字货币币种设置', href: '/admin/withdraw-settings/crypto-currencies' },
-        { name: '支持法币设置', href: '/admin/withdraw-settings/fiat-currencies' },
-        { name: '提币申请', href: '/admin/withdraw-settings/withdraw-requests' },
-        { name: '银行卡提币申请', href: '/admin/withdraw-settings/bank-withdrawals' },
+        { name: '充币申请', href: '/admin/wallet/deposit-requests' },
+        { name: '提币申请', href: '/admin/wallet/withdrawal-requests' },
+        { name: '银行卡充币申请', href: '/admin/wallet/bank-deposit-requests' },
+        { name: '银行卡提币申请', href: '/admin/wallet/bank-withdrawal-requests' },
+        { name: '数字货币地址', href: '/admin/wallet/crypto-addresses' },
+        { name: '数字货币币种', href: '/admin/wallet/digital-currency-currencies' },
+        { name: '支持法币设置', href: '/admin/wallet/supported-fiat-currencies' },
+        { name: '电汇币种设置', href: '/admin/wallet/wire-currencies' },
+        { name: '电汇信息设置', href: '/admin/wallet/wire-info' },
       ]
     },
     {
