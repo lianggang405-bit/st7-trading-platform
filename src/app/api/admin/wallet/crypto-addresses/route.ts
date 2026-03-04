@@ -37,23 +37,66 @@ export async function GET(request: NextRequest) {
 
     const offset = (page - 1) * limit;
 
-    // 构建查询
-    let query = supabase
-      .from('crypto_addresses')
-      .select('*', { count: 'exact' });
+    // 尝试执行查询，如果遇到 schema cache 错误则先刷新 schema cache 再重试
+    let addresses: any;
+    let error: any;
+    let count: any;
+    
+    try {
+      // 构建查询
+      let query = supabase
+        .from('crypto_addresses')
+        .select('*', { count: 'exact' });
 
-    // 搜索条件 - 搜索品种、协议、地址
-    if (search) {
-      query = query.or(`currency.ilike.%${search}%,protocol.ilike.%${search}%,address.ilike.%${search}%`);
+      // 搜索条件 - 搜索品种、协议、地址
+      if (search) {
+        query = query.or(`currency.ilike.%${search}%,protocol.ilike.%${search}%,address.ilike.%${search}%`);
+      }
+
+      // 排序
+      query = query.order(sort, { ascending: order === 'asc' });
+
+      // 分页
+      query = query.range(offset, offset + limit - 1);
+
+      const result = await query;
+      addresses = result.data;
+      error = result.error;
+      count = result.count;
+    } catch (firstError: any) {
+      console.log('[CryptoAddresses GET] First attempt failed, trying to refresh schema cache...');
+      
+      // 如果遇到 schema cache 错误，尝试刷新 schema cache 并重试
+      if (firstError.message && firstError.message.includes('schema cache')) {
+        // 刷新 schema cache：通过执行一个简单的查询来刷新
+        try {
+          await supabase.from('crypto_addresses').select('id').limit(1);
+          console.log('[CryptoAddresses GET] Schema cache refreshed, retrying query...');
+          
+          // 重试查询
+          let query = supabase
+            .from('crypto_addresses')
+            .select('*', { count: 'exact' });
+
+          if (search) {
+            query = query.or(`currency.ilike.%${search}%,protocol.ilike.%${search}%,address.ilike.%${search}%`);
+          }
+
+          query = query.order(sort, { ascending: order === 'asc' });
+          query = query.range(offset, offset + limit - 1);
+
+          const retryResult = await query;
+          addresses = retryResult.data;
+          error = retryResult.error;
+          count = retryResult.count;
+        } catch (retryError: any) {
+          console.error('[CryptoAddresses GET] Retry also failed:', retryError);
+          error = retryError;
+        }
+      } else {
+        error = firstError;
+      }
     }
-
-    // 排序
-    query = query.order(sort, { ascending: order === 'asc' });
-
-    // 分页
-    query = query.range(offset, offset + limit - 1);
-
-    const { data: addresses, error, count } = await query;
 
     // ✅ 如果出错，返回 mock 数据
     if (error) {
@@ -120,22 +163,68 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
-    const { data: cryptoAddress, error } = await supabase
-      .from('crypto_addresses')
-      .insert([
-        {
-          currency,
-          network: protocol,
-          protocol: protocol,
-          address,
-          usd_price: usdPrice,
-          status: status || 'active',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+    // 尝试执行插入，如果遇到 schema cache 错误则先刷新 schema cache 再重试
+    let cryptoAddress: any;
+    let error: any;
+    
+    try {
+      const result = await supabase
+        .from('crypto_addresses')
+        .insert([
+          {
+            currency,
+            network: protocol,
+            protocol: protocol,
+            address,
+            usd_price: usdPrice,
+            status: status || 'active',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ])
+        .select()
+        .single();
+      
+      cryptoAddress = result.data;
+      error = result.error;
+    } catch (firstError: any) {
+      console.log('[CryptoAddresses POST] First attempt failed, trying to refresh schema cache...');
+      
+      // 如果遇到 schema cache 错误，尝试刷新 schema cache 并重试
+      if (firstError.message && firstError.message.includes('schema cache')) {
+        // 刷新 schema cache：通过执行一个简单的查询来刷新
+        try {
+          await supabase.from('crypto_addresses').select('id').limit(1);
+          console.log('[CryptoAddresses POST] Schema cache refreshed, retrying insert...');
+          
+          // 重试插入
+          const retryResult = await supabase
+            .from('crypto_addresses')
+            .insert([
+              {
+                currency,
+                network: protocol,
+                protocol: protocol,
+                address,
+                usd_price: usdPrice,
+                status: status || 'active',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            ])
+            .select()
+            .single();
+          
+          cryptoAddress = retryResult.data;
+          error = retryResult.error;
+        } catch (retryError: any) {
+          console.error('[CryptoAddresses POST] Retry also failed:', retryError);
+          error = retryError;
         }
-      ])
-      .select()
-      .single();
+      } else {
+        error = firstError;
+      }
+    }
 
     // ✅ 如果出错，返回成功响应（模拟创建）
     if (error) {
