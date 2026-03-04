@@ -1,0 +1,33 @@
+<svg width="48" height="32" viewBox="0 0 48 32" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Red field -->
+  <rect width="48" height="32" fill="#FE0000"></rect>
+
+  <!-- Blue canton -->
+  <rect width="24" height="16" fill="#000095"></rect>
+
+  <!-- White Sun -->
+  <g transform="translate(12,8)">
+    
+    <!-- Rays -->
+    <g fill="#FFFFFF">
+      <polygon points="0,-6 1.2,-3.5 -1.2,-3.5"></polygon>
+      <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(30)"></polygon>
+      <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(60)"></polygon>
+      <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(90)"></polygon>
+      <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(120)"></polygon>
+      <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(150)"></polygon>
+      <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(180)"></polygon>
+      <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(210)"></polygon>
+      <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(240)"></polygon>
+      <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(270)"></polygon>
+      <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(300)"></polygon>
+      <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(330)"></polygon>
+    </g>
+
+    <!-- Center circle -->
+    <circle r="3.2" fill="#FFFFFF"></circle>
+
+  </g>
+
+</svg>

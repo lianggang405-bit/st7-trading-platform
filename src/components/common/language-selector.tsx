@@ -35,13 +35,6 @@ export function LanguageSelector() {
 
   const currentLanguage = languages.find(lang => lang.code === currentLocale);
 
-  // 台湾旗帜 SVG 组件
-  const TaiwanFlag = () => (
-    <span className="inline-flex items-center justify-center w-6 h-4 bg-green-600 rounded-sm overflow-hidden">
-      <div className="absolute w-4 h-4 bg-red-600 rounded-full top-0 left-0"></div>
-    </span>
-  );
-
   return (
     <div className="relative">
       {/* 触发按钮 */}
@@ -51,12 +44,11 @@ export function LanguageSelector() {
         aria-label="选择语言"
       >
         {currentLocale === 'zh-TW' ? (
-          <span className="inline-flex items-center justify-center w-6 h-4 bg-red-600 rounded-sm relative overflow-hidden">
-            <div className="absolute w-4 h-4 bg-blue-600 rounded-full top-0 left-0 flex items-center justify-center">
-              <div className="w-2 h-0.5 bg-white"></div>
-              <div className="absolute w-0.5 h-2 bg-white"></div>
-            </div>
-          </span>
+          <img 
+            src="/taiwan-flag.svg" 
+            alt="台湾" 
+            className="w-6 h-4 object-contain"
+          />
         ) : (
           <span className="text-lg">{currentLanguage?.flag}</span>
         )}
@@ -91,12 +83,11 @@ export function LanguageSelector() {
                 }`}
               >
                 {language.code === 'zh-TW' ? (
-                  <span className="inline-flex items-center justify-center w-7 h-5 bg-red-600 rounded-sm relative overflow-hidden">
-                    <div className="absolute w-5 h-5 bg-blue-600 rounded-full top-0 left-0 flex items-center justify-center">
-                      <div className="w-2.5 h-0.5 bg-white"></div>
-                      <div className="absolute w-0.5 h-2.5 bg-white"></div>
-                    </div>
-                  </span>
+                  <img 
+                    src="/taiwan-flag.svg" 
+                    alt="台湾" 
+                    className="w-7 h-5 object-contain"
+                  />
                 ) : (
                   <span className="text-xl">{language.flag}</span>
                 )}
