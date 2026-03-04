@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ interface SymbolType {
 }
 
 export default function SymbolTypesPage() {
+  const router = useRouter();
   const [types, setTypes] = useState<SymbolType[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,6 +93,18 @@ export default function SymbolTypesPage() {
     setSelectedTypes(newSelected);
   };
 
+  const handleView = (type: SymbolType) => {
+    router.push(`/admin/trading/types/${type.id}/view`);
+  };
+
+  const handleEdit = (type: SymbolType) => {
+    router.push(`/admin/trading/types/${type.id}/edit`);
+  };
+
+  const handleCreate = () => {
+    router.push('/admin/trading/types/create');
+  };
+
   const handleDelete = async (typeId: number) => {
     if (!confirm('确定要删除此品种类型吗？')) return;
 
@@ -144,7 +158,7 @@ export default function SymbolTypesPage() {
           <Button variant="outline" size="icon" className="border-slate-600 hover:bg-slate-700">
             <Filter className="w-4 h-4" />
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700">
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleCreate}>
             <Plus className="w-4 h-4 mr-2" />
             创建品种类型
           </Button>
@@ -201,13 +215,20 @@ export default function SymbolTypesPage() {
                   <TableCell>{getStatusBadge(type.status)}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-gray-400 hover:text-white"
+                        onClick={() => handleView(type)}
+                      >
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-gray-400 hover:text-white"
+                        onClick={() => handleEdit(type)}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button
