@@ -35,6 +35,35 @@ export function LanguageSelector() {
 
   const currentLanguage = languages.find(lang => lang.code === currentLocale);
 
+  // 台湾旗帜 SVG 组件
+  const TaiwanFlag = ({ className = 'w-6 h-4' }: { className?: string }) => (
+    <svg 
+      viewBox="0 0 48 32" 
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect width="48" height="32" fill="#FE0000"></rect>
+      <rect width="24" height="16" fill="#000095"></rect>
+      <g transform="translate(12,8)">
+        <g fill="#FFFFFF">
+          <polygon points="0,-6 1.2,-3.5 -1.2,-3.5"></polygon>
+          <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(30)"></polygon>
+          <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(60)"></polygon>
+          <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(90)"></polygon>
+          <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(120)"></polygon>
+          <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(150)"></polygon>
+          <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(180)"></polygon>
+          <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(210)"></polygon>
+          <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(240)"></polygon>
+          <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(270)"></polygon>
+          <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(300)"></polygon>
+          <polygon points="0,-6 1.2,-3.5 -1.2,-3.5" transform="rotate(330)"></polygon>
+        </g>
+        <circle r="3.2" fill="#FFFFFF"></circle>
+      </g>
+    </svg>
+  );
+
   return (
     <div className="relative">
       {/* 触发按钮 */}
@@ -44,11 +73,7 @@ export function LanguageSelector() {
         aria-label="选择语言"
       >
         {currentLocale === 'zh-TW' ? (
-          <img 
-            src="/taiwan-flag.svg" 
-            alt="台湾" 
-            className="w-6 h-4 object-contain"
-          />
+          <TaiwanFlag className="w-6 h-4" />
         ) : (
           <span className="text-lg">{currentLanguage?.flag}</span>
         )}
@@ -83,11 +108,7 @@ export function LanguageSelector() {
                 }`}
               >
                 {language.code === 'zh-TW' ? (
-                  <img 
-                    src="/taiwan-flag.svg" 
-                    alt="台湾" 
-                    className="w-7 h-5 object-contain"
-                  />
+                  <TaiwanFlag className="w-7 h-5" />
                 ) : (
                   <span className="text-xl">{language.flag}</span>
                 )}
