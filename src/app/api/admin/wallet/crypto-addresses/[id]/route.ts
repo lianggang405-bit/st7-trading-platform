@@ -54,7 +54,10 @@ export async function PATCH(
     };
 
     if (body.currency !== undefined) updateData.currency = body.currency;
-    if (body.protocol !== undefined) updateData.protocol = body.protocol;
+    if (body.protocol !== undefined) {
+      updateData.protocol = body.protocol;
+      updateData.network = body.protocol; // 同时更新 network 字段
+    }
     if (body.address !== undefined) updateData.address = body.address;
     if (body.usdPrice !== undefined) updateData.usd_price = body.usdPrice;
     if (body.status !== undefined) updateData.status = body.status;
