@@ -216,6 +216,35 @@ CREATE TABLE IF NOT EXISTS trading_bots (
   UNIQUE(pair_id)
 );
 
+-- ============================================
+-- 10. Financial Records 表（财务记录表）
+-- ============================================
+CREATE TABLE IF NOT EXISTS financial_records (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  wallet_id INTEGER,
+  account_type VARCHAR(20) DEFAULT 'demo' NOT NULL CHECK (account_type IN ('demo', 'real')),
+  operation_type VARCHAR(50) NOT NULL,
+  amount DECIMAL(20, 2) NOT NULL,
+  balance_before DECIMAL(20, 2) NOT NULL,
+  balance_after DECIMAL(20, 2) NOT NULL,
+  description TEXT,
+  reference_id VARCHAR(100),
+  reference_type VARCHAR(50),
+  status VARCHAR(20) DEFAULT 'completed' NOT NULL CHECK (status IN ('pending', 'completed', 'failed', 'cancelled')),
+  created_by VARCHAR(100),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- 创建索引
+CREATE INDEX IF NOT EXISTS idx_financial_records_user_id ON financial_records(user_id);
+CREATE INDEX IF NOT EXISTS idx_financial_records_account_type ON financial_records(account_type);
+CREATE INDEX IF NOT EXISTS idx_financial_records_operation_type ON financial_records(operation_type);
+CREATE INDEX IF NOT EXISTS idx_financial_records_status ON financial_records(status);
+CREATE INDEX IF NOT EXISTS idx_financial_records_created_at ON financial_records(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_financial_records_reference ON financial_records(reference_id, reference_type);
+
 -- 创建索引
 CREATE INDEX IF NOT EXISTS idx_trading_bots_pair_id ON trading_bots(pair_id);
 CREATE INDEX IF NOT EXISTS idx_trading_bots_active ON trading_bots(is_active);
@@ -261,6 +290,12 @@ CREATE TRIGGER update_trading_pairs_updated_at
 DROP TRIGGER IF EXISTS update_trading_bots_updated_at ON trading_bots;
 CREATE TRIGGER update_trading_bots_updated_at
     BEFORE UPDATE ON trading_bots
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_financial_records_updated_at ON financial_records;
+CREATE TRIGGER update_financial_records_updated_at
+    BEFORE UPDATE ON financial_records
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
@@ -321,6 +356,37 @@ INSERT INTO contract_orders (
     5, 100, 175.000000000, 175.000000000, 5.000000000, 250.000000000,
     '2026-02-27 09:30:00', NULL, NULL
   )
+ON CONFLICT DO NOTHING;
+
+-- ============================================
+-- 插入示例财务记录
+-- ============================================
+INSERT INTO financial_records (
+  user_id, wallet_id, account_type, operation_type,
+  amount, balance_before, balance_after,
+  description, reference_id, reference_type,
+  status, created_by, created_at
+) VALUES
+  (1, 1, 'demo', 'deposit', 100000.00, 0.00, 100000.00,
+   '初始资金充值', NULL, 'initial', 'completed', 'system', '2026-02-27 09:00:00'),
+  (1, 1, 'demo', 'trade_profit', 200.00, 100000.00, 100200.00,
+   'BTC交易盈利', 'order_1', 'trade', 'completed', 'system', '2026-02-27 10:05:00'),
+  (1, 1, 'demo', 'trade_fee', -10.00, 100200.00, 100190.00,
+   'BTC交易手续费', 'order_1', 'fee', 'completed', 'system', '2026-02-27 10:05:00'),
+  (1, 1, 'demo', 'withdraw', -5000.00, 100190.00, 95190.00,
+   '提现申请', 'withdraw_1', 'withdrawal', 'completed', 'admin', '2026-02-27 11:00:00'),
+  (1, 1, 'demo', 'deposit', 20000.00, 95190.00, 115190.00,
+   '银行转账充值', 'deposit_1', 'deposit', 'completed', 'admin', '2026-02-27 12:00:00'),
+  (1, 1, 'demo', 'trade_profit', 1680.00, 115190.00, 116870.00,
+   'XAUUSD交易盈利', 'order_2', 'trade', 'completed', 'system', '2026-02-27 12:15:14'),
+  (1, 1, 'demo', 'trade_fee', -120.00, 116870.00, 116750.00,
+   'XAUUSD交易手续费', 'order_2', 'fee', 'completed', 'system', '2026-02-27 12:15:14'),
+  (1, 1, 'demo', 'trade_profit', 45000.00, 116750.00, 161750.00,
+   'XAUUSD交易盈利', 'order_3', 'trade', 'completed', 'system', '2026-02-27 12:24:25'),
+  (1, 1, 'demo', 'trade_fee', -120.00, 161750.00, 161630.00,
+   'XAUUSD交易手续费', 'order_3', 'fee', 'completed', 'system', '2026-02-27 12:24:25'),
+  (1, 1, 'demo', 'trade_profit', 47.75, 161630.00, 161677.75,
+   'XAUUSD交易盈利', 'order_4', 'trade', 'completed', 'system', '2026-02-27 14:44:36')
 ON CONFLICT DO NOTHING;
 
 -- ============================================

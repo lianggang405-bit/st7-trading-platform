@@ -7,7 +7,7 @@ export async function GET() {
     const client = getSupabaseClient();
 
     // 检查各个表的数据
-    const tables = ['users', 'applications', 'positions', 'credit_adjustments', 'market_adjustments'];
+    const tables = ['users', 'applications', 'positions', 'credit_adjustments', 'market_adjustments', 'financial_records'];
     const results: Record<string, any> = {};
 
     for (const table of tables) {
