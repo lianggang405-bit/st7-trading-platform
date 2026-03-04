@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +56,7 @@ interface DepositRequest {
 }
 
 export default function DepositRequestsPage() {
+  const router = useRouter();
   const [requests, setRequests] = useState<DepositRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -403,14 +406,15 @@ export default function DepositRequestsPage() {
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-gray-400 hover:text-blue-400"
-                          onClick={() => openEditDialog(request)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
+                        <Link href={`/admin/wallet/deposit-requests/${request.id}`} passHref>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-gray-400 hover:text-blue-400"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </Link>
                         {request.status === 'pending' && (
                           <>
                             <Button
