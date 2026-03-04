@@ -5,6 +5,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -24,12 +33,15 @@ import {
   ChevronUp,
   ChevronDown,
   Image as ImageIcon,
+  Check,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DepositRequest {
   id: number;
   account: string;
+  email: string;
   currency: string;
   paymentAddress: string;
   amount: number;
@@ -37,6 +49,8 @@ interface DepositRequest {
   proofImage: string;
   status: string;
   createdAt: string;
+  type: string;
+  txHash: string;
 }
 
 export default function DepositRequestsPage() {
@@ -49,6 +63,13 @@ export default function DepositRequestsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(15);
   const [totalCount, setTotalCount] = useState(0);
+
+  // Dialog states
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<DepositRequest | null>(null);
+  const [reviewRemark, setReviewRemark] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchRequests();
@@ -119,6 +140,75 @@ export default function DepositRequestsPage() {
     }
   };
 
+  const handleApprove = async (requestId: number) => {
+    if (!confirm('确定要通过此充值申请吗？')) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/admin/wallet/deposit-requests/${requestId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'approved',
+          processedBy: 'admin',
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('审核通过成功');
+        fetchRequests();
+      } else {
+        toast.error('审核失败');
+      }
+    } catch (error) {
+      console.error('Failed to approve deposit request:', error);
+      toast.error('审核失败');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReject = async (requestId: number, remark: string = '') => {
+    if (!confirm('确定要拒绝此充值申请吗？')) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/admin/wallet/deposit-requests/${requestId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'rejected',
+          processedBy: 'admin',
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('已拒绝申请');
+        fetchRequests();
+      } else {
+        toast.error('操作失败');
+      }
+    } catch (error) {
+      console.error('Failed to reject deposit request:', error);
+      toast.error('操作失败');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openViewDialog = (request: DepositRequest) => {
+    setSelectedRequest(request);
+    setIsViewDialogOpen(true);
+  };
+
+  const openReviewDialog = (request: DepositRequest) => {
+    setSelectedRequest(request);
+    setReviewRemark('');
+    setIsReviewDialogOpen(true);
+  };
+
   const formatPrice = (value: number) => {
     return value.toFixed(8);
   };
@@ -134,10 +224,14 @@ export default function DepositRequestsPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === 'DEPOSIT') {
-      return <Badge className="bg-green-500/10 text-green-400">DEPOSIT</Badge>;
-    } else if (status === 'APPLY FOR RECHARGE') {
-      return <Badge className="bg-blue-500/10 text-blue-400">APPLY FOR RECHARGE</Badge>;
+    if (status === 'approved' || status === 'DEPOSIT') {
+      return <Badge className="bg-green-500/10 text-green-400">已通过</Badge>;
+    } else if (status === 'pending' || status === 'APPLY FOR RECHARGE') {
+      return <Badge className="bg-yellow-500/10 text-yellow-400">待审核</Badge>;
+    } else if (status === 'rejected') {
+      return <Badge className="bg-red-500/10 text-red-400">已拒绝</Badge>;
+    } else if (status === 'cancelled') {
+      return <Badge className="bg-gray-500/10 text-gray-400">已取消</Badge>;
     }
     return <Badge className="bg-gray-500/10 text-gray-400">{status}</Badge>;
   };
@@ -244,15 +338,36 @@ export default function DepositRequestsPage() {
                     <TableCell className="text-gray-400 whitespace-nowrap font-mono text-xs">{formatDateTime(request.createdAt)}</TableCell>
                     <TableCell className="whitespace-nowrap">
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-white"
+                          onClick={() => openViewDialog(request)}
+                        >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
-                          <Edit className="w-4 h-4" />
-                        </Button>
+                        {request.status === 'pending' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-400 hover:text-green-400"
+                              onClick={() => handleApprove(request.id)}
+                              disabled={isSubmitting}
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-400 hover:text-red-400"
+                              onClick={() => handleReject(request.id)}
+                              disabled={isSubmitting}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -297,6 +412,70 @@ export default function DepositRequestsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 查看详情对话框 */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>充值申请详情</DialogTitle>
+          </DialogHeader>
+          {selectedRequest && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right text-gray-400">ID</Label>
+                <div className="col-span-3 text-white font-mono">{selectedRequest.id}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right text-gray-400">账号</Label>
+                <div className="col-span-3 text-blue-400 font-medium">{selectedRequest.account}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right text-gray-400">品种</Label>
+                <div className="col-span-3 text-white">{selectedRequest.currency}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right text-gray-400">付款地址</Label>
+                <div className="col-span-3 text-white font-mono text-xs break-all bg-slate-700 p-2 rounded">
+                  {selectedRequest.paymentAddress}
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right text-gray-400">付款数量</Label>
+                <div className="col-span-3 text-white font-mono">{formatPrice(selectedRequest.amount)}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right text-gray-400">USD数量</Label>
+                <div className="col-span-3 text-white font-mono">{formatPrice(selectedRequest.usdAmount)}</div>
+              </div>
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label className="text-right text-gray-400">付款凭证</Label>
+                <div className="col-span-3">
+                  {selectedRequest.proofImage ? (
+                    <div className="relative w-full max-w-xs rounded overflow-hidden bg-slate-700">
+                      <img src={selectedRequest.proofImage} alt="凭证" className="w-full h-auto" />
+                    </div>
+                  ) : (
+                    <span className="text-gray-500">暂无凭证</span>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right text-gray-400">状态</Label>
+                <div className="col-span-3">{getStatusBadge(selectedRequest.status)}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right text-gray-400">申请时间</Label>
+                <div className="col-span-3 text-gray-400 font-mono text-xs">{formatDateTime(selectedRequest.createdAt)}</div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsViewDialogOpen(false)} className="bg-blue-600 hover:bg-blue-700">
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

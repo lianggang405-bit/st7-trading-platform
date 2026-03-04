@@ -67,6 +67,9 @@ export async function POST(request: NextRequest) {
     // 检查并创建 crypto_addresses 表
     results.cryptoAddresses = await initializeTable('crypto_addresses');
 
+    // 检查并创建 deposit_requests 表
+    results.depositRequests = await initializeTable('deposit_requests');
+
     return NextResponse.json({
       success: true,
       message: '数据库表初始化完成',
@@ -128,6 +131,8 @@ async function initializeTable(tableName: string): Promise<any> {
       return await createFinancialRecordsTable();
     case 'crypto_addresses':
       return await createCryptoAddressesTable();
+    case 'deposit_requests':
+      return await createDepositRequestsTable();
     default:
       return { status: 'skipped', message: `未知的表: ${tableName}` };
   }
@@ -517,6 +522,64 @@ async function createCryptoAddressesTable() {
     return { status: 'created', message: 'crypto_addresses 表创建成功，已插入 4 条初始数据' };
   } catch (error) {
     console.error('[DatabaseInit] 创建 crypto_addresses 表异常:', error);
+    return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
+  }
+}
+
+/**
+ * 创建 deposit_requests 表
+ */
+async function createDepositRequestsTable() {
+  try {
+    // ✅ 使用 SQL 创建表
+    const { error } = await supabase.rpc('execute_sql', {
+      sql: `
+        CREATE TABLE IF NOT EXISTS public.deposit_requests (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          type VARCHAR(50) NOT NULL CHECK (type IN ('crypto', 'bank', 'wire')),
+          currency VARCHAR(50) NOT NULL,
+          amount DECIMAL(30, 8) NOT NULL,
+          tx_hash TEXT,
+          proof_image TEXT,
+          status VARCHAR(20) DEFAULT 'pending' NOT NULL CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled')),
+          remark TEXT,
+          processed_by VARCHAR(100),
+          processed_at TIMESTAMP WITH TIME ZONE,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+        );
+
+        -- 创建索引
+        CREATE INDEX IF NOT EXISTS idx_deposit_requests_user_id ON deposit_requests(user_id);
+        CREATE INDEX IF NOT EXISTS idx_deposit_requests_status ON deposit_requests(status);
+        CREATE INDEX IF NOT EXISTS idx_deposit_requests_type ON deposit_requests(type);
+        CREATE INDEX IF NOT EXISTS idx_deposit_requests_currency ON deposit_requests(currency);
+        CREATE INDEX IF NOT EXISTS idx_deposit_requests_created_at ON deposit_requests(created_at DESC);
+      `,
+    });
+
+    if (error) {
+      console.error('[DatabaseInit] 创建 deposit_requests 表失败:', error);
+      return { status: 'error', message: error.message };
+    }
+
+    // ✅ 插入初始数据
+    const mockRequests = [
+      { user_id: 1, type: 'crypto', currency: 'USDT', amount: 1000.00, tx_hash: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0', status: 'approved', remark: '用户充值申请' },
+      { user_id: 1, type: 'crypto', currency: 'BTC', amount: 0.05, tx_hash: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', status: 'pending', remark: '用户充值申请' },
+    ];
+
+    const { error: insertError } = await supabase.from('deposit_requests').insert(mockRequests).select();
+
+    if (insertError) {
+      console.error('[DatabaseInit] 插入 deposit_requests 数据失败:', insertError);
+      return { status: 'warning', message: '表创建成功，但数据插入失败', error: insertError.message };
+    }
+
+    return { status: 'created', message: 'deposit_requests 表创建成功，已插入 2 条初始数据' };
+  } catch (error) {
+    console.error('[DatabaseInit] 创建 deposit_requests 表异常:', error);
     return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
   }
 }

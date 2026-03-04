@@ -239,7 +239,33 @@ CREATE INDEX IF NOT EXISTS idx_crypto_addresses_status ON crypto_addresses(statu
 CREATE INDEX IF NOT EXISTS idx_crypto_addresses_created_at ON crypto_addresses(created_at DESC);
 
 -- ============================================
--- 11. Financial Records 表（财务记录表）
+-- 11. Deposit Requests 表（充值申请表）
+-- ============================================
+CREATE TABLE IF NOT EXISTS deposit_requests (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type VARCHAR(50) NOT NULL CHECK (type IN ('crypto', 'bank', 'wire')),
+  currency VARCHAR(50) NOT NULL,
+  amount DECIMAL(30, 8) NOT NULL,
+  tx_hash TEXT,
+  proof_image TEXT,
+  status VARCHAR(20) DEFAULT 'pending' NOT NULL CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled')),
+  remark TEXT,
+  processed_by VARCHAR(100),
+  processed_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- 创建索引
+CREATE INDEX IF NOT EXISTS idx_deposit_requests_user_id ON deposit_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_deposit_requests_status ON deposit_requests(status);
+CREATE INDEX IF NOT EXISTS idx_deposit_requests_type ON deposit_requests(type);
+CREATE INDEX IF NOT EXISTS idx_deposit_requests_currency ON deposit_requests(currency);
+CREATE INDEX IF NOT EXISTS idx_deposit_requests_created_at ON deposit_requests(created_at DESC);
+
+-- ============================================
+-- 12. Financial Records 表（财务记录表）
 -- ============================================
 CREATE TABLE IF NOT EXISTS financial_records (
   id SERIAL PRIMARY KEY,
@@ -327,6 +353,12 @@ CREATE TRIGGER update_crypto_addresses_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_deposit_requests_updated_at ON deposit_requests;
+CREATE TRIGGER update_deposit_requests_updated_at
+    BEFORE UPDATE ON deposit_requests
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- ============================================
 -- 插入示例数据（可选）
 -- ============================================
@@ -384,6 +416,16 @@ INSERT INTO contract_orders (
     5, 100, 175.000000000, 175.000000000, 5.000000000, 250.000000000,
     '2026-02-27 09:30:00', NULL, NULL
   )
+ON CONFLICT DO NOTHING;
+
+-- ============================================
+-- 插入示例充值申请
+-- ============================================
+INSERT INTO deposit_requests (
+  user_id, type, currency, amount, tx_hash, status, remark, created_at
+) VALUES
+  (1, 'crypto', 'USDT', 1000.00, '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0', 'approved', '用户充值申请', NOW()),
+  (1, 'crypto', 'BTC', 0.05, 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', 'pending', '用户充值申请', NOW())
 ON CONFLICT DO NOTHING;
 
 -- ============================================
