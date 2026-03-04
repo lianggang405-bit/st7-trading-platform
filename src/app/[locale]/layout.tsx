@@ -96,7 +96,7 @@ export default async function LocaleLayout({
   return (
     <AuthProvider isDev={isDev}>
       <NextIntlClientProvider messages={messages}>
-        <main className="pb-16 min-h-screen">
+        <main className="pb-28 min-h-screen">
           {children}
         </main>
         <BottomTab />
