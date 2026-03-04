@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 转换数据格式以匹配前端期望
-    const formattedAddresses = addresses?.map(addr => ({
+    const formattedAddresses = addresses?.map((addr: any) => ({
       id: addr.id,
       currency: addr.currency,
       protocol: addr.protocol,
