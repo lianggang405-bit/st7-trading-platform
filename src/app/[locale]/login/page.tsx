@@ -97,7 +97,9 @@ export default function LoginPage() {
       </div>
 
       {/* Logo */}
-      <ForexLogo />
+      <div className="mb-8">
+        <ForexLogo />
+      </div>
 
       {/* 登录表单 */}
       <div className="w-full max-w-md">

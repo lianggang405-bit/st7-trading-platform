@@ -94,7 +94,9 @@ export default function RegisterPage() {
       </div>
 
       {/* Logo */}
-      <ForexLogo />
+      <div className="mb-8">
+        <ForexLogo />
+      </div>
 
       {/* 注册表单 */}
       <div className="w-full max-w-md mt-8">
