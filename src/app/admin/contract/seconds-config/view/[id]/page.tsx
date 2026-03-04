@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   Percent,
   DollarSign,
-  MinCircle,
+  MinusCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -151,7 +151,7 @@ export default function ViewSecondsConfigPage() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-gray-400 text-sm">
-                    <MinCircle className="w-4 h-4" />
+                    <MinusCircle className="w-4 h-4" />
                     <span>最低金额</span>
                   </div>
                   <div className="text-gray-300 font-medium">

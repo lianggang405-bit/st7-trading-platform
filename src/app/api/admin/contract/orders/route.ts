@@ -134,9 +134,26 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new contract order
 export async function POST(request: NextRequest) {
+  // 先定义这些变量，让它们在整个函数作用域中可用
+  let account: string = '';
+  let symbol: string = '';
+  let tradeType: string = '';
+  let status: string = '';
+  let originalPrice: number = 0;
+  let openPrice: number = 0;
+  let currentPrice: number = 0;
+  let takeProfit: number = 0;
+  let stopLoss: number = 0;
+  let lots: number = 0;
+  let leverage: number = 0;
+  let initialMargin: number = 0;
+  let availableMargin: number = 0;
+  let fee: number = 0;
+  let profit: number = 0;
+  
   try {
     const body = await request.json();
-    const { account, symbol, tradeType, status, originalPrice, openPrice, currentPrice, takeProfit, stopLoss, lots, leverage, initialMargin, availableMargin, fee, profit } = body;
+    ({ account, symbol, tradeType, status, originalPrice, openPrice, currentPrice, takeProfit, stopLoss, lots, leverage, initialMargin, availableMargin, fee, profit } = body);
 
     // If Supabase is not configured, return success response but do not actually create
     if (!useSupabase) {

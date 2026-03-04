@@ -64,12 +64,6 @@ export async function POST(request: NextRequest) {
     // 检查并创建 financial_records 表
     results.financialRecords = await initializeTable('financial_records');
 
-    // 检查并创建 crypto_addresses 表
-    results.cryptoAddresses = await initializeTable('crypto_addresses');
-
-    // 检查并创建 deposit_requests 表
-    results.depositRequests = await initializeTable('deposit_requests');
-
     return NextResponse.json({
       success: true,
       message: '数据库表初始化完成',
@@ -129,10 +123,6 @@ async function initializeTable(tableName: string): Promise<any> {
       return await createWireCurrencySettingsTable();
     case 'financial_records':
       return await createFinancialRecordsTable();
-    case 'crypto_addresses':
-      return await createCryptoAddressesTable();
-    case 'deposit_requests':
-      return await createDepositRequestsTable();
     default:
       return { status: 'skipped', message: `未知的表: ${tableName}` };
   }
@@ -260,221 +250,6 @@ async function createTradingHoursTable() {
  */
 async function createCryptoAddressesTable() {
   try {
-    const mockAddresses = [
-      { currency: 'BTC', protocol: 'ERC20', address: '0x1a2b3c4d5e6f...', status: 'active', usd_price: 95000 },
-      { currency: 'ETH', protocol: 'ERC20', address: '0x7f8e9d0a1b2c...', status: 'active', usd_price: 3400 },
-      { currency: 'USDT', protocol: 'TRC20', address: 'T9zXq...8yV', status: 'active', usd_price: 1 },
-      { currency: 'USDT', protocol: 'ERC20', address: '0xd4e5f6a7b8c9...', status: 'active', usd_price: 1 },
-    ];
-
-    const { error: insertError } = await supabase.from('crypto_addresses').insert(mockAddresses).select();
-
-    if (insertError) {
-      console.error('[DatabaseInit] 插入 crypto_addresses 数据失败:', insertError);
-      return { status: 'warning', message: '数据插入失败', error: insertError.message };
-    }
-
-    return { status: 'created', message: 'crypto_addresses 表创建成功，已插入 4 条初始数据' };
-  } catch (error) {
-    console.error('[DatabaseInit] 创建 crypto_addresses 表异常:', error);
-    return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
-  }
-}
-
-/**
- * 创建 deposit_requests 表
- */
-async function createDepositRequestsTable() {
-  try {
-    const mockRequests = [
-      { user_id: 1, type: 'crypto', currency: 'USDT', amount: 1000, tx_hash: '0x1a2b3c...', status: 'approved' },
-      { user_id: 2, type: 'crypto', currency: 'BTC', amount: 0.05, tx_hash: 'abc123...', status: 'pending' },
-    ];
-
-    const { error: insertError } = await supabase.from('deposit_requests').insert(mockRequests).select();
-
-    if (insertError) {
-      console.error('[DatabaseInit] 插入 deposit_requests 数据失败:', insertError);
-      return { status: 'warning', message: '数据插入失败', error: insertError.message };
-    }
-
-    return { status: 'created', message: 'deposit_requests 表创建成功，已插入 2 条初始数据' };
-  } catch (error) {
-    console.error('[DatabaseInit] 创建 deposit_requests 表异常:', error);
-    return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
-  }
-}
-
-/**
- * 创建 withdrawal_requests 表
- */
-async function createWithdrawalRequestsTable() {
-  try {
-    const mockRequests = [
-      { account: 'user1@example.com', currency: 'USDT', withdrawal_address: '0x7f8e9d...', withdrawal_amount: 500, fee: 5, actual_amount: 495, status: 'SUCCESS' },
-      { account: 'user2@example.com', currency: 'BTC', withdrawal_address: 'bc1q...', withdrawal_amount: 0.01, fee: 0.001, actual_amount: 0.009, status: 'PENDING' },
-      { account: 'user3@example.com', currency: 'ETH', withdrawal_address: '0xd4e5f6...', withdrawal_amount: 0.5, fee: 0.01, actual_amount: 0.49, status: 'FAIL' },
-    ];
-
-    const { error: insertError } = await supabase.from('withdrawal_requests').insert(mockRequests).select();
-
-    if (insertError) {
-      console.error('[DatabaseInit] 插入 withdrawal_requests 数据失败:', insertError);
-      return { status: 'warning', message: '数据插入失败', error: insertError.message };
-    }
-
-    return { status: 'created', message: 'withdrawal_requests 表创建成功，已插入 3 条初始数据' };
-  } catch (error) {
-    console.error('[DatabaseInit] 创建 withdrawal_requests 表异常:', error);
-    return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
-  }
-}
-
-/**
- * 创建 flash_contract_orders 表
- */
-async function createFlashContractOrdersTable() {
-  try {
-    const mockOrders = [
-      { account: 'user1@example.com', symbol: 'BTCUSD', type: '买入', status: '进行中', quantity: 1000, fee: 10, result: '无', profit: 0, open_price: 95000, close_price: null, duration: 60 },
-      { account: 'user2@example.com', symbol: 'ETHUSD', type: '卖出', status: '已完成', quantity: 500, fee: 5, result: '盈利', profit: 25, open_price: 3400, close_price: 3350, duration: 30 },
-    ];
-
-    const { error: insertError } = await supabase.from('flash_contract_orders').insert(mockOrders).select();
-
-    if (insertError) {
-      console.error('[DatabaseInit] 插入 flash_contract_orders 数据失败:', insertError);
-      return { status: 'warning', message: '数据插入失败', error: insertError.message };
-    }
-
-    return { status: 'created', message: 'flash_contract_orders 表创建成功，已插入 2 条初始数据' };
-  } catch (error) {
-    console.error('[DatabaseInit] 创建 flash_contract_orders 表异常:', error);
-    return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
-  }
-}
-
-/**
- * 创建 quick_contract_durations 表
- */
-async function createQuickContractDurationsTable() {
-  try {
-    const mockDurations = [
-      { duration: 30, payout_rate: 1.95, min_amount: 10, max_amount: 10000, status: 'active', sort: 1 },
-      { duration: 60, payout_rate: 1.9, min_amount: 10, max_amount: 10000, status: 'active', sort: 2 },
-      { duration: 120, payout_rate: 1.85, min_amount: 10, max_amount: 10000, status: 'active', sort: 3 },
-      { duration: 300, payout_rate: 1.8, min_amount: 10, max_amount: 10000, status: 'active', sort: 4 },
-      { duration: 600, payout_rate: 1.75, min_amount: 10, max_amount: 10000, status: 'active', sort: 5 },
-    ];
-
-    const { error: insertError } = await supabase.from('quick_contract_durations').insert(mockDurations).select();
-
-    if (insertError) {
-      console.error('[DatabaseInit] 插入 quick_contract_durations 数据失败:', insertError);
-      return { status: 'warning', message: '数据插入失败', error: insertError.message };
-    }
-
-    return { status: 'created', message: 'quick_contract_durations 表创建成功，已插入 5 条初始数据' };
-  } catch (error) {
-    console.error('[DatabaseInit] 创建 quick_contract_durations 表异常:', error);
-    return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
-  }
-}
-
-/**
- * 创建 wire_currency_settings 表
- */
-async function createWireCurrencySettingsTable() {
-  try {
-    const mockCurrencies = [
-      { currency_name: 'USD', usd_price: 1 },
-      { currency_name: 'EUR', usd_price: 1.0856 },
-      { currency_name: 'GBP', usd_price: 1.2654 },
-    ];
-
-    const { error: insertError } = await supabase.from('wire_currency_settings').insert(mockCurrencies).select();
-
-    if (insertError) {
-      console.error('[DatabaseInit] 插入 wire_currency_settings 数据失败:', insertError);
-      return { status: 'warning', message: '数据插入失败', error: insertError.message };
-    }
-
-    return { status: 'created', message: 'wire_currency_settings 表创建成功，已插入 3 条初始数据' };
-  } catch (error) {
-    console.error('[DatabaseInit] 创建 wire_currency_settings 表异常:', error);
-    return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
-  }
-}
-
-/**
- * 创建 financial_records 表
- */
-async function createFinancialRecordsTable() {
-  try {
-    // ✅ 使用 SQL 创建表
-    const { error } = await supabase.rpc('execute_sql', {
-      sql: `
-        CREATE TABLE IF NOT EXISTS public.financial_records (
-          id SERIAL PRIMARY KEY,
-          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          wallet_id INTEGER,
-          account_type VARCHAR(20) DEFAULT 'demo' NOT NULL CHECK (account_type IN ('demo', 'real')),
-          operation_type VARCHAR(50) NOT NULL,
-          amount DECIMAL(20, 2) NOT NULL,
-          balance_before DECIMAL(20, 2) NOT NULL,
-          balance_after DECIMAL(20, 2) NOT NULL,
-          description TEXT,
-          reference_id VARCHAR(100),
-          reference_type VARCHAR(50),
-          status VARCHAR(20) DEFAULT 'completed' NOT NULL CHECK (status IN ('pending', 'completed', 'failed', 'cancelled')),
-          created_by VARCHAR(100),
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-        );
-
-        -- 创建索引
-        CREATE INDEX IF NOT EXISTS idx_financial_records_user_id ON financial_records(user_id);
-        CREATE INDEX IF NOT EXISTS idx_financial_records_account_type ON financial_records(account_type);
-        CREATE INDEX IF NOT EXISTS idx_financial_records_operation_type ON financial_records(operation_type);
-        CREATE INDEX IF NOT EXISTS idx_financial_records_status ON financial_records(status);
-        CREATE INDEX IF NOT EXISTS idx_financial_records_created_at ON financial_records(created_at DESC);
-        CREATE INDEX IF NOT EXISTS idx_financial_records_reference ON financial_records(reference_id, reference_type);
-      `,
-    });
-
-    if (error) {
-      console.error('[DatabaseInit] 创建 financial_records 表失败:', error);
-      return { status: 'error', message: error.message };
-    }
-
-    // ✅ 插入初始数据
-    const mockRecords = [
-      { user_id: 1, wallet_id: 1, account_type: 'demo', operation_type: 'deposit', amount: 100000.00, balance_before: 0.00, balance_after: 100000.00, description: '初始资金充值', reference_id: null, reference_type: 'initial', status: 'completed', created_by: 'system', created_at: '2026-02-27T09:00:00Z' },
-      { user_id: 1, wallet_id: 1, account_type: 'demo', operation_type: 'trade_profit', amount: 200.00, balance_before: 100000.00, balance_after: 100200.00, description: 'BTC交易盈利', reference_id: 'order_1', reference_type: 'trade', status: 'completed', created_by: 'system', created_at: '2026-02-27T10:05:00Z' },
-      { user_id: 1, wallet_id: 1, account_type: 'demo', operation_type: 'trade_fee', amount: -10.00, balance_before: 100200.00, balance_after: 100190.00, description: 'BTC交易手续费', reference_id: 'order_1', reference_type: 'fee', status: 'completed', created_by: 'system', created_at: '2026-02-27T10:05:00Z' },
-      { user_id: 1, wallet_id: 1, account_type: 'demo', operation_type: 'withdraw', amount: -5000.00, balance_before: 100190.00, balance_after: 95190.00, description: '提现申请', reference_id: 'withdraw_1', reference_type: 'withdrawal', status: 'completed', created_by: 'admin', created_at: '2026-02-27T11:00:00Z' },
-      { user_id: 1, wallet_id: 1, account_type: 'demo', operation_type: 'deposit', amount: 20000.00, balance_before: 95190.00, balance_after: 115190.00, description: '银行转账充值', reference_id: 'deposit_1', reference_type: 'deposit', status: 'completed', created_by: 'admin', created_at: '2026-02-27T12:00:00Z' },
-    ];
-
-    const { error: insertError } = await supabase.from('financial_records').insert(mockRecords).select();
-
-    if (insertError) {
-      console.error('[DatabaseInit] 插入 financial_records 数据失败:', insertError);
-      return { status: 'warning', message: '表创建成功，但数据插入失败', error: insertError.message };
-    }
-
-    return { status: 'created', message: 'financial_records 表创建成功，已插入 5 条初始数据' };
-  } catch (error) {
-    console.error('[DatabaseInit] 创建 financial_records 表异常:', error);
-    return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
-  }
-}
-
-/**
- * 创建 crypto_addresses 表
- */
-async function createCryptoAddressesTable() {
-  try {
     // ✅ 使用 SQL 创建表
     const { error } = await supabase.rpc('execute_sql', {
       sql: `
@@ -580,6 +355,55 @@ async function createDepositRequestsTable() {
     return { status: 'created', message: 'deposit_requests 表创建成功，已插入 2 条初始数据' };
   } catch (error) {
     console.error('[DatabaseInit] 创建 deposit_requests 表异常:', error);
+    return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
+  }
+}
+
+/**
+ * 创建 withdrawal_requests 表
+ */
+async function createWithdrawalRequestsTable() {
+  try {
+    const mockRequests = [
+      { account: 'user1@example.com', currency: 'USDT', withdrawal_address: '0x7f8e9d...', withdrawal_amount: 500, fee: 5, actual_amount: 495, status: 'SUCCESS' },
+      { account: 'user2@example.com', currency: 'BTC', withdrawal_address: 'bc1q...', withdrawal_amount: 0.01, fee: 0.001, actual_amount: 0.009, status: 'PENDING' },
+      { account: 'user3@example.com', currency: 'ETH', withdrawal_address: '0xd4e5f6...', withdrawal_amount: 0.5, fee: 0.01, actual_amount: 0.49, status: 'FAIL' },
+    ];
+
+    const { error: insertError } = await supabase.from('withdrawal_requests').insert(mockRequests).select();
+
+    if (insertError) {
+      console.error('[DatabaseInit] 插入 withdrawal_requests 数据失败:', insertError);
+      return { status: 'warning', message: '数据插入失败', error: insertError.message };
+    }
+
+    return { status: 'created', message: 'withdrawal_requests 表创建成功，已插入 3 条初始数据' };
+  } catch (error) {
+    console.error('[DatabaseInit] 创建 withdrawal_requests 表异常:', error);
+    return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
+  }
+}
+
+/**
+ * 创建 flash_contract_orders 表
+ */
+async function createFlashContractOrdersTable() {
+  try {
+    const mockOrders = [
+      { account: 'user1@example.com', symbol: 'BTCUSD', type: '买入', status: '进行中', quantity: 1000, fee: 10, result: '无', profit: 0, open_price: 95000, close_price: null, duration: 60 },
+      { account: 'user2@example.com', symbol: 'ETHUSD', type: '卖出', status: '已完成', quantity: 500, fee: 5, result: '盈利', profit: 25, open_price: 3400, close_price: 3350, duration: 30 },
+    ];
+
+    const { error: insertError } = await supabase.from('flash_contract_orders').insert(mockOrders).select();
+
+    if (insertError) {
+      console.error('[DatabaseInit] 插入 flash_contract_orders 数据失败:', insertError);
+      return { status: 'warning', message: '数据插入失败', error: insertError.message };
+    }
+
+    return { status: 'created', message: 'flash_contract_orders 表创建成功，已插入 2 条初始数据' };
+  } catch (error) {
+    console.error('[DatabaseInit] 创建 flash_contract_orders 表异常:', error);
     return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
   }
 }
@@ -730,6 +554,122 @@ async function createProjectOrdersTable() {
     return { status: 'created', message: 'project_orders 表创建成功，已插入 2 条初始数据' };
   } catch (error) {
     console.error('[DatabaseInit] 创建 project_orders 表异常:', error);
+    return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
+  }
+}
+
+/**
+ * 创建 quick_contract_durations 表
+ */
+async function createQuickContractDurationsTable() {
+  try {
+    const mockDurations = [
+      { duration: 30, payout_rate: 1.95, min_amount: 10, max_amount: 10000, status: 'active', sort: 1 },
+      { duration: 60, payout_rate: 1.9, min_amount: 10, max_amount: 10000, status: 'active', sort: 2 },
+      { duration: 120, payout_rate: 1.85, min_amount: 10, max_amount: 10000, status: 'active', sort: 3 },
+      { duration: 300, payout_rate: 1.8, min_amount: 10, max_amount: 10000, status: 'active', sort: 4 },
+      { duration: 600, payout_rate: 1.75, min_amount: 10, max_amount: 10000, status: 'active', sort: 5 },
+    ];
+
+    const { error: insertError } = await supabase.from('quick_contract_durations').insert(mockDurations).select();
+
+    if (insertError) {
+      console.error('[DatabaseInit] 插入 quick_contract_durations 数据失败:', insertError);
+      return { status: 'warning', message: '数据插入失败', error: insertError.message };
+    }
+
+    return { status: 'created', message: 'quick_contract_durations 表创建成功，已插入 5 条初始数据' };
+  } catch (error) {
+    console.error('[DatabaseInit] 创建 quick_contract_durations 表异常:', error);
+    return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
+  }
+}
+
+/**
+ * 创建 wire_currency_settings 表
+ */
+async function createWireCurrencySettingsTable() {
+  try {
+    const mockCurrencies = [
+      { currency_name: 'USD', usd_price: 1 },
+      { currency_name: 'EUR', usd_price: 1.0856 },
+      { currency_name: 'GBP', usd_price: 1.2654 },
+    ];
+
+    const { error: insertError } = await supabase.from('wire_currency_settings').insert(mockCurrencies).select();
+
+    if (insertError) {
+      console.error('[DatabaseInit] 插入 wire_currency_settings 数据失败:', insertError);
+      return { status: 'warning', message: '数据插入失败', error: insertError.message };
+    }
+
+    return { status: 'created', message: 'wire_currency_settings 表创建成功，已插入 3 条初始数据' };
+  } catch (error) {
+    console.error('[DatabaseInit] 创建 wire_currency_settings 表异常:', error);
+    return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
+  }
+}
+
+/**
+ * 创建 financial_records 表
+ */
+async function createFinancialRecordsTable() {
+  try {
+    // ✅ 使用 SQL 创建表
+    const { error } = await supabase.rpc('execute_sql', {
+      sql: `
+        CREATE TABLE IF NOT EXISTS public.financial_records (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          wallet_id INTEGER,
+          account_type VARCHAR(20) DEFAULT 'demo' NOT NULL CHECK (account_type IN ('demo', 'real')),
+          operation_type VARCHAR(50) NOT NULL,
+          amount DECIMAL(20, 2) NOT NULL,
+          balance_before DECIMAL(20, 2) NOT NULL,
+          balance_after DECIMAL(20, 2) NOT NULL,
+          description TEXT,
+          reference_id VARCHAR(100),
+          reference_type VARCHAR(50),
+          status VARCHAR(20) DEFAULT 'completed' NOT NULL CHECK (status IN ('pending', 'completed', 'failed', 'cancelled')),
+          created_by VARCHAR(100),
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+        );
+
+        -- 创建索引
+        CREATE INDEX IF NOT EXISTS idx_financial_records_user_id ON financial_records(user_id);
+        CREATE INDEX IF NOT EXISTS idx_financial_records_account_type ON financial_records(account_type);
+        CREATE INDEX IF NOT EXISTS idx_financial_records_operation_type ON financial_records(operation_type);
+        CREATE INDEX IF NOT EXISTS idx_financial_records_status ON financial_records(status);
+        CREATE INDEX IF NOT EXISTS idx_financial_records_created_at ON financial_records(created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_financial_records_reference ON financial_records(reference_id, reference_type);
+      `,
+    });
+
+    if (error) {
+      console.error('[DatabaseInit] 创建 financial_records 表失败:', error);
+      return { status: 'error', message: error.message };
+    }
+
+    // ✅ 插入初始数据
+    const mockRecords = [
+      { user_id: 1, wallet_id: 1, account_type: 'demo', operation_type: 'deposit', amount: 100000.00, balance_before: 0.00, balance_after: 100000.00, description: '初始资金充值', reference_id: null, reference_type: 'initial', status: 'completed', created_by: 'system', created_at: '2026-02-27T09:00:00Z' },
+      { user_id: 1, wallet_id: 1, account_type: 'demo', operation_type: 'trade_profit', amount: 200.00, balance_before: 100000.00, balance_after: 100200.00, description: 'BTC交易盈利', reference_id: 'order_1', reference_type: 'trade', status: 'completed', created_by: 'system', created_at: '2026-02-27T10:05:00Z' },
+      { user_id: 1, wallet_id: 1, account_type: 'demo', operation_type: 'trade_fee', amount: -10.00, balance_before: 100200.00, balance_after: 100190.00, description: 'BTC交易手续费', reference_id: 'order_1', reference_type: 'fee', status: 'completed', created_by: 'system', created_at: '2026-02-27T10:05:00Z' },
+      { user_id: 1, wallet_id: 1, account_type: 'demo', operation_type: 'withdraw', amount: -5000.00, balance_before: 100190.00, balance_after: 95190.00, description: '提现申请', reference_id: 'withdraw_1', reference_type: 'withdrawal', status: 'completed', created_by: 'admin', created_at: '2026-02-27T11:00:00Z' },
+      { user_id: 1, wallet_id: 1, account_type: 'demo', operation_type: 'deposit', amount: 20000.00, balance_before: 95190.00, balance_after: 115190.00, description: '银行转账充值', reference_id: 'deposit_1', reference_type: 'deposit', status: 'completed', created_by: 'admin', created_at: '2026-02-27T12:00:00Z' },
+    ];
+
+    const { error: insertError } = await supabase.from('financial_records').insert(mockRecords).select();
+
+    if (insertError) {
+      console.error('[DatabaseInit] 插入 financial_records 数据失败:', insertError);
+      return { status: 'warning', message: '表创建成功，但数据插入失败', error: insertError.message };
+    }
+
+    return { status: 'created', message: 'financial_records 表创建成功，已插入 5 条初始数据' };
+  } catch (error) {
+    console.error('[DatabaseInit] 创建 financial_records 表异常:', error);
     return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
   }
 }
