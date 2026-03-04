@@ -121,9 +121,9 @@ export default function SymbolEditPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* 面包屑导航 */}
-      <div className="flex items-center gap-2 text-sm text-gray-400">
+    <div className="space-y-6 px-2 sm:px-0">
+      {/* 面包屑导航 - 手机端隐藏 */}
+      <div className="hidden sm:flex items-center gap-2 text-sm text-gray-400">
         <span>资源</span>
         <span>/</span>
         <span>品种管理</span>
@@ -132,17 +132,17 @@ export default function SymbolEditPage() {
       </div>
 
       {/* 页面标题和操作栏 */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => router.back()}
-            className="text-gray-400 hover:text-white"
+            className="text-gray-400 hover:text-white flex-shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-bold text-white">编辑品种</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-white truncate">编辑品种</h1>
         </div>
       </div>
 
@@ -172,15 +172,15 @@ export default function SymbolEditPage() {
             </div>
 
             {/* 是否展示 */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 p-3 bg-slate-700/50 rounded-lg">
               <input
                 type="checkbox"
                 id="isVisible"
                 checked={formData.isVisible}
                 onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })}
-                className="rounded border-gray-500 bg-slate-700"
+                className="w-5 h-5 rounded border-gray-500 bg-slate-700"
               />
-              <Label htmlFor="isVisible" className="text-gray-300">
+              <Label htmlFor="isVisible" className="text-gray-300 cursor-pointer flex-1">
                 展示在前端
               </Label>
             </div>
@@ -241,18 +241,18 @@ export default function SymbolEditPage() {
             </div>
 
             {/* 操作按钮 */}
-            <div className="flex justify-end gap-3 pt-6 border-t border-slate-700">
+            <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-slate-700">
               <Button
                 type="button"
                 variant="outline"
-                className="border-slate-600 hover:bg-slate-700 text-white"
+                className="border-slate-600 hover:bg-slate-700 text-white w-full sm:w-auto"
                 onClick={() => router.back()}
               >
                 取消
               </Button>
               <Button
                 type="submit"
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
                 disabled={saving}
               >
                 <Save className="w-4 h-4 mr-2" />

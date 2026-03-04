@@ -123,9 +123,9 @@ export default function SymbolViewPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* 面包屑导航 */}
-      <div className="flex items-center gap-2 text-sm text-gray-400">
+    <div className="space-y-6 px-2 sm:px-0">
+      {/* 面包屑导航 - 手机端隐藏 */}
+      <div className="hidden sm:flex items-center gap-2 text-sm text-gray-400">
         <span>资源</span>
         <span>/</span>
         <span>品种管理</span>
@@ -134,26 +134,26 @@ export default function SymbolViewPage() {
       </div>
 
       {/* 页面标题和操作栏 */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => router.back()}
-            className="text-gray-400 hover:text-white"
+            className="text-gray-400 hover:text-white flex-shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-bold text-white">查看品种</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-white truncate">查看品种</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Button
             variant="outline"
             className="border-slate-600 hover:bg-slate-700 text-white"
             onClick={() => router.push(`/admin/trading/symbols/${symbolId}/edit`)}
           >
             <Edit className="w-4 h-4 mr-2" />
-            编辑
+            <span className="hidden sm:inline">编辑</span>
           </Button>
           <Button
             variant="outline"
@@ -161,7 +161,7 @@ export default function SymbolViewPage() {
             onClick={handleDelete}
           >
             <Trash2 className="w-4 h-4 mr-2" />
-            删除
+            <span className="hidden sm:inline">删除</span>
           </Button>
         </div>
       </div>
@@ -171,27 +171,27 @@ export default function SymbolViewPage() {
         <CardHeader>
           <div className="flex items-center gap-4">
             <SymbolIcon symbol={symbol.name} />
-            <div className="flex-1">
-              <CardTitle className="text-2xl text-white">{symbol.name}</CardTitle>
-              <p className="text-sm text-gray-400 mt-1">{symbol.alias}</p>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-xl sm:text-2xl text-white truncate">{symbol.name}</CardTitle>
+              <p className="text-sm text-gray-400 mt-1 truncate">{symbol.alias}</p>
             </div>
             {getTypeBadge(symbol.type)}
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-gray-400">品种ID</label>
-                <p className="text-lg text-white mt-1">{symbol.id}</p>
+                <p className="text-base sm:text-lg text-white mt-1">{symbol.id}</p>
               </div>
               <div>
                 <label className="text-sm text-gray-400">品种名称</label>
-                <p className="text-lg text-white mt-1">{symbol.name}</p>
+                <p className="text-base sm:text-lg text-white mt-1">{symbol.name}</p>
               </div>
               <div>
                 <label className="text-sm text-gray-400">品种别名</label>
-                <p className="text-lg text-white mt-1">{symbol.alias}</p>
+                <p className="text-base sm:text-lg text-white mt-1">{symbol.alias}</p>
               </div>
               <div>
                 <label className="text-sm text-gray-400">品种类型</label>
@@ -201,7 +201,7 @@ export default function SymbolViewPage() {
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-gray-400">排序</label>
-                <p className="text-lg text-white mt-1">{symbol.sort}</p>
+                <p className="text-base sm:text-lg text-white mt-1">{symbol.sort}</p>
               </div>
               <div>
                 <label className="text-sm text-gray-400">是否展示</label>
@@ -215,26 +215,26 @@ export default function SymbolViewPage() {
               </div>
               <div>
                 <label className="text-sm text-gray-400">秒合约手续费</label>
-                <p className="text-lg text-white mt-1">{symbol.flashContractFee.toFixed(2)}%</p>
+                <p className="text-base sm:text-lg text-white mt-1">{symbol.flashContractFee.toFixed(2)}%</p>
               </div>
               <div>
                 <label className="text-sm text-gray-400">每张</label>
-                <p className="text-lg text-white mt-1">{symbol.contractSize}</p>
+                <p className="text-base sm:text-lg text-white mt-1">{symbol.contractSize}</p>
               </div>
             </div>
           </div>
 
           {/* 订单设置 */}
           <div className="mt-6 pt-6 border-t border-slate-700">
-            <h3 className="text-lg font-semibold text-white mb-4">订单设置</h3>
-            <div className="grid grid-cols-2 gap-6">
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-4">订单设置</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div>
                 <label className="text-sm text-gray-400">最小订单量</label>
-                <p className="text-lg text-white mt-1">{symbol.min_order_size}</p>
+                <p className="text-base sm:text-lg text-white mt-1">{symbol.min_order_size}</p>
               </div>
               <div>
                 <label className="text-sm text-gray-400">最大订单量</label>
-                <p className="text-lg text-white mt-1">{symbol.max_order_size}</p>
+                <p className="text-base sm:text-lg text-white mt-1">{symbol.max_order_size}</p>
               </div>
             </div>
           </div>

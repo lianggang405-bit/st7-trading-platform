@@ -56,10 +56,21 @@ export default function SymbolsPage() {
   const [selectedSymbols, setSelectedSymbols] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(15);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     fetchSymbols();
   }, [currentPage, sortField, sortOrder]);
+
+  // 检测手机端
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const fetchSymbols = async () => {
     setLoading(true);
@@ -165,17 +176,17 @@ export default function SymbolsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* 面包屑导航 */}
-      <div className="flex items-center gap-2 text-sm text-gray-400">
+    <div className="space-y-6 px-2 sm:px-0">
+      {/* 面包屑导航 - 手机端隐藏 */}
+      <div className="hidden sm:flex items-center gap-2 text-sm text-gray-400">
         <span>资源</span> / <span className="text-white">品种管理</span>
       </div>
 
       {/* 页面标题和操作栏 */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">品种管理</h1>
-        <div className="flex gap-2">
-          <div className="relative w-64">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-white">品种管理</h1>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
               placeholder="搜索"
@@ -185,18 +196,20 @@ export default function SymbolsPage() {
               className="pl-9 bg-slate-700 border-slate-600 text-white"
             />
           </div>
-          <Button variant="outline" size="icon" className="border-slate-600 hover:bg-slate-700">
-            <Filter className="w-4 h-4" />
-          </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4 mr-2" />
-            创建 品种管理
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="icon" className="border-slate-600 hover:bg-slate-700 flex-shrink-0">
+              <Filter className="w-4 h-4" />
+            </Button>
+            <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
+              <Plus className="w-4 h-4 mr-2" />
+              创建
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* 数据表格 */}
-      <Card className="bg-slate-800 border-slate-700">
+      {/* 数据表格 - 仅在桌面端显示 */}
+      <Card className="bg-slate-800 border-slate-700 hidden lg:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -290,17 +303,17 @@ export default function SymbolsPage() {
           </Table>
 
           {/* 分页 */}
-          <div className="flex items-center justify-between p-4 border-t border-slate-700">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-t border-slate-700 gap-4">
             <div className="text-sm text-gray-400">
               显示 {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, symbols.length)} 条，共 {symbols.length} 条
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="border-slate-600 hover:bg-slate-700"
+                className="border-slate-600 hover:bg-slate-700 flex-1 sm:flex-none"
               >
                 上一页
               </Button>
@@ -322,7 +335,7 @@ export default function SymbolsPage() {
                 size="sm"
                 onClick={() => setCurrentPage(currentPage + 1)}
                 disabled={symbols.length < pageSize}
-                className="border-slate-600 hover:bg-slate-700"
+                className="border-slate-600 hover:bg-slate-700 flex-1 sm:flex-none"
               >
                 下一页
               </Button>
@@ -330,6 +343,73 @@ export default function SymbolsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 手机端卡片视图 */}
+      {isMobile && (
+        <div className="lg:hidden space-y-4">
+          {symbols.map((symbol) => (
+            <Card key={symbol.id} className="bg-slate-800 border-slate-700">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    {getSymbolIcon(symbol.name)}
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{symbol.name}</h3>
+                      <p className="text-sm text-gray-400">{symbol.alias}</p>
+                    </div>
+                  </div>
+                  {getTypeBadge(symbol.type)}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <p className="text-xs text-gray-500">手续费</p>
+                    <p className="text-sm text-white">{symbol.flashContractFee.toFixed(2)}%</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">每张</p>
+                    <p className="text-sm text-white">{symbol.contractSize}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">状态</p>
+                    <p className="text-sm mt-1">{getVisibilityBadge(symbol.isVisible)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">排序</p>
+                    <p className="text-sm text-white">{symbol.sort}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-3 border-t border-slate-700">
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-slate-600 hover:bg-slate-700 text-white"
+                    onClick={() => handleView(symbol)}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    查看
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-slate-600 hover:bg-slate-700 text-white"
+                    onClick={() => handleEdit(symbol)}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    编辑
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-red-600 hover:bg-red-600/10 text-red-400"
+                    onClick={() => handleDelete(symbol.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
