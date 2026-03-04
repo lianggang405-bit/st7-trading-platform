@@ -97,7 +97,7 @@ export default function LoginPage() {
       </div>
 
       {/* Logo */}
-      <div className="mb-16">
+      <div className="mb-8">
         <ForexLogo />
       </div>
 
