@@ -41,6 +41,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import adminFetch from '@/lib/admin-fetch';
 
 interface CryptoAddress {
   id: number;
@@ -48,6 +49,7 @@ interface CryptoAddress {
   protocol: string;
   address: string;
   usdPrice: number;
+  status?: string;
 }
 
 const CURRENCIES = ['USDT', 'ETH', 'BTC'] as const;
@@ -86,14 +88,9 @@ export default function CryptoAddressesPage() {
   const fetchAddresses = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
+      const response = await adminFetch(
         `/api/admin/wallet/crypto-addresses?page=${currentPage}&limit=${pageSize}&sort=${sortField}&order=${sortOrder}&search=${searchQuery}`
       );
-      
-      if (!response.ok) {
-        console.error('Failed to fetch crypto addresses:', response.status, response.statusText);
-        return;
-      }
       
       const data = await response.json();
       if (data.success) {
@@ -138,21 +135,16 @@ export default function CryptoAddressesPage() {
     if (!confirm('确定要删除此数字货币地址设置吗？')) return;
 
     try {
-      const response = await fetch(`/api/admin/wallet/crypto-addresses/${addressId}`, {
+      const response = await adminFetch(`/api/admin/wallet/crypto-addresses/${addressId}`, {
         method: 'DELETE',
       });
-      
-      if (!response.ok) {
-        toast.error('网络错误，请稍后重试');
-        return;
-      }
       
       const data = await response.json();
       if (data.success) {
         toast.success('删除成功');
         fetchAddresses();
       } else {
-        toast.error('删除失败');
+        toast.error(data.error || '删除失败');
       }
     } catch (error) {
       console.error('Failed to delete crypto address:', error);
@@ -173,19 +165,15 @@ export default function CryptoAddressesPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/admin/wallet/crypto-addresses', {
+      const response = await adminFetch('/api/admin/wallet/crypto-addresses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
           usdPrice: parseFloat(formData.usdPrice) || 0,
+          status: 'active',
         }),
       });
-
-      if (!response.ok) {
-        toast.error('网络错误，请稍后重试');
-        return;
-      }
 
       const data = await response.json();
       if (data.success) {
@@ -194,7 +182,7 @@ export default function CryptoAddressesPage() {
         resetForm();
         fetchAddresses();
       } else {
-        toast.error(data.message || '创建失败');
+        toast.error(data.error || '创建失败');
       }
     } catch (error) {
       console.error('Failed to create crypto address:', error);
@@ -217,9 +205,10 @@ export default function CryptoAddressesPage() {
       return;
     }
 
+    console.log('[CryptoAddresses] Editing address:', { id: selectedAddress.id, formData });
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/admin/wallet/crypto-addresses/${selectedAddress.id}`, {
+      const response = await adminFetch(`/api/admin/wallet/crypto-addresses/${selectedAddress.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -228,12 +217,10 @@ export default function CryptoAddressesPage() {
         }),
       });
 
-      if (!response.ok) {
-        toast.error('网络错误，请稍后重试');
-        return;
-      }
-
+      console.log('[CryptoAddresses] Edit response:', response);
       const data = await response.json();
+      console.log('[CryptoAddresses] Edit data:', data);
+      
       if (data.success) {
         toast.success('更新成功');
         setIsEditDialogOpen(false);
@@ -241,7 +228,7 @@ export default function CryptoAddressesPage() {
         resetForm();
         fetchAddresses();
       } else {
-        toast.error(data.message || '更新失败');
+        toast.error(data.error || '更新失败');
       }
     } catch (error) {
       console.error('Failed to update crypto address:', error);
