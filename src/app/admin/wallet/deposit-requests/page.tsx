@@ -66,8 +66,10 @@ export default function DepositRequestsPage() {
 
   // Dialog states
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<DepositRequest | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string>('');
   const [reviewRemark, setReviewRemark] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -203,6 +205,11 @@ export default function DepositRequestsPage() {
     setIsViewDialogOpen(true);
   };
 
+  const openImageDialog = (imageUrl: string) => {
+    setSelectedImage(imageUrl);
+    setIsImageDialogOpen(true);
+  };
+
   const openReviewDialog = (request: DepositRequest) => {
     setSelectedRequest(request);
     setReviewRemark('');
@@ -327,8 +334,15 @@ export default function DepositRequestsPage() {
                     <TableCell className="text-gray-400 whitespace-nowrap font-mono text-xs">{formatPrice(request.usdAmount)}</TableCell>
                     <TableCell className="whitespace-nowrap">
                       {request.proofImage ? (
-                        <div className="relative w-12 h-12 rounded overflow-hidden bg-slate-700 cursor-pointer hover:opacity-80">
-                          <img src={request.proofImage} alt="凭证" className="w-full h-full object-cover" />
+                        <div 
+                          className="relative w-12 h-12 rounded overflow-hidden bg-slate-700 cursor-pointer hover:opacity-80 border-2 border-transparent hover:border-blue-500 transition-all"
+                          onClick={() => openImageDialog(request.proofImage)}
+                        >
+                          <img 
+                            src={request.proofImage} 
+                            alt="付款凭证" 
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                       ) : (
                         <span className="text-gray-500">-</span>
@@ -451,8 +465,16 @@ export default function DepositRequestsPage() {
                 <Label className="text-right text-gray-400">付款凭证</Label>
                 <div className="col-span-3">
                   {selectedRequest.proofImage ? (
-                    <div className="relative w-full max-w-xs rounded overflow-hidden bg-slate-700">
-                      <img src={selectedRequest.proofImage} alt="凭证" className="w-full h-auto" />
+                    <div 
+                      className="relative w-full max-w-xs rounded overflow-hidden bg-slate-700 cursor-pointer hover:opacity-90"
+                      onClick={() => openImageDialog(selectedRequest.proofImage)}
+                    >
+                      <img src={selectedRequest.proofImage} alt="付款凭证" className="w-full h-auto" />
+                      <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-all flex items-center justify-center">
+                        <div className="opacity-0 hover:opacity-100 transition-all bg-black/50 px-3 py-1 rounded text-white text-sm">
+                          点击查看原图
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <span className="text-gray-500">暂无凭证</span>
@@ -471,6 +493,29 @@ export default function DepositRequestsPage() {
           )}
           <DialogFooter>
             <Button onClick={() => setIsViewDialogOpen(false)} className="bg-blue-600 hover:bg-blue-700">
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 查看原图对话框 */}
+      <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-4xl max-h-[90vh] overflow-hidden p-0">
+          <DialogHeader className="p-4 border-b border-slate-700">
+            <DialogTitle>付款凭证</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center p-4 overflow-auto max-h-[70vh]">
+            {selectedImage && (
+              <img 
+                src={selectedImage} 
+                alt="付款凭证原图" 
+                className="max-w-full max-h-full object-contain"
+              />
+            )}
+          </div>
+          <DialogFooter className="p-4 border-t border-slate-700">
+            <Button onClick={() => setIsImageDialogOpen(false)} className="bg-blue-600 hover:bg-blue-700">
               关闭
             </Button>
           </DialogFooter>
