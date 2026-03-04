@@ -17,36 +17,33 @@ export async function DELETE(
     // 尝试执行删除，如果遇到 schema cache 错误则先刷新 schema cache 再重试
     let error: any;
     
-    try {
-      const result = await supabase
-        .from('crypto_addresses')
-        .delete()
-        .eq('id', addressId);
+    // 第一次尝试
+    const firstResult = await supabase
+      .from('crypto_addresses')
+      .delete()
+      .eq('id', addressId);
+    
+    error = firstResult.error;
+    
+    // 如果遇到 schema cache 错误，尝试刷新 schema cache 并重试
+    if (error && error.message && error.message.includes('schema cache')) {
+      console.log('[CryptoAddresses DELETE] Schema cache error detected, trying to refresh...');
       
-      error = result.error;
-    } catch (firstError: any) {
-      console.log('[CryptoAddresses DELETE] First attempt failed, trying to refresh schema cache...');
-      
-      // 如果遇到 schema cache 错误，尝试刷新 schema cache 并重试
-      if (firstError.message && firstError.message.includes('schema cache')) {
-        // 刷新 schema cache：通过执行一个简单的查询来刷新
-        try {
-          await supabase.from('crypto_addresses').select('id').limit(1);
-          console.log('[CryptoAddresses DELETE] Schema cache refreshed, retrying delete...');
-          
-          // 重试删除
-          const retryResult = await supabase
-            .from('crypto_addresses')
-            .delete()
-            .eq('id', addressId);
-          
-          error = retryResult.error;
-        } catch (retryError: any) {
-          console.error('[CryptoAddresses DELETE] Retry also failed:', retryError);
-          error = retryError;
-        }
-      } else {
-        error = firstError;
+      // 刷新 schema cache：通过执行一个简单的查询来刷新
+      try {
+        await supabase.from('crypto_addresses').select('id').limit(1);
+        console.log('[CryptoAddresses DELETE] Schema cache refreshed, retrying delete...');
+        
+        // 重试删除
+        const retryResult = await supabase
+          .from('crypto_addresses')
+          .delete()
+          .eq('id', addressId);
+        
+        error = retryResult.error;
+      } catch (retryError: any) {
+        console.error('[CryptoAddresses DELETE] Retry also failed:', retryError);
+        // 保持原始错误
       }
     }
 
@@ -99,42 +96,39 @@ export async function PATCH(
     let cryptoAddress: any;
     let error: any;
     
-    try {
-      const result = await supabase
-        .from('crypto_addresses')
-        .update(updateData)
-        .eq('id', addressId)
-        .select()
-        .single();
+    // 第一次尝试
+    const firstResult = await supabase
+      .from('crypto_addresses')
+      .update(updateData)
+      .eq('id', addressId)
+      .select()
+      .single();
+    
+    cryptoAddress = firstResult.data;
+    error = firstResult.error;
+    
+    // 如果遇到 schema cache 错误，尝试刷新 schema cache 并重试
+    if (error && error.message && error.message.includes('schema cache')) {
+      console.log('[CryptoAddresses PATCH] Schema cache error detected, trying to refresh...');
       
-      cryptoAddress = result.data;
-      error = result.error;
-    } catch (firstError: any) {
-      console.log('[CryptoAddresses PATCH] First attempt failed, trying to refresh schema cache...');
-      
-      // 如果遇到 schema cache 错误，尝试刷新 schema cache 并重试
-      if (firstError.message && firstError.message.includes('schema cache')) {
-        // 刷新 schema cache：通过执行一个简单的查询来刷新
-        try {
-          await supabase.from('crypto_addresses').select('id').limit(1);
-          console.log('[CryptoAddresses PATCH] Schema cache refreshed, retrying update...');
-          
-          // 重试更新
-          const retryResult = await supabase
-            .from('crypto_addresses')
-            .update(updateData)
-            .eq('id', addressId)
-            .select()
-            .single();
-          
-          cryptoAddress = retryResult.data;
-          error = retryResult.error;
-        } catch (retryError: any) {
-          console.error('[CryptoAddresses PATCH] Retry also failed:', retryError);
-          error = retryError;
-        }
-      } else {
-        error = firstError;
+      // 刷新 schema cache：通过执行一个简单的查询来刷新
+      try {
+        await supabase.from('crypto_addresses').select('id').limit(1);
+        console.log('[CryptoAddresses PATCH] Schema cache refreshed, retrying update...');
+        
+        // 重试更新
+        const retryResult = await supabase
+          .from('crypto_addresses')
+          .update(updateData)
+          .eq('id', addressId)
+          .select()
+          .single();
+        
+        cryptoAddress = retryResult.data;
+        error = retryResult.error;
+      } catch (retryError: any) {
+        console.error('[CryptoAddresses PATCH] Retry also failed:', retryError);
+        // 保持原始错误
       }
     }
 
@@ -182,40 +176,37 @@ export async function GET(
     let cryptoAddress: any;
     let error: any;
     
-    try {
-      const result = await supabase
-        .from('crypto_addresses')
-        .select('*')
-        .eq('id', addressId)
-        .single();
+    // 第一次尝试
+    const firstResult = await supabase
+      .from('crypto_addresses')
+      .select('*')
+      .eq('id', addressId)
+      .single();
+    
+    cryptoAddress = firstResult.data;
+    error = firstResult.error;
+    
+    // 如果遇到 schema cache 错误，尝试刷新 schema cache 并重试
+    if (error && error.message && error.message.includes('schema cache')) {
+      console.log('[CryptoAddresses GET] Schema cache error detected, trying to refresh...');
       
-      cryptoAddress = result.data;
-      error = result.error;
-    } catch (firstError: any) {
-      console.log('[CryptoAddresses GET] First attempt failed, trying to refresh schema cache...');
-      
-      // 如果遇到 schema cache 错误，尝试刷新 schema cache 并重试
-      if (firstError.message && firstError.message.includes('schema cache')) {
-        // 刷新 schema cache：通过执行一个简单的查询来刷新
-        try {
-          await supabase.from('crypto_addresses').select('id').limit(1);
-          console.log('[CryptoAddresses GET] Schema cache refreshed, retrying query...');
-          
-          // 重试查询
-          const retryResult = await supabase
-            .from('crypto_addresses')
-            .select('*')
-            .eq('id', addressId)
-            .single();
-          
-          cryptoAddress = retryResult.data;
-          error = retryResult.error;
-        } catch (retryError: any) {
-          console.error('[CryptoAddresses GET] Retry also failed:', retryError);
-          error = retryError;
-        }
-      } else {
-        error = firstError;
+      // 刷新 schema cache：通过执行一个简单的查询来刷新
+      try {
+        await supabase.from('crypto_addresses').select('id').limit(1);
+        console.log('[CryptoAddresses GET] Schema cache refreshed, retrying query...');
+        
+        // 重试查询
+        const retryResult = await supabase
+          .from('crypto_addresses')
+          .select('*')
+          .eq('id', addressId)
+          .single();
+        
+        cryptoAddress = retryResult.data;
+        error = retryResult.error;
+      } catch (retryError: any) {
+        console.error('[CryptoAddresses GET] Retry also failed:', retryError);
+        // 保持原始错误
       }
     }
 
