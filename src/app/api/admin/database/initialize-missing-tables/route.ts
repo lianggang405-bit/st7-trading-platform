@@ -64,6 +64,9 @@ export async function POST(request: NextRequest) {
     // 检查并创建 financial_records 表
     results.financialRecords = await initializeTable('financial_records');
 
+    // 检查并创建 crypto_addresses 表
+    results.cryptoAddresses = await initializeTable('crypto_addresses');
+
     return NextResponse.json({
       success: true,
       message: '数据库表初始化完成',
@@ -123,6 +126,8 @@ async function initializeTable(tableName: string): Promise<any> {
       return await createWireCurrencySettingsTable();
     case 'financial_records':
       return await createFinancialRecordsTable();
+    case 'crypto_addresses':
+      return await createCryptoAddressesTable();
     default:
       return { status: 'skipped', message: `未知的表: ${tableName}` };
   }
@@ -456,6 +461,62 @@ async function createFinancialRecordsTable() {
     return { status: 'created', message: 'financial_records 表创建成功，已插入 5 条初始数据' };
   } catch (error) {
     console.error('[DatabaseInit] 创建 financial_records 表异常:', error);
+    return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
+  }
+}
+
+/**
+ * 创建 crypto_addresses 表
+ */
+async function createCryptoAddressesTable() {
+  try {
+    // ✅ 使用 SQL 创建表
+    const { error } = await supabase.rpc('execute_sql', {
+      sql: `
+        CREATE TABLE IF NOT EXISTS public.crypto_addresses (
+          id SERIAL PRIMARY KEY,
+          currency VARCHAR(50) NOT NULL,
+          protocol VARCHAR(50),
+          network VARCHAR(50),
+          address TEXT NOT NULL,
+          usd_price DECIMAL(30, 8) DEFAULT 0 NOT NULL,
+          status VARCHAR(20) DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'inactive', 'maintenance')),
+          created_by VARCHAR(100),
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+        );
+
+        -- 创建索引
+        CREATE INDEX IF NOT EXISTS idx_crypto_addresses_currency ON crypto_addresses(currency);
+        CREATE INDEX IF NOT EXISTS idx_crypto_addresses_protocol ON crypto_addresses(protocol);
+        CREATE INDEX IF NOT EXISTS idx_crypto_addresses_status ON crypto_addresses(status);
+        CREATE INDEX IF NOT EXISTS idx_crypto_addresses_created_at ON crypto_addresses(created_at DESC);
+      `,
+    });
+
+    if (error) {
+      console.error('[DatabaseInit] 创建 crypto_addresses 表失败:', error);
+      return { status: 'error', message: error.message };
+    }
+
+    // ✅ 插入初始数据
+    const mockAddresses = [
+      { currency: 'BTC', protocol: 'ERC20', network: 'Ethereum', address: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0', usd_price: 95000.00, status: 'active', created_by: 'admin' },
+      { currency: 'ETH', protocol: 'ERC20', network: 'Ethereum', address: '0x7f8e9d0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e', usd_price: 3400.00, status: 'active', created_by: 'admin' },
+      { currency: 'USDT', protocol: 'TRC20', network: 'TRON', address: 'T9zXqYvW5uT4sR3qP2oN1mK0jL9kI8jH7gF6e', usd_price: 1.00, status: 'active', created_by: 'admin' },
+      { currency: 'USDT', protocol: 'ERC20', network: 'Ethereum', address: '0xd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e', usd_price: 1.00, status: 'active', created_by: 'admin' },
+    ];
+
+    const { error: insertError } = await supabase.from('crypto_addresses').insert(mockAddresses).select();
+
+    if (insertError) {
+      console.error('[DatabaseInit] 插入 crypto_addresses 数据失败:', insertError);
+      return { status: 'warning', message: '表创建成功，但数据插入失败', error: insertError.message };
+    }
+
+    return { status: 'created', message: 'crypto_addresses 表创建成功，已插入 4 条初始数据' };
+  } catch (error) {
+    console.error('[DatabaseInit] 创建 crypto_addresses 表异常:', error);
     return { status: 'error', message: error instanceof Error ? error.message : '未知错误' };
   }
 }

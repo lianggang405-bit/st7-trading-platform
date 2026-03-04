@@ -217,7 +217,29 @@ CREATE TABLE IF NOT EXISTS trading_bots (
 );
 
 -- ============================================
--- 10. Financial Records 表（财务记录表）
+-- 10. Crypto Addresses 表（数字货币地址表）
+-- ============================================
+CREATE TABLE IF NOT EXISTS crypto_addresses (
+  id SERIAL PRIMARY KEY,
+  currency VARCHAR(50) NOT NULL,
+  protocol VARCHAR(50),
+  network VARCHAR(50),
+  address TEXT NOT NULL,
+  usd_price DECIMAL(30, 8) DEFAULT 0 NOT NULL,
+  status VARCHAR(20) DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'inactive', 'maintenance')),
+  created_by VARCHAR(100),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- 创建索引
+CREATE INDEX IF NOT EXISTS idx_crypto_addresses_currency ON crypto_addresses(currency);
+CREATE INDEX IF NOT EXISTS idx_crypto_addresses_protocol ON crypto_addresses(protocol);
+CREATE INDEX IF NOT EXISTS idx_crypto_addresses_status ON crypto_addresses(status);
+CREATE INDEX IF NOT EXISTS idx_crypto_addresses_created_at ON crypto_addresses(created_at DESC);
+
+-- ============================================
+-- 11. Financial Records 表（财务记录表）
 -- ============================================
 CREATE TABLE IF NOT EXISTS financial_records (
   id SERIAL PRIMARY KEY,
@@ -299,6 +321,12 @@ CREATE TRIGGER update_financial_records_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_crypto_addresses_updated_at ON crypto_addresses;
+CREATE TRIGGER update_crypto_addresses_updated_at
+    BEFORE UPDATE ON crypto_addresses
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- ============================================
 -- 插入示例数据（可选）
 -- ============================================
@@ -356,6 +384,18 @@ INSERT INTO contract_orders (
     5, 100, 175.000000000, 175.000000000, 5.000000000, 250.000000000,
     '2026-02-27 09:30:00', NULL, NULL
   )
+ON CONFLICT DO NOTHING;
+
+-- ============================================
+-- 插入示例数字货币地址
+-- ============================================
+INSERT INTO crypto_addresses (
+  currency, protocol, network, address, usd_price, status, created_by, created_at
+) VALUES
+  ('BTC', 'ERC20', 'Ethereum', '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0', 95000.00, 'active', 'admin', NOW()),
+  ('ETH', 'ERC20', 'Ethereum', '0x7f8e9d0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e', 3400.00, 'active', 'admin', NOW()),
+  ('USDT', 'TRC20', 'TRON', 'T9zXqYvW5uT4sR3qP2oN1mK0jL9kI8jH7gF6e', 1.00, 'active', 'admin', NOW()),
+  ('USDT', 'ERC20', 'Ethereum', '0xd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e', 1.00, 'active', 'admin', NOW())
 ON CONFLICT DO NOTHING;
 
 -- ============================================

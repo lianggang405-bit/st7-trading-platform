@@ -220,7 +220,7 @@ export default function CryptoAddressesPage() {
     setIsSubmitting(true);
     try {
       const response = await fetch(`/api/admin/wallet/crypto-addresses/${selectedAddress.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
