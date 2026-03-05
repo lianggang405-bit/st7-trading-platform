@@ -236,6 +236,19 @@ export default function DepositPage() {
 
     try {
       console.log('Submitting to /api/admin/wallet/deposit-requests...');
+
+      // 将支付凭证转换为 Base64
+      const reader = new FileReader();
+      const proofImageBase64 = await new Promise<string>((resolve) => {
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          // 移除 data URL 前缀，只保留 Base64 部分
+          const base64Data = base64.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.readAsDataURL(paymentProof);
+      });
+
       const payload = {
         userId: parseInt(user?.id || '1'),
         type: 'crypto',
@@ -243,6 +256,7 @@ export default function DepositPage() {
         amount: parseFloat(cryptoAmount),
         txHash: selectedCrypto.walletAddress,
         status: 'pending',
+        proofImage: proofImageBase64, // 添加支付凭证
       };
       console.log('Payload:', payload);
       

@@ -25,6 +25,12 @@ const supabaseClient: SupabaseClient = (supabaseUrl && apiKey)
         persistSession: false, // 服务端不需要持久化 session
         autoRefreshToken: false, // 服务端不需要自动刷新 token
       },
+      global: {
+        headers: {
+          // 添加自定义头部来避免缓存问题
+          'Cache-Control': 'no-cache',
+        },
+      },
     })
   : createClient('http://localhost', 'placeholder', {
       db: { schema: 'public' },

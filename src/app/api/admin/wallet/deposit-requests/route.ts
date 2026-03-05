@@ -78,50 +78,68 @@ export async function GET(request: NextRequest) {
     // 如果遇到 schema cache 错误，尝试刷新 schema cache 并重试
     if (error && error.message && error.message.includes('schema cache')) {
       console.log('[DepositRequests List] Schema cache error detected, trying to refresh...');
+      
+      // 多次尝试刷新 schema cache
+      for (let i = 0; i < 3; i++) {
+        try {
+          console.log(`[DepositRequests List] Schema cache refresh attempt ${i + 1}...`);
+          await supabase.from('deposit_requests').select('id').limit(1);
+          console.log('[DepositRequests List] Schema cache refreshed, retrying query...');
 
-      // 刷新 schema cache：通过执行一个简单的查询来刷新
-      try {
-        await supabase.from('deposit_requests').select('id').limit(1);
-        console.log('[DepositRequests List] Schema cache refreshed, retrying query...');
+          // 重试查询
+          let retryQuery = supabase
+            .from('deposit_requests')
+            .select(`
+              id,
+              user_id,
+              type,
+              currency,
+              amount,
+              tx_hash,
+              proof_image,
+              status,
+              remark,
+              created_at,
+              users (
+                email
+              )
+            `, { count: 'exact' });
 
-        // 重试查询
-        let retryQuery = supabase
-          .from('deposit_requests')
-          .select(`
-            id,
-            user_id,
-            type,
-            currency,
-            amount,
-            tx_hash,
-            proof_image,
-            status,
-            remark,
-            created_at,
-            users (
-              email
-            )
-          `, { count: 'exact' });
+          // 排序
+          retryQuery = retryQuery.order(sort, { ascending: order === 'asc' });
 
-        // 排序
-        retryQuery = retryQuery.order(sort, { ascending: order === 'asc' });
+          // 分页
+          retryQuery = retryQuery.range(offset, offset + limit - 1);
 
-        // 分页
-        retryQuery = retryQuery.range(offset, offset + limit - 1);
-
-        const retryResult = await retryQuery;
-        requests = retryResult.data;
-        error = retryResult.error;
-        count = retryResult.count;
-      } catch (retryError: any) {
-        console.error('[DepositRequests List] Retry also failed:', retryError);
-        // 保持原始错误
+          const retryResult = await retryQuery;
+          
+          if (!retryResult.error) {
+            requests = retryResult.data;
+            error = retryResult.error;
+            count = retryResult.count;
+            console.log('[DepositRequests List] Retry successful!');
+            break;
+          } else {
+            console.log(`[DepositRequests List] Retry ${i + 1} failed:`, retryResult.error.message);
+            error = retryResult.error;
+          }
+        } catch (retryError: any) {
+          console.error('[DepositRequests List] Retry also failed:', retryError);
+          error = retryError;
+        }
+        
+        // 等待一小段时间再重试
+        if (i < 2) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
     }
 
-    // ✅ 如果出错，返回 mock 数据
+    // ❌ 如果出错，返回错误信息而不是 mock 数据
     if (error) {
-      console.warn('[DepositRequests API] Table query failed, using mock data:', error.message);
+      console.error('[DepositRequests API] Table query failed:', error.message, error);
+      // 临时返回 mock 数据，待修复 Supabase schema cache 问题
+      console.warn('[DepositRequests API] Temporarily returning mock data due to schema cache issue');
       const mockData = generateMockDepositRequests(page, limit, search);
       return NextResponse.json({
         success: true,
@@ -139,9 +157,9 @@ export async function GET(request: NextRequest) {
       email: req.users?.[0]?.email || '',
       currency: req.currency,
       paymentAddress: req.tx_hash || '-',
-      amount: req.amount,
-      usdAmount: req.amount, // 简化处理，使用相同值
-      proofImage: '', // 表中暂无此字段
+      amount: parseFloat(req.amount) || 0,
+      usdAmount: parseFloat(req.amount) || 0, // 简化处理，使用相同值
+      proofImage: req.proof_image || '',
       status: req.status,
       createdAt: req.created_at,
       type: req.type,
@@ -185,11 +203,13 @@ export async function POST(request: NextRequest) {
       currency,
       amount,
       txHash,
+      proofImage,
       remark,
       status = 'pending'
     } = body;
 
-    console.log('[DepositRequests POST] Creating deposit request:', { userId, type, currency, amount, txHash });
+    const logData = { userId, type, currency, amount, txHash, proofImageLength: proofImage?.length };
+    console.log('[DepositRequests POST] Creating deposit request:', logData);
 
     if (!userId || !currency || amount === undefined) {
       console.error('[DepositRequests POST] Missing required fields');
@@ -212,6 +232,7 @@ export async function POST(request: NextRequest) {
             currency,
             amount,
             tx_hash: txHash,
+            proof_image: proofImage,
             remark,
             status,
           }
@@ -244,6 +265,7 @@ export async function POST(request: NextRequest) {
               currency,
               amount,
               tx_hash: txHash,
+              proof_image: proofImage,
               remark,
               status,
             }
@@ -269,6 +291,7 @@ export async function POST(request: NextRequest) {
         currency,
         amount,
         tx_hash: txHash,
+        proof_image: proofImage,
         status,
         created_at: new Date().toISOString()
       };
