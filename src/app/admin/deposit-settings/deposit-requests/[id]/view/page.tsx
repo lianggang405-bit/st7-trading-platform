@@ -46,14 +46,17 @@ export default function DepositRequestViewPage() {
       const data = await response.json();
       
       if (data.success && data.request) {
-        // 适配数据格式
+        // 后端详情 API 返回 snake_case，转换为 camelCase 以保持一致性
         const formattedRequest = {
           ...data.request,
-          account: `User ${data.request.user_id}`, // 构建账号显示
-          email: `user-${data.request.user_id}@example.com`, // 临时方案
-          paymentAddress: data.request.tx_hash || '', // 使用 tx_hash 作为付款地址
-          usdAmount: data.request.amount, // USDT 等同于 USD
-          proofImage: data.request.proof_image ? `data:image/png;base64,${data.request.proof_image}` : '', // 添加 data URL 前缀
+          account: `User ${data.request.user_id}`,
+          email: `user-${data.request.user_id}@example.com`,
+          paymentAddress: data.request.tx_hash || '',
+          usdAmount: data.request.amount,
+          proofImage: data.request.proof_image || '',
+          createdAt: data.request.created_at,
+          type: data.request.type,
+          txHash: data.request.tx_hash,
         };
         setRequest(formattedRequest);
       }
