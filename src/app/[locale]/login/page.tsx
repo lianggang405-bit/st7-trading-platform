@@ -18,13 +18,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // 获取当前语言
+  // 獲取当前语言
   const locale = pathname.split('/')[1];
 
-  // 获取重定向路径（默认跳转到市场页）
+  // 獲取重定向路径（默认跳转到市场页）
   const redirectParam = searchParams.get('redirect') || '/market';
 
-  // 检查 redirectParam 是否已经包含 locale，避免双重 locale
+  // 檢查 redirectParam 是否已经包含 locale，避免双重 locale
   const hasLocalePrefix = locales.includes(redirectParam.split('/')[1] as any);
   const redirectPath = hasLocalePrefix
     ? redirectParam
@@ -51,13 +51,13 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // 自动创建模拟账户
+      // 自动創建模擬賬戶
       const demoEmail = `demo_${Date.now()}@forex.com`;
       const demoPassword = 'demo123';
 
       await register(demoEmail, demoPassword, 'demo');
 
-      // 自动登录模拟账户（快速体验）
+      // 自动登录模擬賬戶（快速体验）
       await login(demoEmail, demoPassword);
 
       // 强制刷新跳转，确保状态完全重置
@@ -77,7 +77,7 @@ export default function LoginPage() {
   };
 
   const handleGoToRegister = () => {
-    // 跳转到注册页面（创建正式账户）
+    // 跳转到注册页面（創建正式賬戶）
     router.push(`/${locale}/register`);
   };
 
@@ -155,7 +155,7 @@ export default function LoginPage() {
           {t('common.login')}
         </button>
 
-        {/* 创建模拟账户按钮 */}
+        {/* 創建模擬賬戶按钮 */}
         <button
           onClick={handleCreateDemo}
           disabled={isLoading}

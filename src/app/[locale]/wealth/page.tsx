@@ -45,7 +45,7 @@ export default function WealthPage() {
     }
   }, [assets.length, initAssets]);
 
-  // 模拟收益增长、价格更新和检查到期质押
+  // 模擬收益增長、價格更新和檢查到期質押
   useEffect(() => {
     const rewardInterval = setInterval(() => {
       updateRewards();
@@ -57,15 +57,15 @@ export default function WealthPage() {
 
     const checkExpiredInterval = setInterval(() => {
       checkExpiredStakes();
-    }, 30000); // 每30秒检查一次到期质押
+    }, 30000); // 每30秒檢查一次到期質押
 
-    // 检查即将到期的质押记录（每60秒）
+    // 檢查即將到期的質押記錄（每60秒）
     const checkExpiringInterval = setInterval(() => {
       const expiringStakes = getExpiringStakes(24); // 24小时内到期
       setShowExpiringAlert(expiringStakes.length > 0);
     }, 60000);
 
-    // 初始检查
+    // 初始檢查
     const expiringStakes = getExpiringStakes(24);
     setShowExpiringAlert(expiringStakes.length > 0);
 
@@ -77,7 +77,7 @@ export default function WealthPage() {
     };
   }, [updateRewards, updatePrices, checkExpiredStakes, getExpiringStakes]);
 
-  // 获取选中的资产
+  // 獲取选中的资产
   const selectedAssetData = assets.find((a: any) => a.id === selectedAsset);
 
   // 打开操作弹窗

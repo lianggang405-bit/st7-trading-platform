@@ -160,7 +160,7 @@ export default function WithdrawPage() {
     return { fee, arrivalAmount };
   };
 
-  // 获取出金记录
+  // 獲取出金记录
   const fetchWithdrawRecords = async () => {
     if (!user?.id) {
       setError('用戶未登錄');
@@ -197,9 +197,9 @@ export default function WithdrawPage() {
     e.preventDefault();
     setError('');
 
-    // 检查是否为模拟账户
+    // 檢查是否為模擬賬戶
     if (user?.accountType === 'demo') {
-      toast.error('模拟账户不支持此操作，請註冊正式用戶！');
+      toast.error('模擬賬戶不支持此操作，請註冊正式用戶！');
       return;
     }
 
@@ -307,7 +307,7 @@ export default function WithdrawPage() {
               </div>
             </div>
 
-            {/* 申请出金 / 出金记录切换标签 */}
+            {/* 申請出金 / 出金记录切换标签 */}
             <div className="px-4 py-2">
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
@@ -334,7 +334,7 @@ export default function WithdrawPage() {
             </div>
           </div>
 
-          {/* 申请出金表单 */}
+          {/* 申請出金表单 */}
           {activeTab === 'apply' && (
             <div>
               {/* 出金方式切换标签栏 */}

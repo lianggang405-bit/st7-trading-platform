@@ -37,7 +37,7 @@ export default function VerifyPage() {
       const data = await response.json();
       if (response.ok && data.success) {
         setVerificationStatus(data.status);
-        // 如果有待审核或已通过的申请，显示相应弹窗
+        // 如果有待審核或已通过的申請，显示相应弹窗
         if (data.status === 'pending') {
           setShowPendingDialog(true);
         } else if (data.status === 'approved') {
@@ -67,7 +67,7 @@ export default function VerifyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 检查实名认证状态
+    // 檢查實名認證狀態
     if (verificationStatus === 'pending') {
       setShowPendingDialog(true);
       return;
@@ -96,8 +96,8 @@ export default function VerifyPage() {
           type: 'verification',
           realName: realName.trim(),
           idCard: idNumber.trim(),
-          frontImage: frontImage, // 发送证件照正面
-          backImage: backImage,   // 发送证件照反面
+          frontImage: frontImage, // 發送證件照正面
+          backImage: backImage,   // 發送證件照反面
         }),
       });
 
@@ -169,7 +169,7 @@ export default function VerifyPage() {
                       {frontImage ? (
                         <img
                           src={frontImage}
-                          alt="身份证正面"
+                          alt="身份證正面"
                           className="w-full h-full object-contain rounded-lg"
                         />
                       ) : (
@@ -204,7 +204,7 @@ export default function VerifyPage() {
                       {backImage ? (
                         <img
                           src={backImage}
-                          alt="身份证反面"
+                          alt="身份證反面"
                           className="w-full h-full object-contain rounded-lg"
                         />
                       ) : (
@@ -290,7 +290,7 @@ export default function VerifyPage() {
             onConfirm={() => router.back()}
           />
 
-          {/* 审核中弹窗 */}
+          {/* 審核中弹窗 */}
           <SuccessDialog
             open={showPendingDialog}
             onOpenChange={setShowPendingDialog}

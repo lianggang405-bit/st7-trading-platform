@@ -159,7 +159,7 @@ export default function ApplicationsPage() {
                           </div>
                         </div>
 
-                        {/* 申请详情 */}
+                        {/* 申請详情 */}
                         <div className="space-y-1 text-sm text-gray-600">
                           {app.type === 'deposit' && (
                             <>

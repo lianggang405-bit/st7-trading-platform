@@ -65,22 +65,22 @@ export default function TradePage() {
   const [pendingPrice, setPendingPrice] = useState(0);
   const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] = useState(false);
 
-  // 定期检查并触发挂单
+  // 定期檢查並觸發掛單
   useEffect(() => {
     const checkAndTriggerOrders = async () => {
       try {
-        // 获取所有 pending 订单
+        // 獲取所有 pending 订单
         const result = await getAllOrders({ status: 'pending' });
         
         if (result.success && result.orders) {
           for (const order of result.orders) {
-            // 获取当前市场价格
+            // 獲取当前市场价格
             const symbolData = symbols.find(s => s.symbol === order.symbol);
             if (!symbolData) continue;
 
             const currentPrice = symbolData.price;
 
-            // 检查触发条件
+            // 檢查觸發條件
             let shouldTrigger = false;
             if (order.side === 'buy') {
               // 买单：当前价格 <= 挂单价格
@@ -98,11 +98,11 @@ export default function TradePage() {
           }
         }
       } catch (error) {
-        console.error('检查挂单失败:', error);
+        console.error('檢查掛單失敗:', error);
       }
     };
 
-    // 每秒检查一次
+    // 每秒檢查一次
     const interval = setInterval(checkAndTriggerOrders, 1000);
     return () => clearInterval(interval);
   }, [symbols]);
@@ -117,12 +117,12 @@ export default function TradePage() {
         if (data.success && data.symbols) {
           setSymbols(data.symbols);
         } else {
-          // 如果 API 失败，使用备用数据
+          // 如果 API 失敗，使用备用数据
           setSymbols(mockSymbols);
         }
       } catch (error) {
         console.error('Failed to load symbols:', error);
-        // 如果 API 失败，使用备用数据
+        // 如果 API 失敗，使用备用数据
         setSymbols(mockSymbols);
       }
     }
@@ -164,7 +164,7 @@ export default function TradePage() {
     updateRisk({ equity, usedMargin });
   }, [equity, usedMargin, updateRisk]);
 
-  // 模拟价格刷新
+  // 模擬价格刷新
   useEffect(() => {
     const interval = setInterval(() => {
       tick();

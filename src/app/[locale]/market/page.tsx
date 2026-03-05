@@ -36,12 +36,12 @@ export default function MarketPage() {
         if (data.success && data.symbols && setSymbols) {
           setSymbols(data.symbols);
         } else {
-          // 如果 API 失败，使用备用数据
+          // 如果 API 失敗，使用备用数据
           setSymbols?.(mockSymbols);
         }
       } catch (error) {
         console.error('Failed to load symbols:', error);
-        // 如果 API 失败，使用备用数据
+        // 如果 API 失敗，使用备用数据
         setSymbols?.(mockSymbols);
       } finally {
         setLoading(false);
@@ -106,7 +106,7 @@ export default function MarketPage() {
     setFilteredSymbols(filtered);
   }, [symbols, categoryFilter]);
 
-  // 模拟价格刷新
+  // 模擬价格刷新
   useEffect(() => {
     if (!tick) return;
 

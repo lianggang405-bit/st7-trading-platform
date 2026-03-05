@@ -62,7 +62,7 @@ export default function ChangePasswordPage() {
 
     setIsSubmitting(true);
 
-    // 模拟提交
+    // 模擬提交
     setTimeout(() => {
       setIsSubmitting(false);
       alert('密碼修改成功，請重新登錄');

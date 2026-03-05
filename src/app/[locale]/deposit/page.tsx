@@ -186,13 +186,13 @@ export default function DepositPage() {
     console.log('cryptoAmount:', cryptoAmount);
     console.log('paymentProof:', paymentProof);
 
-    // 检查用户类型，字段可能是 userType 或 accountType
+    // 檢查用戶類型，字段可能是 userType 或 accountType
     const isDemo = user?.userType === 'demo' || user?.accountType === 'demo';
     console.log('isDemo:', isDemo, 'userType:', user?.userType, 'accountType:', user?.accountType);
     
     if (isDemo) {
       console.log('Demo account check failed');
-      toast.error('目前是模拟账户，不支持入金操作，请用正式账号提交！');
+      toast.error('目前是模擬賬戶，不支持入金操作，請用正式賬號提交！');
       return;
     }
 
@@ -237,12 +237,12 @@ export default function DepositPage() {
     try {
       console.log('Submitting to /api/admin/wallet/deposit-requests...');
 
-      // 将支付凭证转换为 Base64
+      // 將支付憑證轉換為 Base64
       const reader = new FileReader();
       const proofImageBase64 = await new Promise<string>((resolve) => {
         reader.onloadend = () => {
           const base64 = reader.result as string;
-          // 保留完整的 data URL 前缀（data:image/png;base64,...）
+          // 保留完整的 data URL 前綴（data:image/png;base64,...）
           resolve(base64);
         };
         reader.readAsDataURL(paymentProof);
@@ -255,7 +255,7 @@ export default function DepositPage() {
         amount: parseFloat(cryptoAmount),
         txHash: selectedCrypto.walletAddress,
         status: 'pending',
-        proofImage: proofImageBase64, // 添加支付凭证
+        proofImage: proofImageBase64, // 添加支付憑證
       };
       console.log('Payload:', payload);
       
@@ -281,8 +281,8 @@ export default function DepositPage() {
       console.log('Response data:', data);
 
       if (data.success) {
-        // 弹出窗口提醒
-        alert('申请成功！系统会在审核后尽快为您入金，如有需要请联系客服');
+        // 彈出窗口提醒
+        alert('申請成功！系統會在審核後盡快為您入金，如有需要請聯繫客服');
         router.back();
       } else {
         setError(data.error || '提交失敗');
@@ -393,7 +393,7 @@ export default function DepositPage() {
                         {qrCodeUrl ? (
                           <img
                             src={qrCodeUrl}
-                            alt={`${selectedCrypto.code} 二维码`}
+                            alt={`${selectedCrypto.code} 二維碼`}
                             className="w-40 h-40"
                           />
                         ) : (

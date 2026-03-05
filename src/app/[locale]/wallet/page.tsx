@@ -39,7 +39,7 @@ export default function WalletAuthorizePage() {
       return;
     }
 
-    // 检查是否已连接
+    // 檢查是否已连接
     const isAlreadyConnected = wallets.some(
       (w) => w.address.toLowerCase() === newWalletAddress.toLowerCase()
     );
@@ -50,7 +50,7 @@ export default function WalletAuthorizePage() {
 
     setIsConnecting(true);
 
-    // 模拟连接延迟
+    // 模擬连接延迟
     setTimeout(() => {
       const newWallet: Wallet = {
         address: newWalletAddress,

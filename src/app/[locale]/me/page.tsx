@@ -19,7 +19,7 @@ export default function MePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* 顶部账户信息栏 */}
+      {/* 顶部賬戶信息栏 */}
       <AccountInfo />
 
       {/* 入金/出金按钮 */}

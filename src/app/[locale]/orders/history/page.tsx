@@ -18,7 +18,7 @@ export default function OrderHistoryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 获取历史订单列表
+  // 獲取历史订单列表
   const fetchHistoryOrders = async () => {
     setLoading(true);
     setError(null);
@@ -27,10 +27,10 @@ export default function OrderHistoryPage() {
       if (result.success && result.orders) {
         setOrders(result.orders);
       } else {
-        setError(result.error || '获取历史记录失败');
+        setError(result.error || '獲取历史记录失敗');
       }
     } catch (err) {
-      setError('获取历史记录失败');
+      setError('獲取历史记录失敗');
       console.error('Failed to fetch history orders:', err);
     } finally {
       setLoading(false);

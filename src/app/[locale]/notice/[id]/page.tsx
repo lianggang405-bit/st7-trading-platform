@@ -45,7 +45,7 @@ export default function NoticeDetailPage() {
       if (data.success && data.notice) {
         setNotice(data.notice);
       } else {
-        setError(data.error || '获取公告详情失败');
+        setError(data.error || '獲取公告详情失敗');
       }
     } catch (err) {
       console.error('Failed to fetch notice detail:', err);

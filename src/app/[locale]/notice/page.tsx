@@ -65,7 +65,7 @@ export default function NoticePage() {
       if (data.success && data.notices) {
         setNotices(data.notices);
       } else {
-        setError(data.error || '获取公告失败');
+        setError(data.error || '獲取公告失敗');
       }
     } catch (err) {
       console.error('Failed to fetch notices:', err);

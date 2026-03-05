@@ -10,7 +10,7 @@ export default function RegisterPage() {
   const pathname = usePathname();
   const { register } = useAuthStore();
 
-  // 获取当前语言
+  // 獲取当前语言
   const locale = pathname.split('/')[1];
 
   const [email, setEmail] = useState('');
@@ -19,7 +19,7 @@ export default function RegisterPage() {
   const [inviteCode, setInviteCode] = useState(''); // 邀请码（可选）
   const [captchaCode, setCaptchaCode] = useState(''); // 验证码
 
-  // 模拟验证码
+  // 模擬验证码
   const [captchaText] = useState('721013');
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -60,7 +60,7 @@ export default function RegisterPage() {
 
     try {
       console.log('Starting registration...');
-      // 注册正式账户（accountType: 'real'，初始余额为 0）
+      // 注册正式賬戶（accountType: 'real'，初始余额为 0）
       await register(email, password, 'real');
 
       console.log('Registration successful!');
@@ -168,7 +168,7 @@ export default function RegisterPage() {
               placeholder="請輸入驗證碼"
               className="flex-1 px-4 py-3 bg-gray-50 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
             />
-            {/* 模拟验证码图片 */}
+            {/* 模擬验证码图片 */}
             <div className="w-28 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden relative">
               <div className="text-gray-600 text-lg font-bold" style={{
                 transform: 'rotate(-5deg)',

@@ -122,8 +122,8 @@ export default function PositionPage() {
       onConfirm: async () => {
         const result = await closePosition(id);
         if (!result.success) {
-          console.error('平仓失败:', result.error);
-          alert(`平仓失败: ${result.error}`);
+          console.error('平仓失敗:', result.error);
+          alert(`平仓失敗: ${result.error}`);
         }
       },
     });
@@ -170,7 +170,7 @@ export default function PositionPage() {
                 </button>
               </div>
 
-              {/* 账户数据卡片 */}
+              {/* 賬戶数据卡片 */}
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 mb-6 shadow-sm border border-gray-200">
                 {/* 盈亏展示 */}
                 <div className="text-center mb-6">
