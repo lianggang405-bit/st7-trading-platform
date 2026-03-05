@@ -71,10 +71,11 @@ export default function DepositRequestsPage() {
         // 适配数据格式
         const formattedRequests = (data.requests || []).map((req: any) => ({
           ...req,
-          email: req.email || req.account || '',
-          account: req.account || req.email || '',
-          paymentAddress: req.paymentAddress || req.txHash || '',
-          usdAmount: req.usdAmount || req.amount,
+          account: `User ${req.user_id}`, // 构建账号显示
+          email: `user-${req.user_id}@example.com`, // 临时方案
+          paymentAddress: req.tx_hash || '', // 使用 tx_hash 作为付款地址
+          usdAmount: req.amount, // USDT 等同于 USD
+          proofImage: req.proof_image ? `data:image/png;base64,${req.proof_image}` : '', // 添加 data URL 前缀
         }));
         console.log('[DepositRequestsPage] Formatted requests:', formattedRequests);
         setRequests(formattedRequests);

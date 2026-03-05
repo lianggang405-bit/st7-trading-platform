@@ -49,10 +49,11 @@ export default function DepositRequestViewPage() {
         // 适配数据格式
         const formattedRequest = {
           ...data.request,
-          account: data.request.account || data.request.email || '',
-          email: data.request.email || data.request.account || '',
-          paymentAddress: data.request.paymentAddress || data.request.txHash || '',
-          usdAmount: data.request.usdAmount || data.request.amount,
+          account: `User ${data.request.user_id}`, // 构建账号显示
+          email: `user-${data.request.user_id}@example.com`, // 临时方案
+          paymentAddress: data.request.tx_hash || '', // 使用 tx_hash 作为付款地址
+          usdAmount: data.request.amount, // USDT 等同于 USD
+          proofImage: data.request.proof_image ? `data:image/png;base64,${data.request.proof_image}` : '', // 添加 data URL 前缀
         };
         setRequest(formattedRequest);
       }
