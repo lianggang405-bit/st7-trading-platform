@@ -35,8 +35,23 @@ export default getRequestConfig(async ({ requestLocale }) => {
   // 如果 requestLocale 为 undefined，尝试从请求头中提取
   if (!locale) {
     const headersList = await headers();
-    const pathname = headersList.get('x-pathname') || headersList.get('referer') || '';
-    console.log('[i18n.ts] Pathname from headers:', pathname);
+    const referer = headersList.get('referer') || '';
+    console.log('[i18n.ts] Referer from headers:', referer);
+    
+    // 从 URL 中提取 pathname（去掉协议和域名）
+    let pathname = '';
+    try {
+      if (referer.includes('http')) {
+        const url = new URL(referer);
+        pathname = url.pathname;
+      } else {
+        pathname = referer;
+      }
+    } catch (e) {
+      pathname = referer;
+    }
+    
+    console.log('[i18n.ts] Extracted pathname:', pathname);
     
     // 从 pathname 中提取 locale
     const pathSegments = pathname.split('/').filter(Boolean);
