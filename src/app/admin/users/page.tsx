@@ -168,7 +168,7 @@ export default function AdminUsersPage() {
         <CardContent className="pt-4 lg:pt-6">
           <div className="flex flex-col gap-3 lg:gap-4">
             <div className="flex gap-2">
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 max-w-[200px] lg:max-w-full">
                 <div className="relative">
                   <Search className="absolute left-2 lg:left-3 top-1/2 -translate-y-1/2 w-3 h-3 lg:w-4 lg:h-4 text-gray-400 flex-shrink-0" />
                   <Input

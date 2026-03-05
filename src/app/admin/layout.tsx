@@ -89,12 +89,7 @@ export default function AdminLayout({
       name: '用户管理',
       href: '/admin/users',
       icon: Users,
-      children: [
-        { name: '用户列表', href: '/admin/users/list' },
-        { name: '实名管理', href: '/admin/users/kyc' },
-        { name: '模拟账户', href: '/admin/users/demo' },
-        { name: '用户等级', href: '/admin/users/level' },
-      ]
+      children: []
     },
     {
       name: '品种交易',
@@ -378,13 +373,13 @@ export default function AdminLayout({
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Breadcrumb Navigation */}
-          <nav className="flex items-center space-x-1 lg:space-x-2 text-xs lg:text-sm flex-1">
+          {/* Breadcrumb Navigation - Desktop Only */}
+          <nav className="hidden lg:flex items-center space-x-2 text-sm flex-1">
             {breadcrumb ? (
               breadcrumb.map((item, index) => (
                 <div key={item.href} className="flex items-center">
                   {index > 0 && (
-                    <span className="text-gray-500 mx-1 lg:mx-2">/</span>
+                    <span className="text-gray-500 mx-2">/</span>
                   )}
                   {index === breadcrumb.length - 1 ? (
                     <span className="text-gray-200 font-medium truncate">{item.name}</span>
@@ -402,6 +397,13 @@ export default function AdminLayout({
               <span className="text-gray-200 font-medium">管理后台</span>
             )}
           </nav>
+
+          {/* Mobile Title - Show on mobile only */}
+          <div className="lg:hidden flex-1">
+            <h2 className="text-sm lg:text-lg font-semibold text-white truncate">
+              {navigation.find((item) => item.href === pathname)?.name || '管理后台'}
+            </h2>
+          </div>
         </header>
 
         {/* Page content - Scrollable */}
