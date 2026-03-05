@@ -1,19 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { MoreVertical, Copy } from 'lucide-react';
 import { toast } from 'sonner';
-import adminFetch from '@/lib/admin-fetch';
 
 interface DepositRequest {
   id: number;
   account: string;
-  email: string;
+  email?: string;
   currency: string;
   paymentAddress: string;
   amount: number;
@@ -21,31 +20,39 @@ interface DepositRequest {
   proofImage: string;
   status: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
   type?: string;
   txHash?: string;
 }
 
 export default function DepositRequestViewPage() {
   const router = useRouter();
+  const params = useParams();
   const [request, setRequest] = useState<DepositRequest | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchRequest();
-  }, []);
+    if (params.id) {
+      fetchRequest();
+    }
+  }, [params.id]);
 
   const fetchRequest = async () => {
     setLoading(true);
     try {
-      const pathParts = window.location.pathname.split('/');
-      const id = pathParts[pathParts.length - 2];
-      
-      const response = await adminFetch(`/api/admin/wallet/deposit-requests/${id}`);
+      const response = await fetch(`/api/admin/wallet/deposit-requests/${params.id}`);
       const data = await response.json();
       
       if (data.success && data.request) {
-        setRequest(data.request);
+        // 适配数据格式
+        const formattedRequest = {
+          ...data.request,
+          account: data.request.account || data.request.email || '',
+          email: data.request.email || data.request.account || '',
+          paymentAddress: data.request.paymentAddress || data.request.txHash || '',
+          usdAmount: data.request.usdAmount || data.request.amount,
+        };
+        setRequest(formattedRequest);
       }
     } catch (error) {
       console.error('Failed to fetch deposit request:', error);
@@ -55,23 +62,29 @@ export default function DepositRequestViewPage() {
     }
   };
 
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('已复制到剪贴板');
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('已复制到剪贴板');
+    } catch (error) {
+      toast.error('复制失败');
+    }
   };
 
   const getStatusBadge = (status: string) => {
-    const map = {
+    const map: Record<string, { label: string; className: string }> = {
       pending: { label: '申请中', className: 'bg-blue-500/10 text-blue-400' },
       approved: { label: '已充值', className: 'bg-green-500/10 text-green-400' },
       rejected: { label: '已拒绝', className: 'bg-red-500/10 text-red-400' },
     };
-    const config = map[status as keyof typeof map];
+    const config = map[status];
     return config ? (
       <Badge className={config.className}>
         {config.label}
       </Badge>
-    ) : null;
+    ) : (
+      <Badge className="bg-gray-500/10 text-gray-400">{status}</Badge>
+    );
   };
 
   if (loading) {
@@ -107,7 +120,7 @@ export default function DepositRequestViewPage() {
     <div className="space-y-6">
       {/* 面包屑导航 */}
       <div className="flex items-center gap-2 text-sm text-gray-400">
-        <span>资源</span> / <span>充币申请</span> / <span className="text-white">充币申请 详情: {request.id}</span>
+        <span>充币设置</span> / <span>充币申请</span> / <span className="text-white">充币申请 详情: {request.id}</span>
       </div>
 
       {/* 主内容区 */}
@@ -135,7 +148,7 @@ export default function DepositRequestViewPage() {
             {/* 账号 */}
             <div className="flex justify-between items-start py-3 border-b border-slate-700">
               <Label className="text-gray-400 text-sm min-w-[120px]">账号</Label>
-              <div className="flex-1 text-white">{request.account}</div>
+              <div className="flex-1 text-white">{request.account || request.email}</div>
             </div>
 
             {/* 品种 */}
@@ -148,15 +161,17 @@ export default function DepositRequestViewPage() {
             <div className="flex justify-between items-start py-3 border-b border-slate-700">
               <Label className="text-gray-400 text-sm min-w-[120px]">付款地址</Label>
               <div className="flex-1 flex items-center gap-2">
-                <span className="text-white font-mono text-sm">{request.paymentAddress}</span>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 text-gray-400 hover:text-white"
-                  onClick={() => handleCopy(request.paymentAddress)}
-                >
-                  <Copy className="w-3 h-3" />
-                </Button>
+                <span className="text-white font-mono text-sm break-all">{request.paymentAddress}</span>
+                {request.paymentAddress && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 text-gray-400 hover:text-white"
+                    onClick={() => handleCopy(request.paymentAddress)}
+                  >
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -190,6 +205,9 @@ export default function DepositRequestViewPage() {
                       src={request.proofImage}
                       alt="付款凭证"
                       className="w-full max-w-md mx-auto"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
                   </div>
                 ) : (
@@ -219,13 +237,19 @@ export default function DepositRequestViewPage() {
       </Card>
 
       {/* 返回按钮 */}
-      <div className="flex justify-start">
+      <div className="flex justify-start gap-3">
         <Button
           variant="outline"
-          onClick={() => router.back()}
+          onClick={() => router.push('/admin/deposit-settings/deposit-requests')}
           className="border-slate-600 text-slate-300 hover:bg-slate-700"
         >
           返回
+        </Button>
+        <Button
+          onClick={() => router.push(`/admin/deposit-settings/deposit-requests/${request.id}`)}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          编辑
         </Button>
       </div>
     </div>
