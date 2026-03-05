@@ -181,7 +181,16 @@
     "other": "Andere",
     "logout": "Abmelden",
     "confirmLogout": "Möchten Sie sich wirklich abmelden?",
-    "applications": "Anwendungsdatensätze"
+    "applications": "Anwendungsdatensätze",
+    "balance": "Guthaben",
+    "demoAccount": "Demo-Konto",
+    "assetAccount": "Vermögenskonto",
+    "creditScore": {
+      "excellent": "Ausgezeichnet",
+      "good": "Gut",
+      "medium": "Mittel",
+      "poor": "Schlecht"
+    }
   },
   "changePassword": {
     "title": "Passwort ändern",

@@ -54,6 +54,20 @@
     "enterVerifyCodeError": "請輸入驗證碼",
     "contactSupportForPassword": "請聯繫客服重置密碼"
   },
+  "notice": {
+    "title": "公告",
+    "loading": "加載中...",
+    "retry": "重新加載",
+    "noNotices": "暫無公告",
+    "refresh": {
+      "pull": "下拉刷新",
+      "release": "釋放刷新"
+    },
+    "error": {
+      "fetchFailed": "獲取公告失敗",
+      "networkError": "網絡錯誤，請稍後重試"
+    }
+  },
   "language": {
     "title": "語言選擇",
     "selectLanguage": "選擇語言"
@@ -74,7 +88,7 @@
     "currentMargin": "當前保證金",
     "availableMargin": "可用保證金",
     "riskRatio": "風險率",
-    "symbol": "品種",
+    "symbol": "交易對",
     "volume": "手數",
     "openPrice": "開倉價",
     "currentPrice": "當前價",
@@ -82,7 +96,16 @@
     "closePosition": "平倉",
     "noPositions": "暫無持倉",
     "marginCall": "保證金不足",
-    "forceClose": "強行平倉"
+    "forceClose": "強行平倉",
+    "direction": "方向",
+    "confirmClose": "確認平倉",
+    "danger": "危險狀態：風險率過高",
+    "warning": "預警狀態：風險率偏高",
+    "buy": "買入",
+    "sell": "賣出",
+    "error": {
+      "closeFailed": "平仓失敗"
+    }
   },
   "trade": {
     "instantOrder": "下單交易",
@@ -232,7 +255,16 @@
     "other": "其它",
     "logout": "登出",
     "confirmLogout": "確定要登出嗎？",
-    "applications": "申請記錄"
+    "applications": "申請記錄",
+    "balance": "餘額",
+    "demoAccount": "模擬帳戶",
+    "assetAccount": "資產帳戶",
+    "creditScore": {
+      "excellent": "優秀",
+      "good": "良好",
+      "medium": "中等",
+      "poor": "較差"
+    }
   },
   "changePassword": {
     "title": "修改密碼",

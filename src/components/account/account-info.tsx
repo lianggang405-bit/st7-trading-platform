@@ -5,11 +5,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useAuthStore } from '../../stores/authStore';
 import { useAssetStore } from '../../stores/assetStore';
 import * as authApi from '@/api/auth';
 
 export function AccountInfo() {
+  const t = useTranslations('profile');
   const { user } = useAuthStore();
   const { balance: assetBalance, syncFromBackend } = useAssetStore();
   const [showBalance, setShowBalance] = useState(true);
@@ -21,7 +23,7 @@ export function AccountInfo() {
 
   // 根据账户类型显示不同的名称
   // 模拟账户显示"模擬帳戶"，正式账户显示邮箱地址
-  const accountTypeName = user?.accountType === 'demo' ? '模擬帳戶' : user?.email || '資產帳戶';
+  const accountTypeName = user?.accountType === 'demo' ? t('demoAccount') : user?.email || t('assetAccount');
 
   // 获取信用分
   useEffect(() => {
@@ -60,10 +62,10 @@ export function AccountInfo() {
 
   // 信用分等级
   const getCreditScoreLevel = (score: number) => {
-    if (score === 100) return '優秀';
-    if (score >= 90) return '良好';
-    if (score >= 80) return '中等';
-    return '較差';
+    if (score === 100) return t('creditScore.excellent');
+    if (score >= 90) return t('creditScore.good');
+    if (score >= 80) return t('creditScore.medium');
+    return t('creditScore.poor');
   };
 
   return (
@@ -93,7 +95,7 @@ export function AccountInfo() {
         <div className="text-white text-3xl font-bold">
           {showBalance ? `$${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '••••••••'}
         </div>
-        <div className="text-blue-100 text-xs mt-1">餘額</div>
+        <div className="text-blue-100 text-xs mt-1">{t('balance')}</div>
       </div>
 
       {/* 信用分 */}

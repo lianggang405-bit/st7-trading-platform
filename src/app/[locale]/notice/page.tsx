@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ArrowLeft, ChevronRight, FileText, RefreshCw } from 'lucide-react';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
@@ -22,6 +23,7 @@ interface NoticeItem {
 export default function NoticePage() {
   const router = useRouter();
   const pathname = usePathname();
+  const t = useTranslations('notice');
   const locale = pathname.split('/')[1];
 
   const [notices, setNotices] = useState<NoticeItem[]>([]);
@@ -65,11 +67,11 @@ export default function NoticePage() {
       if (data.success && data.notices) {
         setNotices(data.notices);
       } else {
-        setError(data.error || '獲取公告失敗');
+        setError(data.error || t('error.fetchFailed'));
       }
     } catch (err) {
       console.error('Failed to fetch notices:', err);
-      setError('网络错误，请稍后重试');
+      setError(t('error.networkError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -145,7 +147,7 @@ export default function NoticePage() {
         >
           <div className="bg-white rounded-lg px-4 py-2 shadow-sm flex items-center gap-2">
             <RefreshCw size={16} className={isPulling ? 'animate-spin' : ''} />
-            <span className="text-sm text-gray-700">{isPulling ? '释放刷新' : '下拉刷新'}</span>
+            <span className="text-sm text-gray-700">{isPulling ? t('refresh.release') : t('refresh.pull')}</span>
           </div>
         </div>
       )}
@@ -160,7 +162,7 @@ export default function NoticePage() {
       >
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="text-gray-500">加载中...</div>
+            <div className="text-gray-500">{t('loading')}</div>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-8">
@@ -169,12 +171,12 @@ export default function NoticePage() {
               onClick={fetchNotices}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              重新加载
+              {t('retry')}
             </button>
           </div>
         ) : notices.length === 0 ? (
           <div className="flex items-center justify-center py-8">
-            <div className="text-gray-500">暂无公告</div>
+            <div className="text-gray-500">{t('noNotices')}</div>
           </div>
         ) : (
           <div className="space-y-3">

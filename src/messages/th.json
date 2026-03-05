@@ -181,7 +181,16 @@
     "other": "อื่นๆ",
     "logout": "ออกจากระบบ",
     "confirmLogout": "คุณแน่ใจหรือไม่ที่จะออกจากระบบ?",
-    "applications": "ประวัติคำขอ"
+    "applications": "ประวัติคำขอ",
+    "balance": "ยอดเงิน",
+    "demoAccount": "บัญชีทดลอง",
+    "assetAccount": "บัญชีสินทรัพย์",
+    "creditScore": {
+      "excellent": "ดีเยี่ยม",
+      "good": "ดี",
+      "medium": "ปานกลาง",
+      "poor": "แย่"
+    }
   },
   "changePassword": {
     "title": "เปลี่ยนรหัสผ่าน",

@@ -181,7 +181,16 @@
     "other": "Khác",
     "logout": "Đăng xuất",
     "confirmLogout": "Bạn có chắc chắn muốn đăng xuất?",
-    "applications": "Hồ sơ đơn"
+    "applications": "Hồ sơ đơn",
+    "balance": "Số dư",
+    "demoAccount": "Tài khoản demo",
+    "assetAccount": "Tài khoản tài sản",
+    "creditScore": {
+      "excellent": "Xuất sắc",
+      "good": "Tốt",
+      "medium": "Trung bình",
+      "poor": "Kém"
+    }
   },
   "changePassword": {
     "title": "Đổi mật khẩu",

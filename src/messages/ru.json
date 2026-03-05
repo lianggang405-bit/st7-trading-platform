@@ -181,7 +181,16 @@
     "other": "Другое",
     "logout": "Выйти",
     "confirmLogout": "Вы уверены, что хотите выйти?",
-    "applications": "Записи заявок"
+    "applications": "Записи заявок",
+    "balance": "Баланс",
+    "demoAccount": "Демо-счет",
+    "assetAccount": "Счет активов",
+    "creditScore": {
+      "excellent": "Отлично",
+      "good": "Хорошо",
+      "medium": "Средне",
+      "poor": "Плохо"
+    }
   },
   "changePassword": {
     "title": "Изменить пароль",

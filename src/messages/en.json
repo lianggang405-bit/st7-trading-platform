@@ -54,6 +54,20 @@
     "enterVerifyCodeError": "Please enter verification code",
     "contactSupportForPassword": "Please contact customer service to reset password"
   },
+  "notice": {
+    "title": "Notice",
+    "loading": "Loading...",
+    "retry": "Retry",
+    "noNotices": "No notices",
+    "refresh": {
+      "pull": "Pull to refresh",
+      "release": "Release to refresh"
+    },
+    "error": {
+      "fetchFailed": "Failed to fetch notices",
+      "networkError": "Network error, please try again later"
+    }
+  },
   "language": {
     "title": "Language Selection",
     "selectLanguage": "Select Language"
@@ -82,7 +96,16 @@
     "closePosition": "Close Position",
     "noPositions": "No positions",
     "marginCall": "Margin Call",
-    "forceClose": "Force Close"
+    "forceClose": "Force Close",
+    "direction": "Direction",
+    "confirmClose": "Confirm Close Position",
+    "danger": "Danger State: Risk Ratio Too High",
+    "warning": "Warning State: Risk Ratio Elevated",
+    "buy": "Buy",
+    "sell": "Sell",
+    "error": {
+      "closeFailed": "Failed to close position"
+    }
   },
   "trade": {
     "instantOrder": "Instant Order",
@@ -232,7 +255,16 @@
     "other": "Other",
     "logout": "Logout",
     "confirmLogout": "Are you sure you want to logout?",
-    "applications": "Application Records"
+    "applications": "Application Records",
+    "balance": "Balance",
+    "demoAccount": "Demo Account",
+    "assetAccount": "Asset Account",
+    "creditScore": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "medium": "Medium",
+      "poor": "Poor"
+    }
   },
   "changePassword": {
     "title": "Change Password",
