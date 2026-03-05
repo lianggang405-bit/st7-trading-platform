@@ -159,9 +159,27 @@ export async function POST(
       return NextResponse.json({ success: false, error: balanceUpdateError.message }, { status: 500 });
     }
 
+    // 6. 同时更新 users 表的余额（保持数据一致性）
+    console.log('[DepositRequests Approve] Updating users table balance...');
+    const { error: userBalanceUpdateError } = await supabase
+      .from('users')
+      .update({
+        balance: newBalance,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', depositRequest.user_id);
+
+    if (userBalanceUpdateError) {
+      console.error('[DepositRequests Approve] Failed to update users table balance:', userBalanceUpdateError);
+      // 注意：这里不回滚，因为 user_wallets 已经更新成功
+      // 可以考虑添加重试机制或后台任务修复
+    } else {
+      console.log('[DepositRequests Approve] Successfully updated users table balance');
+    }
+
     console.log('[DepositRequests Approve] Successfully approved and updated balance');
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       request: updatedRequest,
       usdAmount,
       newBalance
