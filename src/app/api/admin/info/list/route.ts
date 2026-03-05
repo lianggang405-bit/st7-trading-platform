@@ -16,45 +16,33 @@ export async function GET(request: NextRequest) {
     const order = searchParams.get('order') || 'desc';
     const search = searchParams.get('search') || '';
 
-    // If Supabase is not configured, return mock data
+    // If Supabase is not configured, return error
     if (!useSupabase) {
-      console.warn('Supabase not configured, returning mock data');
-      const mockData = generateMockData(page, limit, search);
+      console.error('[Admin Info API] Database configuration missing');
       return NextResponse.json({
-        success: true,
-        infos: mockData,
-        total: 1,
-        page,
-        limit,
-      });
+        success: false,
+        error: 'Database configuration missing',
+      }, { status: 500 });
     }
 
-    // Try to import and initialize Supabase
+    // Try to initialize Supabase
     let supabase;
     try {
       supabase = getSupabaseClient();
     } catch (error) {
-      console.error('Failed to initialize Supabase:', error);
-      const mockData = generateMockData(page, limit, search);
+      console.error('[Admin Info API] Failed to initialize Supabase:', error);
       return NextResponse.json({
-        success: true,
-        infos: mockData,
-        total: 1,
-        page,
-        limit,
-      });
+        success: false,
+        error: 'Failed to initialize database',
+      }, { status: 500 });
     }
 
     if (!supabase) {
-        console.warn('Supabase client is null, returning mock data');
-        const mockData = generateMockData(page, limit, search);
-        return NextResponse.json({
-          success: true,
-          infos: mockData,
-          total: 1,
-          page,
-          limit,
-        });
+      console.error('[Admin Info API] Database connection failed');
+      return NextResponse.json({
+        success: false,
+        error: 'Database connection failed',
+      }, { status: 500 });
     }
 
     const offset = (page - 1) * limit;
@@ -73,16 +61,11 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await query;
 
     if (error) {
-      console.error('Supabase error:', error);
-      // If table does not exist or query fails, return mock data
-      const mockData = generateMockData(page, limit, search);
+      console.error('[Admin Info API] Supabase error:', error);
       return NextResponse.json({
-        success: true,
-        infos: mockData,
-        total: 1,
-        page,
-        limit,
-      });
+        success: false,
+        error: 'Failed to fetch info from database',
+      }, { status: 500 });
     }
 
     // 添加详细日志
@@ -114,21 +97,14 @@ export async function GET(request: NextRequest) {
       limit,
     });
   } catch (error) {
-    console.error('Failed to fetch info list:', error);
-    // Return mock data as fallback
-    const searchParams = request.nextUrl.searchParams;
-    const mockData = generateMockData(
-      parseInt(searchParams.get('page') || '1'),
-      parseInt(searchParams.get('limit') || '15'),
-      searchParams.get('search') || ''
+    console.error('[Admin Info API] Failed to fetch info list:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to fetch info list',
+      },
+      { status: 500 }
     );
-    return NextResponse.json({
-      success: true,
-      infos: mockData,
-      total: 1,
-      page: parseInt(searchParams.get('page') || '1'),
-      limit: parseInt(searchParams.get('limit') || '15'),
-    });
   }
 }
 
@@ -138,21 +114,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { title, type, language, sort, coverImage, isShow, keywords, summary, content } = body;
 
-    // If Supabase is not configured, return success response but do not actually create
+    // If Supabase is not configured, return error
     if (!useSupabase) {
-      console.error('Missing Supabase configuration');
+      console.error('[Admin Info API] Database configuration missing');
       return NextResponse.json({
         success: false,
         error: 'Database configuration missing',
       }, { status: 500 });
     }
 
-    // Try to import and initialize Supabase
+    // Try to initialize Supabase
     let supabase;
     try {
       supabase = getSupabaseClient();
     } catch (error) {
-      console.error('Failed to initialize Supabase:', error);
+      console.error('[Admin Info API] Failed to initialize Supabase:', error);
       return NextResponse.json({
         success: false,
         error: 'Failed to initialize database client',
@@ -160,11 +136,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (!supabase) {
-        console.error('Supabase client is null');
-        return NextResponse.json({
-            success: false,
-            error: 'Database connection failed',
-          }, { status: 500 });
+      console.error('[Admin Info API] Database connection failed');
+      return NextResponse.json({
+        success: false,
+        error: 'Database connection failed',
+      }, { status: 500 });
     }
 
     const { data, error } = await supabase
@@ -186,7 +162,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Supabase insert error:', error);
+      console.error('[Admin Info API] Supabase insert error:', error);
       throw error;
     }
 
@@ -206,7 +182,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Failed to create info:', error);
+    console.error('[Admin Info API] Failed to create info:', error);
     return NextResponse.json(
       {
         success: false,
@@ -215,40 +191,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Generate mock data
-function generateMockData(page: number, limit: number, search: string): any[] {
-  // 注意：这只是fallback数据，实际生产环境应该使用真实数据库数据
-  // 如果使用mock数据，请确保与数据库中的数据一致
-  const mockData = [
-    {
-      id: 9,
-      title: '特别公告',
-      type: '公告',
-      language: '中文繁体',
-      sort: 1,
-      coverImage: '',
-      isShow: true,
-      keywords: '公告',
-      summary: '特别强调！！',
-      content: '由於政策原因，不向朝鮮，以色列，中國，瓦努阿圖，古巴提供服務。',
-    },
-  ];
-
-  // If there is a search condition, filter data
-  if (search) {
-    const filtered = mockData.filter(item =>
-      item.title.toLowerCase().includes(search.toLowerCase()) ||
-      item.type.toLowerCase().includes(search.toLowerCase()) ||
-      item.keywords.toLowerCase().includes(search.toLowerCase())
-    );
-    return filtered;
-  }
-
-  // Default sort by ID descending
-  const sorted = [...mockData].sort((a, b) => b.id - a.id);
-
-  const offset = (page - 1) * limit;
-  return sorted.slice(offset, offset + limit);
 }
