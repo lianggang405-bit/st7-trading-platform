@@ -217,24 +217,24 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-slate-900 overflow-hidden">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-800 border-r border-slate-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 flex flex-col ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 max-w-[85vw] bg-slate-800/95 backdrop-blur-sm border-r border-slate-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:bg-slate-800 lg:backdrop-blur-none flex flex-col ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-slate-700 flex-shrink-0">
-          <h1 className="text-xl font-bold text-white">管理后台</h1>
+        <div className="flex items-center justify-between h-16 px-4 lg:px-6 border-b border-slate-700 flex-shrink-0">
+          <h1 className="text-lg lg:text-xl font-bold text-white">管理后台</h1>
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-2 rounded-md hover:bg-slate-700 text-gray-400"
@@ -244,7 +244,7 @@ export default function AdminLayout({
         </div>
 
         {/* Navigation - Scrollable area */}
-        <nav className="mt-6 px-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar">
+        <nav className="mt-6 px-2 lg:px-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar">
           {navigation.map((item) => {
             const isActive = isMenuActive(item);
             const hasChildren = item.children && item.children.length > 0;
@@ -255,50 +255,52 @@ export default function AdminLayout({
                 {hasChildren ? (
                   <button
                     onClick={() => toggleMenu(item.name)}
-                    className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                    className={`w-full flex items-center justify-between gap-2 lg:gap-3 px-2 lg:px-3 py-2 lg:py-2.5 rounded-md text-xs lg:text-sm font-medium transition-colors ${
                       isActive
                         ? 'text-white bg-slate-700'
                         : 'text-gray-400 hover:bg-slate-700 hover:text-white'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <item.icon className={`w-5 h-5 ${isActive ? 'text-blue-400' : ''}`} />
-                      {item.name}
+                    <div className="flex items-center gap-2 lg:gap-3">
+                      <item.icon className={`w-4 h-4 lg:w-5 lg:h-5 ${isActive ? 'text-blue-400' : ''}`} />
+                      <span className="truncate">{item.name}</span>
                     </div>
                     <ChevronDown
-                      className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                      className={`w-3 h-3 lg:w-4 lg:h-4 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                     />
                   </button>
                 ) : (
                   <Link
                     href={item.href}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center gap-2 lg:gap-3 px-2 lg:px-3 py-2 lg:py-2.5 rounded-md text-xs lg:text-sm font-medium transition-colors ${
                       isActive
                         ? 'text-white bg-slate-700'
                         : 'text-gray-400 hover:bg-slate-700 hover:text-white'
                     }`}
                   >
-                    <item.icon className={`w-5 h-5 ${isActive ? 'text-blue-400' : ''}`} />
-                    {item.name}
+                    <item.icon className={`w-4 h-4 lg:w-5 lg:h-5 ${isActive ? 'text-blue-400' : ''} flex-shrink-0`} />
+                    <span className="truncate">{item.name}</span>
                   </Link>
                 )}
 
                 {hasChildren && isExpanded && (
-                  <div className="mt-1 ml-4 space-y-1">
+                  <div className="mt-1 ml-3 lg:ml-4 space-y-1">
                     {item.children.map((child: any) => {
                       const isChildActive = pathname === child.href;
                       return (
                         <Link
                           key={child.name}
                           href={child.href}
-                          className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                          onClick={() => setSidebarOpen(false)}
+                          className={`flex items-center gap-2 lg:gap-3 px-2 lg:px-3 py-2 lg:py-2.5 rounded-md text-xs lg:text-sm font-medium transition-colors ${
                             isChildActive
                               ? 'text-white bg-slate-700'
                               : 'text-gray-400 hover:bg-slate-700 hover:text-white'
                           }`}
                         >
-                          <div className="w-2 h-2 rounded-full bg-blue-400" />
-                          {child.name}
+                          <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-blue-400 flex-shrink-0" />
+                          <span className="truncate">{child.name}</span>
                         </Link>
                       );
                     })}
@@ -310,35 +312,39 @@ export default function AdminLayout({
         </nav>
 
         {/* Bottom logout button */}
-        <div className="p-4 border-t border-slate-700 flex-shrink-0">
+        <div className="p-3 lg:p-4 border-t border-slate-700 flex-shrink-0">
           <Button
             variant="ghost"
-            className="w-full justify-start text-gray-400 hover:text-white hover:bg-slate-700"
+            className="w-full justify-start text-gray-400 hover:text-white hover:bg-slate-700 text-xs lg:text-sm py-3 lg:py-2"
             onClick={handleLogout}
           >
-            <LogOut className="w-5 h-5 mr-3" />
-            退出登录
+            <LogOut className="w-4 h-4 lg:w-5 lg:h-5 mr-2 lg:mr-3" />
+            <span className="truncate">退出登录</span>
           </Button>
         </div>
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="lg:pl-64 h-screen flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="h-16 bg-slate-800 border-b border-slate-700 flex items-center px-4 lg:px-8">
+        <header className="h-14 lg:h-16 bg-slate-800 border-b border-slate-700 flex items-center px-3 lg:px-4 flex-shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 rounded-md hover:bg-slate-700 mr-4 text-gray-400"
+            className="lg:hidden p-2 rounded-md hover:bg-slate-700 mr-2 lg:mr-4 text-gray-400"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-sm lg:text-lg font-semibold text-white truncate flex-1">
             {navigation.find((item) => item.href === pathname)?.name || '管理后台'}
           </h2>
         </header>
 
-        {/* Page content */}
-        <main className="p-4 lg:p-8">{children}</main>
+        {/* Page content - Scrollable */}
+        <main className="flex-1 overflow-y-auto p-3 lg:p-8 custom-scrollbar">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );

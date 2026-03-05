@@ -263,8 +263,10 @@ body {
   }
 
   /* 滚动优化 */
-  .overflow-scroll {
+  .overflow-scroll,
+  .custom-scrollbar {
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
 
   /* 移动端表单优化 */
@@ -295,6 +297,32 @@ body {
     flex: 1;
     min-height: 48px;
     font-size: 16px;
+  }
+
+  /* 防止文本溢出 */
+  .truncate-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 防止长单词溢出 */
+  .break-word {
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* 移动端表格优化 */
+  .mobile-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-table table {
+    min-width: 100%;
+    width: max-content;
   }
 }
 
