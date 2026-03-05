@@ -413,7 +413,7 @@ export default function TradePage() {
                   : 'bg-gray-200 text-gray-700'
               }`}
             >
-              下单交易
+              {t('instantOrder')}
             </button>
             <button
               onClick={() => setTradeMode('pending')}

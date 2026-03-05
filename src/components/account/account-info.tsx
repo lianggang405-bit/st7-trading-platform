@@ -107,7 +107,7 @@ export function AccountInfo() {
               <svg className="w-4 h-4 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="text-blue-100 text-xs">信用分</span>
+              <span className="text-blue-100 text-xs">{t('creditScore.title')}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">

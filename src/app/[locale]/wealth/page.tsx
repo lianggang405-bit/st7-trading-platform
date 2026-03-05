@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
 import { useAuthStore } from '../../../stores/authStore';
@@ -12,6 +13,7 @@ import { Price } from '../../../components/data';
 type Action = 'deposit' | 'withdraw';
 
 export default function WealthPage() {
+  const t = useTranslations('wealth');
   const { isHydrated } = useAuthStore();
   const { balance } = useAssetStore();
   const { assets, records, totalValue, totalReward, initAssets, stake, unstake, updateRewards, updatePrices, checkExpiredStakes, getExpiringStakes } = useStakingStore();
@@ -28,9 +30,9 @@ export default function WealthPage() {
 
   // 资产分类定义
   const categoryMap = {
-    crypto: { label: '加密貨幣', icon: '₿' },
-    metal: { label: '貴金屬', icon: '🥇' },
-    forex: { label: '外匯', icon: '💱' },
+    crypto: { label: t('categoryCrypto'), icon: '₿' },
+    metal: { label: t('categoryMetal'), icon: '🥇' },
+    forex: { label: t('categoryForex'), icon: '💱' },
   };
 
   // 根据分类筛选资产
@@ -100,18 +102,18 @@ export default function WealthPage() {
     if (action === 'deposit') {
       // 质押
       if (numAmount < asset.minAmount) {
-        alert(`最小质押數量為 ${asset.minAmount} ${asset.symbol}`);
+        alert(`${t('minStakeAmountError')} ${asset.minAmount} ${asset.symbol}`);
         return;
       }
       if (numAmount > asset.maxAmount) {
-        alert(`最大质押數量為 ${asset.maxAmount} ${asset.symbol}`);
+        alert(`${t('maxStakeAmountError')} ${asset.maxAmount} ${asset.symbol}`);
         return;
       }
       stake(selectedAsset, numAmount, selectedPeriod);
     } else {
       // 解质押
       if (numAmount > asset.stakingAmount) {
-        alert('超出可解质押數量');
+        alert(t('unstakeAmountError'));
         return;
       }
       unstake(selectedAsset, numAmount);
@@ -128,10 +130,10 @@ export default function WealthPage() {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
 
-    if (diff < 60000) return '剛剛';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)} 分鐘前`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小時前`;
-    return `${Math.floor(diff / 86400000)} 天前`;
+    if (diff < 60000) return t('time.justNow');
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}${t('time.minutesAgo')}`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}${t('time.hoursAgo')}`;
+    return `${Math.floor(diff / 86400000)}${t('time.daysAgo')}`;
   };
 
   return (
@@ -140,17 +142,17 @@ export default function WealthPage() {
         <div className="min-h-screen bg-gray-50 pb-20">
           {/* 顶部总览卡片 */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 pt-6 pb-12">
-            <h1 className="text-white text-xl font-bold mb-4">資產質押</h1>
+            <h1 className="text-white text-xl font-bold mb-4">{t('staking')}</h1>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-                <p className="text-white/80 text-sm mb-1">總質押價值</p>
+                <p className="text-white/80 text-sm mb-1">{t('totalStakingValue')}</p>
                 <p className="text-white text-2xl font-bold">
                   <Price value={totalValue} precision={2} /> USDT
                 </p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-                <p className="text-white/80 text-sm mb-1">累計收益</p>
+                <p className="text-white/80 text-sm mb-1">{t('accumulatedRewards')}</p>
                 <p className="text-green-300 text-2xl font-bold">
                   +<Price value={totalReward} precision={4} /> USDT
                 </p>
@@ -169,7 +171,7 @@ export default function WealthPage() {
                     : 'text-gray-500 border-b-2 border-transparent'
                 }`}
               >
-                可质押資產
+                {t('stakingTab')}
               </button>
               <button
                 onClick={() => setActiveTab('records')}
@@ -179,7 +181,7 @@ export default function WealthPage() {
                     : 'text-gray-500 border-b-2 border-transparent'
                 }`}
               >
-                质押記錄
+                {t('recordsTab')}
               </button>
             </div>
           </div>
@@ -191,9 +193,9 @@ export default function WealthPage() {
                 <div className="flex items-start gap-3">
                   <div className="text-2xl">⏰</div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-orange-800 mb-1">質押即將到期</h3>
+                    <h3 className="font-bold text-orange-800 mb-1">{t('expiringSoon')}</h3>
                     <p className="text-sm text-orange-700">
-                      您有质押記錄將在24小時內到期，請及時處理解质押操作以釋放資產和收益。
+                      {t('expiringMessage')}
                     </p>
                   </div>
                   <button
@@ -203,7 +205,7 @@ export default function WealthPage() {
                     }}
                     className="text-sm font-semibold text-orange-600 hover:text-orange-800"
                   >
-                    查看詳情 →
+                    {t('viewDetails')}
                   </button>
                 </div>
               </div>
@@ -221,7 +223,7 @@ export default function WealthPage() {
                         : 'bg-white text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    全部
+                    {t('categoryAll')}
                   </button>
                   <button
                     onClick={() => setSelectedCategory('crypto')}
@@ -262,7 +264,7 @@ export default function WealthPage() {
                 <div className="space-y-4">
                   {filteredAssets.length === 0 ? (
                     <div className="bg-white rounded-2xl p-8 text-center shadow-sm">
-                      <div className="text-gray-400 mb-2">暫無該類型資產</div>
+                      <div className="text-gray-400 mb-2">{t('noAssets')}</div>
                     </div>
                   ) : (
                     filteredAssets.map((asset: any) => (
@@ -280,26 +282,26 @@ export default function WealthPage() {
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-bold text-green-600">{asset.baseApr}%</div>
-                            <div className="text-xs text-gray-500">基礎年化收益</div>
+                            <div className="text-xs text-gray-500">{t('baseApr')}</div>
                           </div>
                         </div>
 
                         {/* 质押信息 */}
                         <div className="grid grid-cols-3 gap-4 mb-4 text-center">
                           <div>
-                            <p className="text-xs text-gray-400 mb-1">已质押</p>
+                            <p className="text-xs text-gray-400 mb-1">{t('staked')}</p>
                             <p className="text-sm font-semibold text-gray-900">
                               {asset.stakingAmount.toFixed(4)} {asset.symbol}
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-400 mb-1">最小值</p>
+                            <p className="text-xs text-gray-400 mb-1">{t('minValue')}</p>
                             <p className="text-sm font-semibold text-gray-900">
                               {asset.minAmount} {asset.symbol}
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-400 mb-1">總质押量</p>
+                            <p className="text-xs text-gray-400 mb-1">{t('totalStaking')}</p>
                             <p className="text-sm font-semibold text-gray-900">
                               {asset.totalStaking.toFixed(0)} {asset.symbol}
                             </p>
@@ -312,14 +314,14 @@ export default function WealthPage() {
                             onClick={() => handleOpenModal(asset.id, 'deposit')}
                             className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
                           >
-                            质押
+                            {t('stakeBtn')}
                           </button>
                           {asset.stakingAmount > 0 && (
                             <button
                               onClick={() => handleOpenModal(asset.id, 'withdraw')}
                               className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
                             >
-                              解质押
+                              {t('unstakeBtn')}
                             </button>
                           )}
                         </div>
@@ -333,8 +335,8 @@ export default function WealthPage() {
               <div className="space-y-3">
                 {records.length === 0 ? (
                   <div className="bg-white rounded-2xl p-8 text-center shadow-sm">
-                    <div className="text-gray-400 mb-2">暫無质押記錄</div>
-                    <div className="text-sm text-gray-400">開始质押獲取收益吧！</div>
+                    <div className="text-gray-400 mb-2">{t('noRecords')}</div>
+                    <div className="text-sm text-gray-400">{t('startStaking')}</div>
                   </div>
                 ) : (
                   records.map((record: any) => (
@@ -348,7 +350,7 @@ export default function WealthPage() {
                           </div>
                           <div>
                             <div className="font-semibold text-gray-900">
-                              {record.type === 'deposit' ? '质押' : '解质押'}
+                              {record.type === 'deposit' ? t('stakingType') : t('unstakingType')}
                             </div>
                             <div className="text-xs text-gray-500">{record.symbol}</div>
                           </div>
@@ -364,7 +366,7 @@ export default function WealthPage() {
                       {record.period && record.apr && (
                         <div className="flex items-center gap-3 pt-2">
                           <div className="flex items-center gap-1 text-xs text-gray-500">
-                            <span>期限:</span>
+                            <span>{t('period')}:</span>
                             <span className="font-semibold text-gray-700">{record.period}天</span>
                           </div>
                           <div className="flex items-center gap-1 text-xs text-gray-500">
@@ -373,7 +375,7 @@ export default function WealthPage() {
                           </div>
                           {record.unlockTime && (
                             <div className="flex items-center gap-1 text-xs text-gray-500">
-                              <span>解锁:</span>
+                              <span>{t('unlock')}:</span>
                               <span className="font-semibold text-gray-700">
                                 {new Date(record.unlockTime).toLocaleDateString('zh-TW')}
                               </span>
@@ -383,7 +385,7 @@ export default function WealthPage() {
                       )}
                       {record.reward && record.reward > 0 && (
                         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                          <span className="text-sm text-gray-500">累計收益</span>
+                          <span className="text-sm text-gray-500">{t('reward')}</span>
                           <span className="text-sm font-bold text-green-600">
                             +{record.reward.toFixed(4)} USDT
                           </span>
@@ -397,13 +399,13 @@ export default function WealthPage() {
 
             {/* 温馨提示 */}
             <div className="mt-6 bg-yellow-50 rounded-2xl p-4">
-              <h3 className="text-sm font-bold text-yellow-800 mb-2">💡 質押說明</h3>
+              <h3 className="text-sm font-bold text-yellow-800 mb-2">{t('stakingTips')}</h3>
               <div className="space-y-1 text-xs text-yellow-700">
-                <p>• 质押期間，您的資產將被鎖定，無法用於交易</p>
-                <p>• 選擇更長的质押期限可獲得更高的收益率加成</p>
-                <p>• 期限越长，收益率加成越高（最高可达100%加成）</p>
-                <p>• 解质押後，收益將自動轉入您的賬戶餘額</p>
-                <p>• 不同資產有不同的基礎年化收益率</p>
+                <p>{t('tip1')}</p>
+                <p>{t('tip2')}</p>
+                <p>{t('tip3')}</p>
+                <p>{t('tip4')}</p>
+                <p>{t('tip5')}</p>
               </div>
             </div>
           </div>
@@ -420,26 +422,26 @@ export default function WealthPage() {
               <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-20 p-6 animate-slide-up">
                 <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
                 <h2 className="text-lg font-bold text-gray-900 mb-4">
-                  {action === 'deposit' ? '质押' : '解质押'} {selectedAssetData.symbol}
+                  {action === 'deposit' ? t('modalTitle') : t('modalUnstakeTitle')} {selectedAssetData.symbol}
                 </h2>
 
                 <div className="mb-4">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    數量 ({selectedAssetData.symbol})
+                    {t('amountLabel')} ({selectedAssetData.symbol})
                   </label>
                   <input
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    placeholder={`輸入數量`}
+                    placeholder={t('amountPlaceholder')}
                     className="w-full px-4 py-3 bg-gray-100 rounded-xl text-lg font-semibold"
                     step="0.0001"
                     min={selectedAssetData.minAmount}
                     max={action === 'deposit' ? selectedAssetData.maxAmount : selectedAssetData.stakingAmount}
                   />
                   <div className="flex justify-between mt-2 text-xs text-gray-500">
-                    <span>最小: {selectedAssetData.minAmount}</span>
-                    <span>最大: {action === 'deposit' ? selectedAssetData.maxAmount : selectedAssetData.stakingAmount}</span>
+                    <span>{t('minAmount')}: {selectedAssetData.minAmount}</span>
+                    <span>{t('maxAmount')}: {action === 'deposit' ? selectedAssetData.maxAmount : selectedAssetData.stakingAmount}</span>
                   </div>
                 </div>
 
@@ -447,7 +449,7 @@ export default function WealthPage() {
                 {action === 'deposit' && (
                   <div className="mb-4">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      质押期限
+                      {t('stakingPeriod')}
                     </label>
                     <div className="grid grid-cols-5 gap-2">
                       {PERIOD_OPTIONS.map((option) => {
@@ -478,15 +480,15 @@ export default function WealthPage() {
                   {action === 'deposit' ? (
                     <>
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-500">基礎年化收益</span>
+                        <span className="text-gray-500">{t('baseAprLabel')}</span>
                         <span className="font-bold text-gray-600">{selectedAssetData.baseApr}%</span>
                       </div>
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-500">實際年化收益</span>
+                        <span className="text-gray-500">{t('actualAprLabel')}</span>
                         <span className="font-bold text-green-600">{selectedAssetData.getApr(selectedPeriod).toFixed(2)}%</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">預估日收益</span>
+                        <span className="text-gray-500">{t('estimatedDailyReward')}</span>
                         <span className="font-bold text-gray-900">
                           {parseFloat(amount) * (selectedAssetData.getApr(selectedPeriod) / 100) / 365} USDT
                         </span>
@@ -494,7 +496,7 @@ export default function WealthPage() {
                     </>
                   ) : (
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">解质押數量</span>
+                      <span className="text-gray-500">{t('unstakeAmount')}</span>
                       <span className="font-bold text-gray-900">
                         {parseFloat(amount) || 0} {selectedAssetData.symbol}
                       </span>
@@ -507,14 +509,14 @@ export default function WealthPage() {
                     onClick={() => setIsModalOpen(false)}
                     className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200"
                   >
-                    取消
+                    {t('cancelBtn')}
                   </button>
                   <button
                     onClick={handleConfirm}
                     disabled={!amount || parseFloat(amount) <= 0}
                     className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
                   >
-                    確認
+                    {t('confirmBtn')}
                   </button>
                 </div>
               </div>
