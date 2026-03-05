@@ -15,32 +15,22 @@ import viMessages from './messages/vi.json';
 import ruMessages from './messages/ru.json';
 import deMessages from './messages/de.json';
 
-// 创建messages映射 - 使用 Map 确保顺序
-const messagesMap = {
-  'zh-TW': zhTWMessages,
-  'en': enMessages,
-  'th': thMessages,
-  'vi': viMessages,
-  'ru': ruMessages,
-  'de': deMessages,
-} as const;
-
-// 验证 messagesMap 顺序
-const localeToMessagesMap: Record<Locale, any> = {
-  'zh-TW': zhTWMessages,
-  'en': enMessages,
-  'th': thMessages,
-  'vi': viMessages,
-  'ru': ruMessages,
-  'de': deMessages,
-};
+// 创建messages映射 - 按索引顺序排列
+const messagesByIndex = [
+  zhTWMessages,  // index 0: zh-TW
+  enMessages,    // index 1: en
+  thMessages,    // index 2: th
+  viMessages,    // index 3: vi
+  ruMessages,    // index 4: ru
+  deMessages,    // index 5: de
+];
 
 // 添加调试信息
 console.log('[i18n.ts init] locales array:', locales);
-console.log('[i18n.ts init] messagesMap keys:', Object.keys(messagesMap));
-console.log('[i18n.ts init] messagesMap entries:', Object.entries(messagesMap).map(([k, v]) => [k, v?.common?.login]));
+console.log('[i18n.ts init] messagesByIndex:', messagesByIndex.map((m, i) => ({ index: i, locale: locales[i], login: m?.common?.login })));
 
 export default getRequestConfig(async ({ requestLocale }) => {
+  console.log('[i18n.ts] ===== New Request =====');
   console.log('[i18n.ts] requestLocale param:', requestLocale);
   
   // 尝试从 requestLocale 获取
@@ -85,13 +75,12 @@ export default getRequestConfig(async ({ requestLocale }) => {
     locale = defaultLocale;
   }
 
-  const messages = messagesMap[locale as Locale];
-
-  console.log('[i18n.ts] Final locale:', locale);
-  console.log('[i18n.ts] Messages type:', typeof messages);
-  console.log('[i18n.ts] Market messages preview:', messages?.market);
-  console.log('[i18n.ts] messagesMap keys:', Object.keys(messagesMap));
-  console.log('[i18n.ts] messagesMap values:', Object.values(messagesMap).map(m => m?.common?.login));
+  // 使用索引获取 messages
+  const localeIndex = locales.indexOf(locale as Locale);
+  console.log('[i18n.ts] Final locale:', locale, 'index:', localeIndex);
+  
+  const messages = messagesByIndex[localeIndex];
+  console.log('[i18n.ts] Messages login value:', messages?.common?.login);
 
   return {
     locale,
