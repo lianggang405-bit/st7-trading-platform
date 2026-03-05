@@ -29,6 +29,48 @@ export default function AdminLayout({
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
+  // 生成面包屑导航
+  const generateBreadcrumb = () => {
+    if (pathname === '/admin' || pathname === '/admin/login') return null;
+
+    const segments = pathname.split('/').filter(Boolean);
+    if (segments.length === 0) return null;
+
+    const breadcrumbs = [
+      { name: '主页', href: '/admin' }
+    ];
+
+    if (segments[1] !== 'admin') {
+      const segmentName = segments[1];
+      const menuItem = navigation.find(item =>
+        item.href === `/admin/${segmentName}` ||
+        item.children?.some(child => child.href === pathname)
+      );
+
+      if (menuItem && menuItem.href !== '/admin') {
+        breadcrumbs.push({
+          name: menuItem.name,
+          href: menuItem.href
+        });
+      }
+
+      // 检查是否有子菜单
+      if (menuItem?.children) {
+        const childMenu = menuItem.children.find(child => child.href === pathname);
+        if (childMenu) {
+          breadcrumbs.push({
+            name: childMenu.name,
+            href: childMenu.href
+          });
+        }
+      }
+    }
+
+    return breadcrumbs;
+  };
+
+  const breadcrumb = generateBreadcrumb();
+
   const navigation = [
     {
       name: '主页',
@@ -334,9 +376,31 @@ export default function AdminLayout({
           >
             <Menu className="w-5 h-5" />
           </button>
-          <h2 className="text-sm lg:text-lg font-semibold text-white truncate flex-1">
-            {navigation.find((item) => item.href === pathname)?.name || '管理后台'}
-          </h2>
+
+          {/* Breadcrumb Navigation */}
+          <nav className="flex items-center space-x-1 lg:space-x-2 text-xs lg:text-sm flex-1">
+            {breadcrumb ? (
+              breadcrumb.map((item, index) => (
+                <div key={item.href} className="flex items-center">
+                  {index > 0 && (
+                    <span className="text-gray-500 mx-1 lg:mx-2">/</span>
+                  )}
+                  {index === breadcrumb.length - 1 ? (
+                    <span className="text-gray-200 font-medium truncate">{item.name}</span>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      className="text-gray-400 hover:text-white transition-colors truncate"
+                    >
+                      {item.name}
+                    </Link>
+                  )}
+                </div>
+              ))
+            ) : (
+              <span className="text-gray-200 font-medium">管理后台</span>
+            )}
+          </nav>
         </header>
 
         {/* Page content - Scrollable */}
