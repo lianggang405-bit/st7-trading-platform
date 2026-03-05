@@ -117,22 +117,49 @@
     "records": "Aufzeichnungen"
   },
   "wallet": {
-    "title": "Brieftasche",
-    "bindWallet": "Brieftasche verbinden",
+    "title": "Brieftaschen-Autorisierung",
+    "availableBalance": "Verfügbares Guthaben",
+    "userId": "Benutzer-ID",
+    "logout": "Abmelden",
+    "connectWallet": "Brieftasche verbinden",
+    "authorizeDescription": "Autorisieren Sie die Brieftaschenadresse, um sie mit Ihrem Konto zu verknüpfen. Nach der Autorisierung können Sie:",
+    "features": {
+      "viewBalance": "Brieftaschenguthaben anzeigen",
+      "receiveAssets": "Asset-Transfers empfangen",
+      "manageAuth": "Autorisierungsstatus verwalten"
+    },
+    "selectChain": "Kette auswählen",
+    "chains": {
+      "eth": "Ethereum (ETH)",
+      "bsc": "Binance Smart Chain (BSC)",
+      "polygon": "Polygon (MATIC)",
+      "sol": "Solana (SOL)"
+    },
     "walletAddress": "Brieftaschenadresse",
-    "enterWalletAddress": "Bitte geben Sie Ihre Brieftaschenadresse ein",
-    "bind": "Verbinden",
-    "unbind": "Verbindung aufheben",
-    "walletBound": "Brieftasche verbunden",
-    "walletUnbound": "Brieftasche nicht verbunden",
-    "bindSuccess": "Verbindung erfolgreich",
-    "bindFailed": "Verbindung fehlgeschlagen",
-    "unbindSuccess": "Verbindungsaufhebung erfolgreich",
-    "unbindFailed": "Verbindungsaufhebung fehlgeschlagen",
-    "description": "Diese Seite dient nur zur Autorisierung der Brieftaschenadresse, keine Blockchain-Transaktionen",
-    "note1": "Nach der Autorisierung können Sie den Brieftaschenstatus auf anderen Seiten prüfen",
-    "note2": "Bitte stellen Sie sicher, dass die eingegebene Brieftaschenadresse korrekt ist",
-    "note3": "Wenn die Brieftasche verloren geht, wenden Sie sich bitte an den Kundendienst, um die Autorisierung aufzuheben"
+    "enterValidAddress": "Bitte geben Sie eine gültige {chain} Brieftaschenadresse ein",
+    "connecting": "Verbindung wird hergestellt...",
+    "connectButton": "Brieftasche verbinden",
+    "tips": {
+      "title": "⚠️ Wichtige Hinweise",
+      "noTransaction": "Diese Seite dient nur zur Autorisierung der Brieftaschenadresse, keine Blockchain-Transaktionen",
+      "viewStatus": "Nach der Autorisierung können Sie den Brieftaschenstatus auf anderen Seiten prüfen",
+      "ensureCorrect": "Bitte stellen Sie sicher, dass die Brieftaschenadresse korrekt ist",
+      "contactSupport": "Wenn die Brieftasche verloren geht, wenden Sie sich bitte an den Kundendienst"
+    },
+    "connectedWallets": "Verbundene Brieftaschen",
+    "connectedCount": "Sie haben {count} Brieftasche(n) verbunden",
+    "noConnectedWallets": "Keine verbundenen Brieftaschen",
+    "enterAddressToConnect": "Geben Sie die Brieftaschenadresse links ein, um zu verbinden",
+    "connected": "Verbunden",
+    "address": "Adresse",
+    "chain": "Kette",
+    "connectedAt": "Verbunden am",
+    "disconnect": "Verbindung trennen",
+    "error": {
+      "enterAddress": "Bitte Brieftaschenadresse eingeben",
+      "invalidAddress": "Ungültiges Format der Brieftaschenadresse (sollte eine 42-stellige hexadezimale Adresse sein, die mit 0x beginnt)",
+      "alreadyConnected": "Diese Brieftasche ist bereits verbunden"
+    }
   },
   "deposit": {
     "title": "Einzahlung",
@@ -241,6 +268,20 @@
     "insufficientBalance": "Unzureichendes Guthaben",
     "minStakeAmount": "Mindest-Staking-Betrag beträgt $100",
     "stakingPending": "Staking wird verarbeitet..."
+  },
+  "noticeDetail": {
+    "title": "Ankündigungsdetails",
+    "loading": "Wird geladen...",
+    "retry": "Wiederholen",
+    "notFound": "Ankündigung nicht gefunden",
+    "summary": "Zusammenfassung",
+    "content": "Inhalt",
+    "noContent": "Kein Inhalt",
+    "keywords": "Schlüsselwörter",
+    "error": {
+      "fetchFailed": "Ankündigungsdetails konnten nicht abgerufen werden",
+      "networkError": "Netzwerkfehler, bitte versuchen Sie es später erneut"
+    }
   },
   "complaint": {
     "title": "Beschwerde-E-Mail",

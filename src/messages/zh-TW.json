@@ -68,6 +68,20 @@
       "networkError": "網絡錯誤，請稍後重試"
     }
   },
+  "noticeDetail": {
+    "title": "公告詳情",
+    "loading": "加載中...",
+    "retry": "重新加載",
+    "notFound": "公告不存在",
+    "summary": "摘要",
+    "content": "內容",
+    "noContent": "暫無內容",
+    "keywords": "關鍵字",
+    "error": {
+      "fetchFailed": "獲取公告詳情失敗",
+      "networkError": "網絡錯誤，請稍後重試"
+    }
+  },
   "language": {
     "title": "語言選擇",
     "selectLanguage": "選擇語言"

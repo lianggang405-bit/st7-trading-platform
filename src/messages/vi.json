@@ -117,22 +117,49 @@
     "records": "Lịch sử"
   },
   "wallet": {
-    "title": "Ví",
-    "bindWallet": "Liên kết ví",
+    "title": "Ủy quyền ví",
+    "availableBalance": "Số dư khả dụng",
+    "userId": "ID người dùng",
+    "logout": "Đăng xuất",
+    "connectWallet": "Kết nối ví",
+    "authorizeDescription": "Ủy quyền địa chỉ ví để liên kết với tài khoản của bạn. Sau khi ủy quyền, bạn có thể:",
+    "features": {
+      "viewBalance": "Xem số dư ví",
+      "receiveAssets": "Nhận chuyển khoản tài sản",
+      "manageAuth": "Quản lý trạng thái ủy quyền"
+    },
+    "selectChain": "Chọn chuỗi",
+    "chains": {
+      "eth": "Ethereum (ETH)",
+      "bsc": "Binance Smart Chain (BSC)",
+      "polygon": "Polygon (MATIC)",
+      "sol": "Solana (SOL)"
+    },
     "walletAddress": "Địa chỉ ví",
-    "enterWalletAddress": "Vui lòng nhập địa chỉ ví của bạn",
-    "bind": "Liên kết",
-    "unbind": "Hủy liên kết",
-    "walletBound": "Ví đã được liên kết",
-    "walletUnbound": "Ví chưa được liên kết",
-    "bindSuccess": "Liên kết thành công",
-    "bindFailed": "Liên kết thất bại",
-    "unbindSuccess": "Hủy liên kết thành công",
-    "unbindFailed": "Hủy liên kết thất bại",
-    "description": "Trang này chỉ dùng để cấp quyền địa chỉ ví, không liên quan đến giao dịch trên chuỗi",
-    "note1": "Sau khi cấp quyền, bạn có thể xem trạng thái ví ở các trang khác",
-    "note2": "Vui lòng đảm bảo nhập địa chỉ ví chính xác",
-    "note3": "Nếu mất ví, vui lòng liên hệ dịch vụ khách hàng để hủy cấp quyền"
+    "enterValidAddress": "Vui lòng nhập địa chỉ ví {chain} hợp lệ",
+    "connecting": "Đang kết nối...",
+    "connectButton": "Kết nối ví",
+    "tips": {
+      "title": "⚠️ Lưu ý quan trọng",
+      "noTransaction": "Trang này chỉ dùng để cấp quyền địa chỉ ví, không liên quan đến giao dịch trên chuỗi",
+      "viewStatus": "Sau khi cấp quyền, bạn có thể xem trạng thái ví ở các trang khác",
+      "ensureCorrect": "Vui lòng đảm bảo nhập địa chỉ ví chính xác",
+      "contactSupport": "Nếu mất ví, vui lòng liên hệ dịch vụ khách hàng để hủy cấp quyền"
+    },
+    "connectedWallets": "Ví đã kết nối",
+    "connectedCount": "Bạn đã kết nối {count} ví",
+    "noConnectedWallets": "Chưa có ví nào được kết nối",
+    "enterAddressToConnect": "Nhập địa chỉ ví bên trái để kết nối",
+    "connected": "Đã kết nối",
+    "address": "Địa chỉ",
+    "chain": "Chuỗi",
+    "connectedAt": "Kết nối lúc",
+    "disconnect": "Ngắt kết nối",
+    "error": {
+      "enterAddress": "Vui lòng nhập địa chỉ ví",
+      "invalidAddress": "Định dạng địa chỉ ví không hợp lệ (nên là địa chỉ hex 42 ký tự bắt đầu bằng 0x)",
+      "alreadyConnected": "Ví này đã được kết nối"
+    }
   },
   "deposit": {
     "title": "Nạp tiền",
@@ -241,6 +268,20 @@
     "insufficientBalance": "Số dư không đủ",
     "minStakeAmount": "Số tiền staking tối thiểu là $100",
     "stakingPending": "Đang xử lý staking..."
+  },
+  "noticeDetail": {
+    "title": "Chi tiết thông báo",
+    "loading": "Đang tải...",
+    "retry": "Thử lại",
+    "notFound": "Không tìm thấy thông báo",
+    "summary": "Tóm tắt",
+    "content": "Nội dung",
+    "noContent": "Không có nội dung",
+    "keywords": "Từ khóa",
+    "error": {
+      "fetchFailed": "Không thể lấy chi tiết thông báo",
+      "networkError": "Lỗi mạng, vui lòng thử lại sau"
+    }
   },
   "complaint": {
     "title": "Email khiếu nại",

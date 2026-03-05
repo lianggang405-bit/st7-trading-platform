@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ArrowLeft, Tag } from 'lucide-react';
 
 interface NoticeDetail {
@@ -21,6 +22,7 @@ interface NoticeDetail {
 export default function NoticeDetailPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const t = useTranslations('noticeDetail');
   const locale = pathname.split('/')[1];
   const noticeId = pathname.split('/').pop();
 
@@ -45,11 +47,11 @@ export default function NoticeDetailPage() {
       if (data.success && data.notice) {
         setNotice(data.notice);
       } else {
-        setError(data.error || '獲取公告详情失敗');
+        setError(data.error || t('error.fetchFailed'));
       }
     } catch (err) {
       console.error('Failed to fetch notice detail:', err);
-      setError('网络错误，请稍后重试');
+      setError(t('error.networkError'));
     } finally {
       setLoading(false);
     }
@@ -70,7 +72,7 @@ export default function NoticeDetailPage() {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-semibold text-gray-900">公告详情</h1>
+          <h1 className="text-lg font-semibold text-gray-900">{t('title')}</h1>
           <div className="w-5" />
         </div>
       </div>
@@ -79,7 +81,7 @@ export default function NoticeDetailPage() {
       <div className="px-4 py-4">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="text-gray-500">加载中...</div>
+            <div className="text-gray-500">{t('loading')}</div>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-8">
@@ -88,12 +90,12 @@ export default function NoticeDetailPage() {
               onClick={fetchNoticeDetail}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              重新加载
+              {t('retry')}
             </button>
           </div>
         ) : !notice ? (
           <div className="flex items-center justify-center py-8">
-            <div className="text-gray-500">公告不存在</div>
+            <div className="text-gray-500">{t('notFound')}</div>
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -130,20 +132,20 @@ export default function NoticeDetailPage() {
                   <>
                     {notice.summary && (
                       <div className="mb-4">
-                        <div className="text-xs text-gray-500 mb-2">摘要</div>
+                        <div className="text-xs text-gray-500 mb-2">{t('summary')}</div>
                         <p className="text-gray-700">{notice.summary}</p>
                       </div>
                     )}
                     {notice.content && (
                       <div>
-                        <div className="text-xs text-gray-500 mb-2">内容</div>
+                        <div className="text-xs text-gray-500 mb-2">{t('content')}</div>
                         <p className="text-gray-700 whitespace-pre-wrap">{notice.content}</p>
                       </div>
                     )}
                   </>
                 ) : (
                   <div className="text-gray-500">
-                    暂无内容
+                    {t('noContent')}
                   </div>
                 )}
               </div>
@@ -151,7 +153,7 @@ export default function NoticeDetailPage() {
               {/* 关键字 */}
               {notice.keywords && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="text-xs text-gray-500 mb-2">关键字</div>
+                  <div className="text-xs text-gray-500 mb-2">{t('keywords')}</div>
                   <div className="flex flex-wrap gap-2">
                     {notice.keywords.split(',').map((keyword, index) => (
                       <span

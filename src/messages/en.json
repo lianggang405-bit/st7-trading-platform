@@ -68,6 +68,20 @@
       "networkError": "Network error, please try again later"
     }
   },
+  "noticeDetail": {
+    "title": "Notice Detail",
+    "loading": "Loading...",
+    "retry": "Retry",
+    "notFound": "Notice not found",
+    "summary": "Summary",
+    "content": "Content",
+    "noContent": "No content",
+    "keywords": "Keywords",
+    "error": {
+      "fetchFailed": "Failed to fetch notice detail",
+      "networkError": "Network error, please try again later"
+    }
+  },
   "language": {
     "title": "Language Selection",
     "selectLanguage": "Select Language"
