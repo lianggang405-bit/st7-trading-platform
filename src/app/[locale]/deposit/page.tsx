@@ -163,8 +163,8 @@ export default function DepositPage() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('文件大小不能超過 5MB');
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('文件大小不能超過 50MB');
       return;
     }
 
@@ -209,11 +209,23 @@ export default function DepositPage() {
 
     console.log('minAmount:', selectedCrypto.minAmount, 'maxAmount:', selectedCrypto.maxAmount);
     
-    // 暂时跳过最低最高验证，因为可能数据有问题
-    console.log('Skipping min/max validation for now');
+    if (amount < selectedCrypto.minAmount) {
+      console.log('Min amount check failed');
+      setError(`最低充幣數量為 ${selectedCrypto.minAmount}`);
+      return;
+    }
 
-    // 暂时跳过支付凭证验证，让提交更容易测试
-    console.log('Skipping payment proof validation for now');
+    if (amount > selectedCrypto.maxAmount) {
+      console.log('Max amount check failed');
+      setError(`最高充幣數量為 ${selectedCrypto.maxAmount}`);
+      return;
+    }
+
+    if (!paymentProof) {
+      console.log('No payment proof');
+      setError('請上傳支付憑證');
+      return;
+    }
 
     console.log('All validation passed, setting isSubmitting to true');
     setIsSubmitting(true);
