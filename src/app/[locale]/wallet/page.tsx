@@ -29,13 +29,13 @@ export default function WalletAuthorizePage() {
 
     // 验证钱包地址
     if (!newWalletAddress) {
-      setError('请输入钱包地址');
+      setError('請輸入錢包地址');
       return;
     }
 
     // 简单验证以太坊地址格式（以 0x 开头，42 位）
     if (!/^0x[a-fA-F0-9]{40}$/.test(newWalletAddress)) {
-      setError('无效的钱包地址格式（应为 42 位的十六进制地址，以 0x 开头）');
+      setError('無效的錢包地址格式（應為 42 位的十六進制地址，以 0x 開頭）');
       return;
     }
 
@@ -44,7 +44,7 @@ export default function WalletAuthorizePage() {
       (w) => w.address.toLowerCase() === newWalletAddress.toLowerCase()
     );
     if (isAlreadyConnected) {
-      setError('该钱包已连接');
+      setError('該錢包已連接');
       return;
     }
 
@@ -107,23 +107,23 @@ export default function WalletAuthorizePage() {
               <div className="flex items-center gap-6">
                 <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg p-4 shadow-lg">
                   <div className="flex flex-col">
-                    <span className="text-indigo-100 text-sm font-medium">可用余额</span>
+                    <span className="text-indigo-100 text-sm font-medium">可用餘額</span>
                     <span className="text-white text-2xl font-bold mt-1">
                       {formatBalance(balance)}
                     </span>
                   </div>
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900">钱包授权</h1>
+                <h1 className="text-2xl font-bold text-gray-900">錢包授權</h1>
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-600">
-                  用户ID: {user?.id}
+                  用戶ID: {user?.id}
                 </span>
                 <button
                   onClick={handleLogout}
                   className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
                 >
-                  退出登录
+                  退出登入
                 </button>
               </div>
             </div>
@@ -137,20 +137,20 @@ export default function WalletAuthorizePage() {
             <div className="space-y-6">
               {/* 连接新钱包 */}
               <div className="rounded-lg bg-white p-6 shadow-md">
-                <h2 className="mb-4 text-xl font-semibold text-gray-900">连接钱包</h2>
+                <h2 className="mb-4 text-xl font-semibold text-gray-900">連接錢包</h2>
                 <p className="mb-6 text-sm text-gray-600">
-                  授权钱包地址以绑定到您的账户。授权后，您可以：
+                  授權錢包地址以綁定到您的賬戶。授權後，您可以：
                 </p>
                 <ul className="mb-6 list-inside list-disc space-y-2 text-sm text-gray-600">
-                  <li>查看钱包余额</li>
-                  <li>接收资产转账</li>
-                  <li>管理授权状态</li>
+                  <li>查看錢包餘額</li>
+                  <li>接收資產轉賬</li>
+                  <li>管理授權狀態</li>
                 </ul>
 
                 <div className="space-y-4">
                   <div>
                     <label htmlFor="chain" className="mb-2 block text-sm font-medium text-gray-700">
-                      选择链
+                      選擇鏈
                     </label>
                     <select
                       id="chain"
@@ -159,15 +159,15 @@ export default function WalletAuthorizePage() {
                       className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
                     >
                       <option value="ETH">以太坊 (ETH)</option>
-                      <option value="BSC">币安智能链 (BSC)</option>
-                      <option value="POLYGON">多边形 (MATIC)</option>
-                      <option value="SOL">索拉纳 (SOL)</option>
+                      <option value="BSC">幣安智能鏈 (BSC)</option>
+                      <option value="POLYGON">多邊形 (MATIC)</option>
+                      <option value="SOL">索拉納 (SOL)</option>
                     </select>
                   </div>
 
                   <div>
                     <label htmlFor="walletAddress" className="mb-2 block text-sm font-medium text-gray-700">
-                      钱包地址
+                      錢包地址
                     </label>
                     <input
                       id="walletAddress"
@@ -178,7 +178,7 @@ export default function WalletAuthorizePage() {
                       className="block w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
                     />
                     <p className="mt-2 text-xs text-gray-500">
-                      请输入有效的 {selectedChain} 钱包地址
+                      請輸入有效的 {selectedChain} 錢包地址
                     </p>
                   </div>
 
@@ -193,7 +193,7 @@ export default function WalletAuthorizePage() {
                     disabled={isConnecting}
                     className="w-full rounded-md bg-indigo-600 px-4 py-2 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isConnecting ? '连接中...' : '连接钱包'}
+                    {isConnecting ? '連接中...' : '連接錢包'}
                   </button>
                 </div>
               </div>
@@ -202,10 +202,10 @@ export default function WalletAuthorizePage() {
               <div className="rounded-md bg-blue-50 p-4">
                 <h3 className="mb-2 font-semibold text-blue-900">⚠️ 重要提示</h3>
                 <ul className="list-inside list-disc space-y-1 text-sm text-blue-800">
-                  <li>本页面仅用于授权钱包地址，不涉及任何链上交易</li>
-                  <li>授权后，您可以在其他页面查看钱包状态</li>
-                  <li>请确保输入正确的钱包地址</li>
-                  <li>如果钱包丢失，请联系客服解除授权</li>
+                  <li>本頁面僅用於授權錢包地址，不涉及任何鏈上交易</li>
+                  <li>授權後，您可以在其他頁面查看錢包狀態</li>
+                  <li>請確保輸入正確的錢包地址</li>
+                  <li>如果錢包丟失，請聯繫客服解除授權</li>
                 </ul>
               </div>
             </div>
@@ -213,9 +213,9 @@ export default function WalletAuthorizePage() {
             {/* 右侧：已连接钱包列表 */}
             <div>
               <div className="rounded-lg bg-white p-6 shadow-md">
-                <h2 className="mb-4 text-xl font-semibold text-gray-900">已连接钱包</h2>
+                <h2 className="mb-4 text-xl font-semibold text-gray-900">已連接錢包</h2>
                 <p className="mb-4 text-sm text-gray-600">
-                  您已连接 {wallets.length} 个钱包
+                  您已連接 {wallets.length} 個錢包
                 </p>
 
                 {wallets.length === 0 ? (
@@ -235,9 +235,9 @@ export default function WalletAuthorizePage() {
                         />
                       </svg>
                     </div>
-                    <p className="text-gray-500">暂无已连接的钱包</p>
+                    <p className="text-gray-500">暫無已連接的錢包</p>
                     <p className="mt-2 text-sm text-gray-400">
-                      在左侧输入钱包地址以连接
+                      在左側輸入錢包地址以連接
                     </p>
                   </div>
                 ) : (
@@ -256,7 +256,7 @@ export default function WalletAuthorizePage() {
                                 </span>
                               </div>
                               <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
-                                已连接
+                                已連接
                               </span>
                             </div>
                             <div className="space-y-1">
@@ -267,13 +267,13 @@ export default function WalletAuthorizePage() {
                                 </span>
                               </div>
                               <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">链</span>
+                                <span className="text-sm text-gray-600">鏈</span>
                                 <span className="text-sm font-semibold text-gray-900">
                                   {wallet.chain}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">连接时间</span>
+                                <span className="text-sm text-gray-600">連接時間</span>
                                 <span className="text-xs text-gray-500">
                                   {new Date(wallet.connectedAt).toLocaleString()}
                                 </span>
@@ -284,7 +284,7 @@ export default function WalletAuthorizePage() {
                             onClick={() => handleDisconnect(wallet.address)}
                             className="ml-4 rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
                           >
-                            断开连接
+                            斷開連接
                           </button>
                         </div>
                       </div>
