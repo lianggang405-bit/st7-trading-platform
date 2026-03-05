@@ -221,7 +221,7 @@ export default function DepositRequestsPage() {
             />
           </div>
           <Button 
-            onClick={() => router.push('/admin/wallet/deposit-requests')}
+            onClick={fetchRequests}
             className="bg-blue-600 hover:bg-blue-700"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
@@ -378,7 +378,7 @@ export default function DepositRequestsPage() {
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8 text-gray-400 hover:text-white"
-                            onClick={() => router.push(`/admin/wallet/deposit-requests/${req.id}/view`)}
+                            onClick={() => router.push(`/admin/deposit-settings/deposit-requests/${req.id}/view`)}
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
@@ -386,7 +386,7 @@ export default function DepositRequestsPage() {
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8 text-gray-400 hover:text-white"
-                            onClick={() => router.push(`/admin/wallet/deposit-requests/${req.id}`)}
+                            onClick={() => router.push(`/admin/deposit-settings/deposit-requests/${req.id}`)}
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
