@@ -190,13 +190,11 @@ export default function DepositPage() {
     const isDemo = user?.userType === 'demo' || user?.accountType === 'demo';
     console.log('isDemo:', isDemo, 'userType:', user?.userType, 'accountType:', user?.accountType);
     
-    // 暂时跳过演示账户检查，方便测试
-    console.log('Skipping demo account check for testing purposes');
-    // if (isDemo) {
-    //   console.log('Demo account check failed');
-    //   toast.error('模拟账户不支持此操作，請註冊正式用戶！');
-    //   return;
-    // }
+    if (isDemo) {
+      console.log('Demo account check failed');
+      toast.error('目前是模拟账户，不支持入金操作，请用正式账号提交！');
+      return;
+    }
 
     if (!selectedCrypto) {
       console.log('No selected crypto');
