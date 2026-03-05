@@ -65,6 +65,11 @@
     "cfd": "Контракты на разницу цен",
     "search": "Поиск"
   },
+  "me": {
+    "deposit": "Депозит",
+    "withdraw": "Вывод",
+    "accountDetails": "Детали счета"
+  },
   "position": {
     "title": "Позиция",
     "pendingOrders": "Отложенные ордера",
@@ -85,13 +90,14 @@
   },
   "trade": {
     "instantOrder": "Мгновенный ордер",
+    "pendingTrade": "Отложенный ордер",
     "pendingOrder": "Отложенный ордер",
     "leverage": "Кредитное плечо",
     "volume": "Объем",
     "stopLoss": "Стоп-лосс",
     "takeProfit": "Тейк-профит",
-    "buy": "Купить",
-    "sell": "Продать",
+    "buy": "Long покупка",
+    "sell": "Short продажа",
     "price": "Цена",
     "openPrice": "Цена открытия",
     "sl": "Стоп-лосс",
@@ -101,7 +107,16 @@
     "useTakeProfit": "Использовать тейк-профит",
     "volumeMustBePositive": "Объем должен быть больше 0",
     "invalidLeverage": "Недопустимое кредитное плечо",
-    "marginInsufficient": "Недостаточно маржи"
+    "marginInsufficient": "Недостаточно маржи",
+    "invalidPendingPrice": "Пожалуйста, введите действительную цену отложенного ордера",
+    "insufficientMargin": "Недостаточно доступной маржи",
+    "perContract": "За контракт",
+    "estimatedFee": "Ориентировочная комиссия",
+    "estimatedMargin": "Ориентировочная маржа",
+    "accountBalance": "Баланс счета",
+    "availableMargin": "Доступная маржа",
+    "confirmTrade": "Подтвердить сделку",
+    "cancel": "Отмена"
   },
   "wealth": {
     "title": "Богатство",

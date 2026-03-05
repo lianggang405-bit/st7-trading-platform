@@ -94,6 +94,11 @@
     "cfd": "指數差價合約",
     "search": "搜索"
   },
+  "me": {
+    "deposit": "入金",
+    "withdraw": "出金",
+    "accountDetails": "帳單詳情"
+  },
   "position": {
     "title": "持倉",
     "pendingOrders": "掛單",
@@ -123,23 +128,33 @@
   },
   "trade": {
     "instantOrder": "下單交易",
+    "pendingTrade": "掛單交易",
     "pendingOrder": "掛單交易",
     "leverage": "倍數",
     "volume": "手數",
     "stopLoss": "止損",
     "takeProfit": "止盈",
-    "buy": "做多",
-    "sell": "做空",
+    "buy": "買漲",
+    "sell": "買跌",
     "price": "價格",
     "openPrice": "開倉價",
     "sl": "止損",
     "tp": "止盈",
-    "pendingPrice": "掛單價",
+    "pendingPrice": "掛單價格",
     "useStopLoss": "使用止損",
     "useTakeProfit": "使用止盈",
     "volumeMustBePositive": "手數必須大於 0",
     "invalidLeverage": "無效的槓桿",
-    "marginInsufficient": "保證金不足"
+    "marginInsufficient": "保證金不足",
+    "invalidPendingPrice": "請輸入有效的掛單價格",
+    "insufficientMargin": "可用保證金不足",
+    "perContract": "每張",
+    "estimatedFee": "預估手續費",
+    "estimatedMargin": "預估保證金",
+    "accountBalance": "帳戶餘額",
+    "availableMargin": "可用保證金",
+    "confirmTrade": "確認交易",
+    "cancel": "取消"
   },
   "wealth": {
     "title": "理財",

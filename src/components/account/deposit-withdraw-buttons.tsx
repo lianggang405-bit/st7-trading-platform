@@ -5,11 +5,13 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 export function DepositWithdrawButtons() {
   const router = useRouter();
   const pathname = usePathname();
   const locale = pathname.split('/')[1] || 'zh-TW';
+  const t = useTranslations('me');
 
   return (
     <div className="flex gap-3 px-4 mt-6">
@@ -24,8 +26,8 @@ export function DepositWithdrawButtons() {
           </svg>
         </div>
         <div className="text-left">
-          <div className="text-base font-semibold">入金</div>
-          <div className="text-xs text-blue-100">帳單詳情</div>
+          <div className="text-base font-semibold">{t('deposit')}</div>
+          <div className="text-xs text-blue-100">{t('accountDetails')}</div>
         </div>
       </button>
 
@@ -41,8 +43,8 @@ export function DepositWithdrawButtons() {
           </svg>
         </div>
         <div className="text-left">
-          <div className="text-base font-semibold">出金</div>
-          <div className="text-xs text-red-100">帳單詳情</div>
+          <div className="text-base font-semibold">{t('withdraw')}</div>
+          <div className="text-xs text-red-100">{t('accountDetails')}</div>
         </div>
       </button>
     </div>

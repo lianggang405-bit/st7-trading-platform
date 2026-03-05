@@ -65,6 +65,11 @@
     "cfd": "Differenzkontrakte",
     "search": "Suchen"
   },
+  "me": {
+    "deposit": "Einzahlung",
+    "withdraw": "Auszahlung",
+    "accountDetails": "Kontodetails"
+  },
   "position": {
     "title": "Position",
     "pendingOrders": "Ausstehende Aufträge",
@@ -85,13 +90,14 @@
   },
   "trade": {
     "instantOrder": "Sofortiger Auftrag",
+    "pendingTrade": "Ausstehender Auftrag",
     "pendingOrder": "Ausstehender Auftrag",
     "leverage": "Hebel",
     "volume": "Volumen",
     "stopLoss": "Stop-Loss",
     "takeProfit": "Take-Profit",
-    "buy": "Kaufen",
-    "sell": "Verkaufen",
+    "buy": "Long kaufen",
+    "sell": "Short verkaufen",
     "price": "Preis",
     "openPrice": "Eröffnungspreis",
     "sl": "Stop-Loss",
@@ -101,7 +107,16 @@
     "useTakeProfit": "Take-Profit verwenden",
     "volumeMustBePositive": "Volumen muss größer als 0 sein",
     "invalidLeverage": "Ungültiger Hebel",
-    "marginInsufficient": "Unzureichende Marge"
+    "marginInsufficient": "Unzureichende Marge",
+    "invalidPendingPrice": "Bitte geben Sie einen gültigen Preis für den ausstehenden Auftrag ein",
+    "insufficientMargin": "Verfügbare Marge unzureichend",
+    "perContract": "Pro Vertrag",
+    "estimatedFee": "Geschätzte Gebühr",
+    "estimatedMargin": "Geschätzte Marge",
+    "accountBalance": "Kontoguthaben",
+    "availableMargin": "Verfügbare Marge",
+    "confirmTrade": "Handel bestätigen",
+    "cancel": "Abbrechen"
   },
   "wealth": {
     "title": "Vermögen",

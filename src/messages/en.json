@@ -94,6 +94,11 @@
     "cfd": "CFD",
     "search": "Search"
   },
+  "me": {
+    "deposit": "Deposit",
+    "withdraw": "Withdraw",
+    "accountDetails": "Account Details"
+  },
   "position": {
     "title": "Position",
     "pendingOrders": "Pending Orders",
@@ -123,13 +128,14 @@
   },
   "trade": {
     "instantOrder": "Instant Order",
+    "pendingTrade": "Pending Order",
     "pendingOrder": "Pending Order",
     "leverage": "Leverage",
     "volume": "Volume",
     "stopLoss": "Stop Loss",
     "takeProfit": "Take Profit",
-    "buy": "Buy",
-    "sell": "Sell",
+    "buy": "Buy Long",
+    "sell": "Sell Short",
     "price": "Price",
     "openPrice": "Open Price",
     "sl": "SL",
@@ -139,7 +145,16 @@
     "useTakeProfit": "Use Take Profit",
     "volumeMustBePositive": "Volume must be greater than 0",
     "invalidLeverage": "Invalid leverage",
-    "marginInsufficient": "Margin insufficient"
+    "marginInsufficient": "Margin insufficient",
+    "invalidPendingPrice": "Please enter a valid pending order price",
+    "insufficientMargin": "Available margin insufficient",
+    "perContract": "Per Contract",
+    "estimatedFee": "Estimated Fee",
+    "estimatedMargin": "Estimated Margin",
+    "accountBalance": "Account Balance",
+    "availableMargin": "Available Margin",
+    "confirmTrade": "Confirm Trade",
+    "cancel": "Cancel"
   },
   "wealth": {
     "title": "Wealth",

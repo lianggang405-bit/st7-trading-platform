@@ -189,7 +189,7 @@ export default function TradePage() {
 
     // 验证挂单价格
     if (tradeMode === 'pending' && pendingPrice <= 0) {
-      alert('请输入有效的挂单价格');
+      alert(t('invalidPendingPrice'));
       return;
     }
 
@@ -197,7 +197,7 @@ export default function TradePage() {
     const margin = orderAmount / leverage;
 
     if (freeMargin < margin) {
-      alert('可用保证金不足');
+      alert(t('insufficientMargin'));
       return;
     }
 
@@ -423,7 +423,7 @@ export default function TradePage() {
                   : 'bg-gray-200 text-gray-700'
               }`}
             >
-              掛單交易
+              {t('pendingTrade')}
             </button>
           </div>
 
@@ -431,7 +431,7 @@ export default function TradePage() {
           <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
             {/* 倍数 */}
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <span className="text-base font-bold text-gray-900">倍数</span>
+              <span className="text-base font-bold text-gray-900">{t('leverage')}</span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setLeverage(prev => prev === 10 ? 10 : prev === 20 ? 10 : prev === 50 ? 20 : 50)}
@@ -459,7 +459,7 @@ export default function TradePage() {
             {/* 止损 */}
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <span className="text-base font-bold text-gray-900">止損</span>
+                <span className="text-base font-bold text-gray-900">{t('stopLoss')}</span>
                 <button
                   onClick={() => setUseStopLoss(!useStopLoss)}
                   className={`w-12 h-6 rounded-full transition-colors active:scale-95`}
@@ -512,7 +512,7 @@ export default function TradePage() {
             {/* 止盈 */}
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <span className="text-base font-bold text-gray-900">止盈</span>
+                <span className="text-base font-bold text-gray-900">{t('takeProfit')}</span>
                 <button
                   onClick={() => setUseTakeProfit(!useTakeProfit)}
                   className={`w-12 h-6 rounded-full transition-colors active:scale-95`}
@@ -564,7 +564,7 @@ export default function TradePage() {
 
             {/* 买入数量 */}
             <div className="flex items-center justify-between py-3">
-              <span className="text-base font-bold text-gray-900">買入數量</span>
+              <span className="text-base font-bold text-gray-900">{t('volume')}</span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setVolume(Math.max(0.01, volume - 0.01))}
@@ -593,7 +593,7 @@ export default function TradePage() {
             {/* 挂单价格 - 仅在挂单交易模式下显示 */}
             {tradeMode === 'pending' && currentSymbolData && (
               <div className="flex items-center justify-between py-3 border-t border-gray-100">
-                <span className="text-base font-bold text-gray-900">掛單價格</span>
+                <span className="text-base font-bold text-gray-900">{t('pendingPrice')}</span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPendingPrice(Math.max(0.01, pendingPrice - (currentSymbolData.price || 0) * 0.01 || 0.01))}
@@ -623,25 +623,25 @@ export default function TradePage() {
           {/* 交易信息展示区 */}
           <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
             <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">每張</span>
+              <span className="text-sm text-gray-600">{t('perContract')}</span>
               <span className="text-sm font-bold text-gray-900">
                 {currentSymbol ? `每張=${formatSymbol(currentSymbol)}` : '--'}
               </span>
             </div>
             <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">預估手續費</span>
+              <span className="text-sm text-gray-600">{t('estimatedFee')}</span>
               <span className="text-sm font-bold text-gray-900">{estimatedFee.toFixed(2)}</span>
             </div>
             <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">預估保證金</span>
+              <span className="text-sm text-gray-600">{t('estimatedMargin')}</span>
               <span className="text-sm font-bold text-gray-900">{requiredMargin.toFixed(2)}</span>
             </div>
             <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">帳戶餘額</span>
+              <span className="text-sm text-gray-600">{t('accountBalance')}</span>
               <span className="text-sm font-bold text-gray-900">{balance.toFixed(2)}</span>
             </div>
             <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-gray-600">可用保證金</span>
+              <span className="text-sm text-gray-600">{t('availableMargin')}</span>
               <span className="text-sm font-bold text-gray-900">{freeMargin.toFixed(2)}</span>
             </div>
           </div>
@@ -657,7 +657,7 @@ export default function TradePage() {
                   : 'bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700'
               }`}
             >
-              買漲
+              {t('buy')}
             </button>
             <button
               onClick={() => handleSubmit('sell')}
@@ -668,7 +668,7 @@ export default function TradePage() {
                   : 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700'
               }`}
             >
-              買跌
+              {t('sell')}
             </button>
           </div>
         </div>
@@ -681,8 +681,8 @@ export default function TradePage() {
         title={confirmDialog.title}
         description={confirmDialog.description}
         onConfirm={confirmDialog.onConfirm}
-        confirmText="确认交易"
-        cancelText="取消"
+        confirmText={t('confirmTrade')}
+        cancelText={t('cancel')}
       />
     </AuthGuard>
   );

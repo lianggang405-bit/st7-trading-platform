@@ -65,6 +65,11 @@
     "cfd": "Hợp đồng chênh lệch chỉ số",
     "search": "Tìm kiếm"
   },
+  "me": {
+    "deposit": "Nạp tiền",
+    "withdraw": "Rút tiền",
+    "accountDetails": "Chi tiết tài khoản"
+  },
   "position": {
     "title": "Vị thế",
     "pendingOrders": "Lệnh chờ",
@@ -85,13 +90,14 @@
   },
   "trade": {
     "instantOrder": "Giao dịch ngay",
+    "pendingTrade": "Giao dịch chờ",
     "pendingOrder": "Giao dịch chờ",
     "leverage": "Đòn bẩy",
     "volume": "Khối lượng",
     "stopLoss": "Cắt lỗ",
     "takeProfit": "Chốt lời",
-    "buy": "Mua",
-    "sell": "Bán",
+    "buy": "Mua tăng",
+    "sell": "Bán giảm",
     "price": "Giá",
     "openPrice": "Giá mở",
     "sl": "Cắt lỗ",
@@ -101,7 +107,16 @@
     "useTakeProfit": "Sử dụng chốt lời",
     "volumeMustBePositive": "Khối lượng phải lớn hơn 0",
     "invalidLeverage": "Đòn bẩy không hợp lệ",
-    "marginInsufficient": "Ký quỹ không đủ"
+    "marginInsufficient": "Ký quỹ không đủ",
+    "invalidPendingPrice": "Vui lòng nhập giá lệnh chờ hợp lệ",
+    "insufficientMargin": "Ký quỹ khả dụng không đủ",
+    "perContract": "Mỗi hợp đồng",
+    "estimatedFee": "Phí dự tính",
+    "estimatedMargin": "Ký quỹ dự tính",
+    "accountBalance": "Số dư tài khoản",
+    "availableMargin": "Ký quỹ khả dụng",
+    "confirmTrade": "Xác nhận giao dịch",
+    "cancel": "Hủy"
   },
   "wealth": {
     "title": "Tài sản",

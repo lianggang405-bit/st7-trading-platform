@@ -65,6 +65,11 @@
     "cfd": "สัญญาซื้อขายส่วนต่างดัชนี",
     "search": "ค้นหา"
   },
+  "me": {
+    "deposit": "ฝาก",
+    "withdraw": "ถอน",
+    "accountDetails": "รายละเอียดบัญชี"
+  },
   "position": {
     "title": "ตำแหน่ง",
     "pendingOrders": "คำสั่งที่รอดำเนินการ",
@@ -85,13 +90,14 @@
   },
   "trade": {
     "instantOrder": "สั่งซื้อขายทันที",
+    "pendingTrade": "คำสั่งที่รอดำเนินการ",
     "pendingOrder": "คำสั่งที่รอดำเนินการ",
     "leverage": "เลเวอเรจ",
     "volume": "ปริมาณ",
     "stopLoss": "ตัดขาดทุน",
     "takeProfit": "ทำกำไร",
-    "buy": "ซื้อ",
-    "sell": "ขาย",
+    "buy": "ซื้อ Long",
+    "sell": "ขาย Short",
     "price": "ราคา",
     "openPrice": "ราคาเปิด",
     "sl": "ตัดขาดทุน",
@@ -101,7 +107,16 @@
     "useTakeProfit": "ใช้ทำกำไร",
     "volumeMustBePositive": "ปริมาณต้องมากกว่า 0",
     "invalidLeverage": "เลเวอเรจไม่ถูกต้อง",
-    "marginInsufficient": "มาร์จินไม่เพียงพอ"
+    "marginInsufficient": "มาร์จินไม่เพียงพอ",
+    "invalidPendingPrice": "โปรดป้อนราคาคำสั่งที่รอดำเนินการที่ถูกต้อง",
+    "insufficientMargin": "มาร์จินที่ใช้ได้ไม่เพียงพอ",
+    "perContract": "ต่อสัญญา",
+    "estimatedFee": "ค่าธรรมเนียมโดยประมาณ",
+    "estimatedMargin": "มาร์จินโดยประมาณ",
+    "accountBalance": "ยอดเงินบัญชี",
+    "availableMargin": "มาร์จินที่ใช้ได้",
+    "confirmTrade": "ยืนยันการซื้อขาย",
+    "cancel": "ยกเลิก"
   },
   "wealth": {
     "title": "การเงิน",
