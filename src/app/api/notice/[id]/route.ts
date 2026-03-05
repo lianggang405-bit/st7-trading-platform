@@ -3,8 +3,8 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 检查Supabase环境变量是否配置
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const useSupabase = supabaseUrl && supabaseServiceKey;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const useSupabase = supabaseUrl && supabaseAnonKey;
 
 // GET - 获取公告详情
 export async function GET(
@@ -14,13 +14,19 @@ export async function GET(
   try {
     const { id: noticeId } = await params;
 
-    // 如果没有配置Supabase，返回模拟数据
-    if (!useSupabase) {
-      const mockData = generateMockData(noticeId);
+    if (!noticeId || isNaN(parseInt(noticeId))) {
       return NextResponse.json({
-        success: true,
-        notice: mockData,
-      });
+        success: false,
+        error: 'Invalid notice ID',
+      }, { status: 400 });
+    }
+
+    // 如果没有配置Supabase，返回404
+    if (!useSupabase) {
+      return NextResponse.json({
+        success: false,
+        error: 'Database configuration missing',
+      }, { status: 500 });
     }
 
     // 尝试初始化Supabase
@@ -29,31 +35,35 @@ export async function GET(
       supabase = getSupabaseClient();
     } catch (error) {
       console.error('Failed to initialize Supabase:', error);
-      const mockData = generateMockData(noticeId);
       return NextResponse.json({
-        success: true,
-        notice: mockData,
-      });
+        success: false,
+        error: 'Failed to initialize database',
+      }, { status: 500 });
     }
 
     const { data, error } = await supabase
       .from('info_management')
       .select('*')
-      .eq('id', noticeId)
-      .eq('is_show', true)
+      .eq('id', parseInt(noticeId))
       .single();
 
     if (error) {
       console.error('Supabase error:', error);
-      const mockData = generateMockData(noticeId);
       return NextResponse.json({
-        success: true,
-        notice: mockData,
-      });
+        success: false,
+        error: 'Failed to fetch notice',
+      }, { status: 500 });
+    }
+
+    if (!data) {
+      return NextResponse.json({
+        success: false,
+        error: 'Notice not found',
+      }, { status: 404 });
     }
 
     // 格式化数据
-    const formattedNotice = {
+    const notice = {
       id: data.id,
       title: data.title,
       type: data.type,
@@ -67,34 +77,20 @@ export async function GET(
       content: data.content,
     };
 
+    console.log(`[Notice Detail API] Fetched notice id=${noticeId}, title=${notice.title}, has_content=${!!notice.content}`);
+
     return NextResponse.json({
       success: true,
-      notice: formattedNotice,
+      notice,
     });
   } catch (error) {
     console.error('Failed to fetch notice detail:', error);
-    // 返回模拟数据作为降级方案
-    const { id: noticeId } = await params;
-    const mockData = generateMockData(noticeId);
-    return NextResponse.json({
-      success: true,
-      notice: mockData,
-    });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to fetch notice detail',
+      },
+      { status: 500 }
+    );
   }
-}
-
-// 生成模拟数据
-function generateMockData(noticeId: string): any {
-  return {
-    id: parseInt(noticeId) || 8,
-    title: '公告',
-    type: '公告',
-    language: '中文简体',
-    sort: 1,
-    coverImage: '/images/info-cover-8.jpg',
-    isShow: true,
-    keywords: '公告',
-    created_at: '2024-02-01T10:00:00Z',
-    content: '这是一条公告内容。',
-  };
 }
