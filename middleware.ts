@@ -14,6 +14,9 @@ export default function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const token = request.cookies.get('token')?.value;
 
+  console.log('[Middleware] pathname:', pathname);
+  console.log('[Middleware] token exists:', !!token);
+
   // 🔒 排除管理端路径和 API 路径，不进行 locale 处理
   if (pathname.startsWith('/admin') || pathname.startsWith('/api')) {
     // 应用认证逻辑
@@ -26,14 +29,20 @@ export default function middleware(request: NextRequest) {
   // 先让 next-intl 处理国际化
   const response = intlMiddleware(request);
 
+  console.log('[Middleware] intlMiddleware response status:', response?.status);
+
   // 如果 intlMiddleware 返回了重定向（比如添加了 locale），直接返回
   if (response && response.status >= 300 && response.status < 400) {
+    console.log('[Middleware] Redirecting to:', response.headers.get('location'));
     return response;
   }
 
   // 提取 locale（现在应该已经由 intlMiddleware 处理过了）
   const locale = locales.find(loc => pathname.startsWith(`/${loc}`)) || defaultLocale;
   const pathnameWithoutLocale = pathname.replace(new RegExp(`^/${locale}`), '');
+
+  console.log('[Middleware] Extracted locale:', locale);
+  console.log('[Middleware] Pathname without locale:', pathnameWithoutLocale);
 
   // 定义公开页面（不需要登录）
   const publicPages = ['/login', '/register'];

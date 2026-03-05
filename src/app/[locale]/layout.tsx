@@ -93,6 +93,13 @@ export default async function LocaleLayout({
   const messages = await getMessages();
   const isDev = process.env.NODE_ENV === 'development';
 
+  // 调试日志
+  if (isDev) {
+    console.log('[LocaleLayout] locale:', locale);
+    console.log('[LocaleLayout] messages keys:', Object.keys(messages));
+    console.log('[LocaleLayout] market messages:', messages.market);
+  }
+
   return (
     <AuthProvider isDev={isDev}>
       <NextIntlClientProvider messages={messages}>

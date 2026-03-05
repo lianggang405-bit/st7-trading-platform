@@ -29,6 +29,10 @@ export function LanguageSelector() {
       newPathname = '/' + pathSegments.join('/');
     }
 
+    console.log('[LanguageSelector] Current pathname:', pathname);
+    console.log('[LanguageSelector] New pathname:', newPathname);
+    console.log('[LanguageSelector] Language code:', languageCode);
+    
     router.push(newPathname);
     setIsOpen(false);
   };
