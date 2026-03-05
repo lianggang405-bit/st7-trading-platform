@@ -24,8 +24,8 @@ export function FunctionList() {
   const handleLogout = async () => {
     if (confirm(t('profile.confirmLogout'))) {
       await logout();
-      // 移除手动跳转，由 AuthGuard 或 Store 状态变化自动处理
-      // 避免并发路由操作导致 "client-side exception"
+      // 登出后跳转到登录页面
+      router.push(`/${locale}/login`);
     }
   };
 

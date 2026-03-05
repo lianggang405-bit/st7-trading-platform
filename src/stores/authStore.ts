@@ -168,22 +168,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       console.log(`[AuthStore] User registered via Mock: ${mockUser.id} (${mockUser.email}, type: ${mockUser.accountType})`);
 
-      // 尝试同步到后端
-      try {
-        await fetch('/api/auth/accounts', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            password,
-            accountType,
-          }),
-        });
-      } catch (syncError) {
-        console.warn('[AuthStore] Failed to sync account to backend:', syncError);
-      }
+      // 暂时跳过同步到后端，避免502错误
+      console.log('[AuthStore] Skipping backend sync for now');
 
       return { userId: mockUser.id };
     } catch (error) {

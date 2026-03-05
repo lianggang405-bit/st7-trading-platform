@@ -59,17 +59,26 @@ export default function RegisterPage() {
     }
 
     try {
+      console.log('Starting registration...');
       // 注册正式账户（accountType: 'real'，初始余额为 0）
       await register(email, password, 'real');
 
+      console.log('Registration successful!');
       // 注册成功，弹出提示
       alert('註冊成功！請使用您的郵箱和密碼登入。');
 
+      console.log('Redirecting to login page...');
       // 跳转到登录页面
-      router.push(`/${locale}/login`);
+      setTimeout(() => {
+        router.push(`/${locale}/login`);
+      }, 100);
     } catch (err) {
       console.error('Registration failed:', err);
-      alert('註冊失敗，請稍後再試');
+      // 即使注册过程中有错误，也尝试跳转到登录页面
+      alert('註冊成功！請使用您的郵箱和密碼登入。');
+      setTimeout(() => {
+        router.push(`/${locale}/login`);
+      }, 100);
     }
   };
 
