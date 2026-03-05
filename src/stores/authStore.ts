@@ -11,6 +11,7 @@ export interface User {
   email: string;
   balance: number;
   accountType: AccountType; // 账户类型：模拟账户/正式账户
+  userType?: AccountType; // 用户类型（兼容字段，某些API可能返回此字段）
   createdAt: string;
   creditScore?: number; // 信用分
 }
