@@ -10,6 +10,12 @@ export interface Language {
 
 export const languages: Language[] = [
   {
+    code: 'zh-TW',
+    name: '繁体中文',
+    nativeName: '繁體中文',
+    flag: '🏳️', // 使用更兼容的旗帜作为备用
+  },
+  {
     code: 'en',
     name: '英语',
     nativeName: 'English',
@@ -38,11 +44,5 @@ export const languages: Language[] = [
     name: '德语',
     nativeName: 'Deutsch',
     flag: '🇩🇪',
-  },
-  {
-    code: 'zh-TW',
-    name: '繁体中文',
-    nativeName: '繁體中文',
-    flag: '🏳️', // 使用更兼容的旗帜作为备用
   },
 ];

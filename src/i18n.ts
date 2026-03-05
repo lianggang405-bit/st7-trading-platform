@@ -2,28 +2,28 @@ import { getRequestConfig } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 
-export const locales = ['en', 'th', 'vi', 'ru', 'de', 'zh-TW'] as const;
+export const locales = ['zh-TW', 'en', 'th', 'vi', 'ru', 'de'] as const;
 export type Locale = (typeof locales)[number];
 
-export const defaultLocale: Locale = 'en';
+export const defaultLocale: Locale = 'zh-TW';
 
 // 静态导入所有messages文件 - 按 locales 相同顺序导入
+import zhTWMessages from './messages/zh-TW.json';
 import enMessages from './messages/en.json';
 import thMessages from './messages/th.json';
 import viMessages from './messages/vi.json';
 import ruMessages from './messages/ru.json';
 import deMessages from './messages/de.json';
-import zhTWMessages from './messages/zh-TW.json';
 
 // 创建messages映射 - 按照import顺序创建
-// en, th, vi, ru, de, zh-TW
+// 0:zh-TW, 1:en, 2:th, 3:vi, 4:ru, 5:de
 const messagesMap: Record<Locale, any> = {
+  'zh-TW': zhTWMessages,
   'en': enMessages,
   'th': thMessages,
   'vi': viMessages,
   'ru': ruMessages,
   'de': deMessages,
-  'zh-TW': zhTWMessages,
 };
 
 // 调试：验证映射关系
