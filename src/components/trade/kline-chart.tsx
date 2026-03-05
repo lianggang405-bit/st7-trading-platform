@@ -108,7 +108,7 @@ export function KlineChart({ symbol, timeframe }: KlineChartProps) {
 
   if (loading) {
     return (
-      <div className="h-96 bg-white flex items-center justify-center">
+      <div className="h-96 bg-slate-50 flex items-center justify-center">
         <div className="text-gray-500">加载中...</div>
       </div>
     );
@@ -125,7 +125,7 @@ export function KlineChart({ symbol, timeframe }: KlineChartProps) {
   };
 
   return (
-    <div className="h-96 bg-white border-b border-gray-200">
+    <div className="h-96 bg-slate-50 border-b border-gray-200">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={data}
@@ -136,7 +136,7 @@ export function KlineChart({ symbol, timeframe }: KlineChartProps) {
             bottom: 20,
           }}
         >
-          <CartesianGrid stroke="#f0f0f0" strokeDasharray="3 3" vertical={false} />
+          <CartesianGrid stroke="#e5e7eb" strokeDasharray="4 4" vertical={true} horizontal={true} strokeOpacity={0.8} />
           <XAxis
             dataKey="time"
             tick={{ fontSize: 10, fill: '#9ca3af' }}
