@@ -15,19 +15,15 @@ import viMessages from './messages/vi.json';
 import ruMessages from './messages/ru.json';
 import deMessages from './messages/de.json';
 
-// 创建messages映射 - 按索引顺序排列（1-based索引：索引1对应index 0，索引2对应index 1，依此类推）
-const messagesByIndex = [
-  enMessages,    // index 0: 对应索引1 - en
-  thMessages,    // index 1: 对应索引2 - th
-  viMessages,    // index 2: 对应索引3 - vi
-  ruMessages,    // index 3: 对应索引4 - ru
-  deMessages,    // index 4: 对应索引5 - de
-  zhTWMessages,  // index 5: 对应索引6 - zh-TW
-];
-
-// 添加调试信息
-console.log('[i18n.ts init] locales array:', locales);
-console.log('[i18n.ts init] messagesByIndex:', messagesByIndex.map((m, i) => ({ index: i, locale: locales[i], login: m?.common?.login })));
+// 创建messages映射 - 使用语言代码映射，避免顺序问题
+const messagesMap: Record<Locale, any> = {
+  'en': enMessages,
+  'th': thMessages,
+  'vi': viMessages,
+  'ru': ruMessages,
+  'de': deMessages,
+  'zh-TW': zhTWMessages,
+};
 
 export default getRequestConfig(async ({ requestLocale }) => {
   console.log('[i18n.ts] ===== New Request =====');
@@ -75,12 +71,13 @@ export default getRequestConfig(async ({ requestLocale }) => {
     locale = defaultLocale;
   }
 
-  // 使用索引获取 messages
-  const localeIndex = locales.indexOf(locale as Locale);
-  console.log('[i18n.ts] Final locale:', locale, 'index:', localeIndex);
+  console.log('[i18n.ts] ===== Debug Info =====');
+  console.log('[i18n.ts] Final locale:', locale);
+  console.log('[i18n.ts] Using messages from messagesMap for locale:', locale);
   
-  const messages = messagesByIndex[localeIndex];
+  const messages = messagesMap[locale as Locale];
   console.log('[i18n.ts] Messages login value:', messages?.common?.login);
+  console.log('[i18n.ts] =======================');
 
   return {
     locale,

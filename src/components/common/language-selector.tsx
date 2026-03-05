@@ -18,9 +18,10 @@ export function LanguageSelector() {
 
   const handleLanguageChange = (languageCode: string) => {
     console.log('[LanguageSelector] ===== Language Change Started =====');
+    console.log('[LanguageSelector] languages array:', languages.map((l, i) => ({ index: i, code: l.code, name: l.name })));
     console.log('[LanguageSelector] Clicked language code:', languageCode);
+    console.log('[LanguageSelector] Clicked language index:', languages.findIndex(l => l.code === languageCode));
     console.log('[LanguageSelector] Current path segments:', pathSegments);
-    console.log('[LanguageSelector] languages array:', languages.map(l => l.code));
     
     // 更安全的路径替换逻辑
     let newPathname: string;
