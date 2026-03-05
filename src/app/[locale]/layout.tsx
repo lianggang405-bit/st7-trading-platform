@@ -96,8 +96,11 @@ export default async function LocaleLayout({
   // 调试日志
   if (isDev) {
     console.log('[LocaleLayout] locale:', locale);
+    console.log('[LocaleLayout] messages type:', typeof messages);
     console.log('[LocaleLayout] messages keys:', Object.keys(messages));
+    console.log('[LocaleLayout] messages structure:', JSON.stringify(messages, null, 2).substring(0, 500));
     console.log('[LocaleLayout] market messages:', messages.market);
+    console.log('[LocaleLayout] common messages:', messages.common);
   }
 
   return (

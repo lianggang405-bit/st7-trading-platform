@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { AuthGuard } from '../../../components/auth-guard';
 import { Price } from '../../../components/data';
 import { KlineChart } from '../../../components/trade/kline-chart';
@@ -21,6 +22,7 @@ export default function TradePage() {
   const router = useRouter();
   const pathname = usePathname();
   const locale = pathname.split('/')[1];
+  const t = useTranslations('trade');
   const { isHydrated } = useAuthStore();
   const marketState = useMarketStore();
   const symbols = marketState?.symbols ?? [];
@@ -199,40 +201,40 @@ export default function TradePage() {
       return;
     }
 
-    const action = tradeMode === 'pending' ? '挂单' : '市价';
-    const direction = side === 'buy' ? '买涨' : '买跌';
+    const action = tradeMode === 'pending' ? t('pendingOrder') : t('instantOrder');
+    const direction = side === 'buy' ? t('buy') : t('sell');
     const symbolName = formatSymbol(currentSymbol);
 
     // 显示确认对话框
     setConfirmDialog({
       open: true,
-      title: `确认${action}${direction}`,
+      title: `${t('confirm')} ${action} ${direction}`,
       description: (
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span className="text-gray-500">交易对：</span>
+            <span className="text-gray-500">{t('symbol')}：</span>
             <span className="font-semibold">{symbolName}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">方向：</span>
+            <span className="text-gray-500">{t('direction')}：</span>
             <span className={`font-semibold ${side === 'buy' ? 'text-green-500' : 'text-red-500'}`}>
               {direction}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">价格：</span>
+            <span className="text-gray-500">{t('price')}：</span>
             <span className="font-semibold">{orderPrice.toFixed(4)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">数量：</span>
+            <span className="text-gray-500">{t('volume')}：</span>
             <span className="font-semibold">{volume}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">杠杆：</span>
+            <span className="text-gray-500">{t('leverage')}：</span>
             <span className="font-semibold">{leverage}x</span>
           </div>
           <div className="flex justify-between border-t pt-2 mt-2">
-            <span className="text-gray-500">保证金：</span>
+            <span className="text-gray-500">Margin：</span>
             <span className="font-bold text-blue-500">{margin.toFixed(2)} USDT</span>
           </div>
         </div>
@@ -260,7 +262,7 @@ export default function TradePage() {
           console.log('[TradePage] openPosition result:', result);
         });
 
-        alert(`${action}${direction}成功！`);
+        alert(`${action} ${direction} ${t('success')}！`);
       },
     });
   };
