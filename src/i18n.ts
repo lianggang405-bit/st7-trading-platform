@@ -15,7 +15,7 @@ import viMessages from './messages/vi.json';
 import ruMessages from './messages/ru.json';
 import deMessages from './messages/de.json';
 
-// 创建messages映射
+// 创建messages映射 - 使用 Map 确保顺序
 const messagesMap = {
   'zh-TW': zhTWMessages,
   'en': enMessages,
@@ -24,6 +24,21 @@ const messagesMap = {
   'ru': ruMessages,
   'de': deMessages,
 } as const;
+
+// 验证 messagesMap 顺序
+const localeToMessagesMap: Record<Locale, any> = {
+  'zh-TW': zhTWMessages,
+  'en': enMessages,
+  'th': thMessages,
+  'vi': viMessages,
+  'ru': ruMessages,
+  'de': deMessages,
+};
+
+// 添加调试信息
+console.log('[i18n.ts init] locales array:', locales);
+console.log('[i18n.ts init] messagesMap keys:', Object.keys(messagesMap));
+console.log('[i18n.ts init] messagesMap entries:', Object.entries(messagesMap).map(([k, v]) => [k, v?.common?.login]));
 
 export default getRequestConfig(async ({ requestLocale }) => {
   console.log('[i18n.ts] requestLocale param:', requestLocale);
@@ -75,6 +90,8 @@ export default getRequestConfig(async ({ requestLocale }) => {
   console.log('[i18n.ts] Final locale:', locale);
   console.log('[i18n.ts] Messages type:', typeof messages);
   console.log('[i18n.ts] Market messages preview:', messages?.market);
+  console.log('[i18n.ts] messagesMap keys:', Object.keys(messagesMap));
+  console.log('[i18n.ts] messagesMap values:', Object.values(messagesMap).map(m => m?.common?.login));
 
   return {
     locale,

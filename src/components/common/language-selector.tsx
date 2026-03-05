@@ -17,6 +17,11 @@ export function LanguageSelector() {
   const currentLocale = pathSegments[0] || 'zh-TW';
 
   const handleLanguageChange = (languageCode: string) => {
+    console.log('[LanguageSelector] ===== Language Change Started =====');
+    console.log('[LanguageSelector] Clicked language code:', languageCode);
+    console.log('[LanguageSelector] Current path segments:', pathSegments);
+    console.log('[LanguageSelector] languages array:', languages.map(l => l.code));
+    
     // 更安全的路径替换逻辑
     let newPathname: string;
 
@@ -31,7 +36,7 @@ export function LanguageSelector() {
 
     console.log('[LanguageSelector] Current pathname:', pathname);
     console.log('[LanguageSelector] New pathname:', newPathname);
-    console.log('[LanguageSelector] Language code:', languageCode);
+    console.log('[LanguageSelector] Router pushing to:', newPathname);
     
     router.push(newPathname);
     setIsOpen(false);
@@ -103,7 +108,7 @@ export function LanguageSelector() {
 
           {/* 菜单内容 */}
           <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-2 min-w-[200px] max-h-[300px] overflow-y-auto">
-            {languages.map((language) => (
+            {languages.map((language, index) => (
               <button
                 key={language.code}
                 onClick={() => handleLanguageChange(language.code)}
@@ -111,6 +116,7 @@ export function LanguageSelector() {
                   currentLocale === language.code ? 'bg-blue-50' : ''
                 }`}
               >
+                <div className="text-xs text-gray-400 mr-2">{index}</div>
                 {language.code === 'zh-TW' ? (
                   <TaiwanFlag className="w-7 h-5" />
                 ) : (
@@ -119,6 +125,7 @@ export function LanguageSelector() {
                 <div className="text-left flex-1">
                   <div className="text-sm text-gray-900 font-medium">{language.name}</div>
                   <div className="text-xs text-gray-500">{language.nativeName}</div>
+                  <div className="text-xs text-gray-400">{language.code}</div>
                 </div>
                 {currentLocale === language.code && (
                   <svg className="h-4 w-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
