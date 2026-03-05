@@ -50,14 +50,21 @@ export default function DepositRequestsPage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   useEffect(() => {
+    console.log('[DepositRequestsPage] Component mounted, fetching requests...');
     fetchRequests();
   }, []);
 
   const fetchRequests = async () => {
+    console.log('[DepositRequestsPage] fetchRequests called');
     setLoading(true);
     try {
+      console.log('[DepositRequestsPage] Fetching from /api/admin/wallet/deposit-requests');
       const response = await fetch('/api/admin/wallet/deposit-requests');
+      console.log('[DepositRequestsPage] Response status:', response.status);
+      
       const data = await response.json();
+      console.log('[DepositRequestsPage] Response data:', data);
+      
       if (data.success) {
         // 适配数据格式
         const formattedRequests = (data.requests || []).map((req: any) => ({
@@ -67,10 +74,13 @@ export default function DepositRequestsPage() {
           paymentAddress: req.paymentAddress || req.txHash || '',
           usdAmount: req.usdAmount || req.amount,
         }));
+        console.log('[DepositRequestsPage] Formatted requests:', formattedRequests);
         setRequests(formattedRequests);
+      } else {
+        console.error('[DepositRequestsPage] API returned success=false');
       }
     } catch (error) {
-      console.error('Failed to fetch deposit requests:', error);
+      console.error('[DepositRequestsPage] Failed to fetch deposit requests:', error);
     } finally {
       setLoading(false);
     }

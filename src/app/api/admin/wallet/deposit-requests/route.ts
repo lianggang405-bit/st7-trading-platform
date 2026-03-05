@@ -25,6 +25,7 @@ function generateMockDepositRequests(page: number, limit: number, search: string
 
 // GET /api/admin/wallet/deposit-requests - 获取充值申请列表
 export async function GET(request: NextRequest) {
+  console.log('[DepositRequests GET] API called');
   try {
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
@@ -175,6 +176,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/admin/wallet/deposit-requests - 创建充值申请
 export async function POST(request: NextRequest) {
+  console.log('[DepositRequests POST] API called');
   try {
     const body = await request.json();
     const {
