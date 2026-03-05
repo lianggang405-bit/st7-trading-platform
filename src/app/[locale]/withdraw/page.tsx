@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
 import { useAuthStore } from '../../../stores/authStore';
@@ -56,6 +57,7 @@ interface WithdrawalRecord {
 
 export default function WithdrawPage() {
   const router = useRouter();
+  const t = useTranslations('withdraw');
   const { user, token, isHydrated } = useAuthStore();
 
   // 状态管理

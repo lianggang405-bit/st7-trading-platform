@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
 import { useAuthStore } from '../../../stores/authStore';
@@ -53,6 +54,7 @@ interface DepositRecord {
 
 export default function DepositPage() {
   const router = useRouter();
+  const t = useTranslations('deposit');
   const { isHydrated, user } = useAuthStore();
 
   const [cryptoCurrencies, setCryptoCurrencies] = useState<CryptoCurrency[]>([]);
@@ -95,7 +97,7 @@ export default function DepositPage() {
 
   const fetchDepositRecords = async () => {
     if (!user?.id) {
-      setError('用戶未登錄');
+      setError(t('error.notLoggedIn'));
       return;
     }
 
@@ -104,13 +106,13 @@ export default function DepositPage() {
       const response = await fetch(`/api/deposit/records?userId=${user.id}`);
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || '獲取入金記錄失敗');
+        throw new Error(errorData.error || t('error.fetchRecordsFailed'));
       }
       const data = await response.json();
       setDepositRecords(data.records || []);
     } catch (err) {
       console.error('Failed to fetch deposit records:', err);
-      setError(err instanceof Error ? err.message : '獲取入金記錄失敗');
+      setError(err instanceof Error ? err.message : t('error.fetchRecordsFailed'));
     } finally {
       setIsLoadingRecords(false);
     }
@@ -148,9 +150,9 @@ export default function DepositPage() {
   const handleCopyAddress = async (address: string) => {
     try {
       await navigator.clipboard.writeText(address);
-      toast.success('已複製錢包地址');
+      toast.success(t('addressCopied'));
     } catch (error) {
-      toast.error('複製失敗');
+      toast.error(t('copyFailed'));
     }
   };
 
@@ -159,12 +161,12 @@ export default function DepositPage() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.error('請上傳圖片文件');
+      toast.error(t('error.uploadImage'));
       return;
     }
 
     if (file.size > 50 * 1024 * 1024) {
-      toast.error('文件大小不能超過 50MB');
+      toast.error(t('error.fileSizeExceeded'));
       return;
     }
 
@@ -192,13 +194,13 @@ export default function DepositPage() {
     
     if (isDemo) {
       console.log('Demo account check failed');
-      toast.error('目前是模擬賬戶，不支持入金操作，請用正式賬號提交！');
+      toast.error(t('error.demoAccount'));
       return;
     }
 
     if (!selectedCrypto) {
       console.log('No selected crypto');
-      setError('請選擇數位貨幣');
+      setError(t('error.selectCrypto'));
       return;
     }
 
@@ -207,7 +209,7 @@ export default function DepositPage() {
     
     if (!cryptoAmount || isNaN(amount) || amount <= 0) {
       console.log('Invalid amount check failed');
-      setError('請輸入有效的充幣數量');
+      setError(t('error.enterValidAmount'));
       return;
     }
 
@@ -215,19 +217,19 @@ export default function DepositPage() {
     
     if (amount < selectedCrypto.minAmount) {
       console.log('Min amount check failed');
-      setError(`最低充幣數量為 ${selectedCrypto.minAmount}`);
+      setError(t('error.minAmount', { min: selectedCrypto.minAmount }));
       return;
     }
 
     if (amount > selectedCrypto.maxAmount) {
       console.log('Max amount check failed');
-      setError(`最高充幣數量為 ${selectedCrypto.maxAmount}`);
+      setError(t('error.maxAmount', { max: selectedCrypto.maxAmount }));
       return;
     }
 
     if (!paymentProof) {
       console.log('No payment proof');
-      setError('請上傳支付憑證');
+      setError(t('error.uploadProof'));
       return;
     }
 
@@ -307,12 +309,12 @@ export default function DepositPage() {
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
-              <h1 className="text-lg font-medium text-gray-900">入金</h1>
+              <h1 className="text-lg font-medium text-gray-900">{t('title')}</h1>
               <div
                 className="text-sm text-gray-500 cursor-pointer hover:text-blue-600"
                 onClick={() => setActiveTab(activeTab === 'apply' ? 'records' : 'apply')}
               >
-                {activeTab === 'apply' ? '入金記錄' : '申請入金'}
+                {activeTab === 'apply' ? t('records') : t('apply')}
               </div>
             </div>
 
@@ -326,7 +328,7 @@ export default function DepositPage() {
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  申請入金
+                  {t('apply')}
                 </button>
                 <button
                   onClick={() => setActiveTab('records')}
@@ -336,7 +338,7 @@ export default function DepositPage() {
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  入金記錄
+                  {t('records')}
                 </button>
               </div>
             </div>
@@ -349,14 +351,14 @@ export default function DepositPage() {
                   <button
                     className="flex-1 py-2 px-4 rounded-md text-sm font-medium bg-blue-600 text-white"
                   >
-                    數位貨幣
+                    {t('digitalCurrency')}
                   </button>
                 </div>
               </div>
 
               <div className="px-4 py-6 space-y-6">
                 <div>
-                  <Label className="text-gray-700 mb-2 block">數位貨幣</Label>
+                  <Label className="text-gray-700 mb-2 block">{t('digitalCurrency')}</Label>
                   <div className="relative">
                     <Select
                       value={selectedCrypto?.id.toString()}
@@ -366,7 +368,7 @@ export default function DepositPage() {
                       }}
                     >
                       <SelectTrigger className="w-full h-12 bg-gray-50 border-0 rounded-lg">
-                        <SelectValue placeholder="請選擇數位貨幣" />
+                        <SelectValue placeholder={t('selectCrypto')} />
                       </SelectTrigger>
                       <SelectContent>
                         {cryptoCurrencies.map((currency) => (
@@ -381,7 +383,7 @@ export default function DepositPage() {
 
                 {selectedCrypto && (
                   <div>
-                    <Label className="text-gray-700 mb-2 block">錢包地址</Label>
+                    <Label className="text-gray-700 mb-2 block">{t('walletAddress')}</Label>
                     <div className="flex flex-col gap-3">
                       <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                         <p className="text-sm text-gray-900 break-all font-mono">
@@ -393,7 +395,7 @@ export default function DepositPage() {
                         {qrCodeUrl ? (
                           <img
                             src={qrCodeUrl}
-                            alt={`${selectedCrypto.code} 二維碼`}
+                            alt={`${selectedCrypto.code} ${t('qrCode')}`}
                             className="w-40 h-40"
                           />
                         ) : (
