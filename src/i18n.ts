@@ -7,15 +7,16 @@ export type Locale = (typeof locales)[number];
 
 export const defaultLocale: Locale = 'en';
 
-// 静态导入所有messages文件
-import zhTWMessages from './messages/zh-TW.json';
+// 静态导入所有messages文件 - 按 locales 相同顺序导入
 import enMessages from './messages/en.json';
 import thMessages from './messages/th.json';
 import viMessages from './messages/vi.json';
 import ruMessages from './messages/ru.json';
 import deMessages from './messages/de.json';
+import zhTWMessages from './messages/zh-TW.json';
 
-// 创建messages映射 - 使用语言代码映射，避免顺序问题
+// 创建messages映射 - 按照import顺序创建
+// en, th, vi, ru, de, zh-TW
 const messagesMap: Record<Locale, any> = {
   'en': enMessages,
   'th': thMessages,
@@ -24,6 +25,14 @@ const messagesMap: Record<Locale, any> = {
   'de': deMessages,
   'zh-TW': zhTWMessages,
 };
+
+// 调试：验证映射关系
+console.log('[i18n.ts init] Verifying messagesMap:');
+console.log('[i18n.ts init] locales order:', locales);
+console.log('[i18n.ts init] messagesMap entries:');
+Object.entries(messagesMap).forEach(([key, value], index) => {
+  console.log(`  [${index}] ${key} = ${value?.common?.login}`);
+});
 
 export default getRequestConfig(async ({ requestLocale }) => {
   console.log('[i18n.ts] ===== New Request =====');
