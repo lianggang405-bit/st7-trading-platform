@@ -321,7 +321,7 @@ export default function DepositRequestsPage() {
                         {typeof req.usdAmount === 'number' ? req.usdAmount.toFixed(8) : req.usdAmount}
                       </td>
                       <td className="p-4">
-                        {req.proofImage ? (
+                        {req.proofImage && req.proofImage.startsWith('http') ? (
                           <div className="relative group">
                             <div
                               className="w-12 h-12 rounded overflow-hidden bg-slate-700 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
@@ -334,6 +334,7 @@ export default function DepositRequestsPage() {
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none';
+                                  console.error('[DepositRequests] Image load error:', req.proofImage);
                                 }}
                               />
                             </div>
@@ -342,7 +343,7 @@ export default function DepositRequestsPage() {
                             </div>
                           </div>
                         ) : (
-                          <span className="text-gray-500">—</span>
+                          <span className="text-gray-500 text-sm">无凭证</span>
                         )}
                       </td>
                       <td className="p-4">

@@ -213,7 +213,7 @@ export default function DepositRequestViewPage() {
             <div className="py-3 border-b border-slate-700">
               <Label className="text-gray-400 text-sm min-w-[120px] block mb-3">付款凭证</Label>
               <div className="space-y-3">
-                {request.proofImage ? (
+                {request.proofImage && request.proofImage.startsWith('http') ? (
                   <div className="space-y-3">
                     {/* 缩略图 */}
                     <div
@@ -227,7 +227,7 @@ export default function DepositRequestViewPage() {
                         className="w-full max-w-md mx-auto"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
-                          toast.error('图片加载失败');
+                          console.error('[DepositRequestView] Image load error:', request.proofImage);
                         }}
                         onLoad={(e) => {
                           e.currentTarget.style.display = 'block';

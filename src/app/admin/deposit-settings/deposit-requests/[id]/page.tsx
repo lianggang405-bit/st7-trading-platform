@@ -211,7 +211,7 @@ export default function DepositRequestDetailPage() {
             <div className="flex justify-between items-start py-3 border-b border-slate-700">
               <Label className="text-gray-400 text-sm min-w-[120px]">付款凭证</Label>
               <div className="flex-1 space-y-3">
-                {request.proofImage ? (
+                {request.proofImage && request.proofImage.startsWith('http') ? (
                   <div className="space-y-3">
                     <div
                       className="rounded-lg overflow-hidden border border-slate-700 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
@@ -224,7 +224,7 @@ export default function DepositRequestDetailPage() {
                         className="w-full max-w-md"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
-                          toast.error('图片加载失败');
+                          console.error('[DepositRequestDetail] Image load error:', request.proofImage);
                         }}
                         onLoad={(e) => {
                           e.currentTarget.style.display = 'block';
