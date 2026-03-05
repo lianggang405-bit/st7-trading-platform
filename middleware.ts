@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import createIntlMiddleware from 'next-intl/middleware';
+import { locales, defaultLocale } from './i18n';
 
-// 支持的语言列表
-const locales = ['zh-TW', 'en', 'th', 'vi', 'ru', 'de'] as const;
-const defaultLocale = 'zh-TW';
+// 创建 next-intl 中间件
+const intlMiddleware = createIntlMiddleware({
+  locales,
+  defaultLocale,
+  localePrefix: 'always'
+});
 
 export default function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -14,11 +19,13 @@ export default function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 1️⃣ 没有 locale → 补 locale
-  const hasLocale = locales.some(loc => pathname.startsWith(`/${loc}`));
-  if (!hasLocale) {
-    const url = new URL(`/${defaultLocale}${pathname}`, request.url);
-    return NextResponse.redirect(url);
+  // 先处理国际化
+  const intlResponse = intlMiddleware(request);
+  if (intlResponse) {
+    // 如果国际化中间件返回了响应（比如重定向），直接返回
+    if (intlResponse.status >= 300 && intlResponse.status < 400) {
+      return intlResponse;
+    }
   }
 
   // 提取 locale
