@@ -116,7 +116,7 @@ export default function AdminLayout({
         { name: '电汇币种设置', href: '/admin/deposit-settings/wire-currencies' },
         { name: '电汇信息设置', href: '/admin/deposit-settings/wire-info' },
         { name: '数字货币地址设置', href: '/admin/deposit-settings/crypto-addresses' },
-        { name: '充币申请', href: '/admin/wallet/deposit-requests' },
+        { name: '充币申请', href: '/admin/deposit-settings/deposit-requests' },
         { name: '银行卡充币申请', href: '/admin/deposit-settings/bank-requests' },
       ]
     },
