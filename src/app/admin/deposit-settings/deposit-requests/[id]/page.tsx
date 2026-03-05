@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { ImagePreview } from '@/components/image-preview';
 import { toast } from 'sonner';
 
@@ -128,6 +129,22 @@ export default function DepositRequestDetailPage() {
     );
   }
 
+  const getStatusBadge = (status: string) => {
+    const map: Record<string, { label: string; className: string }> = {
+      pending: { label: '申请中', className: 'bg-blue-500/10 text-blue-400' },
+      approved: { label: '已充值', className: 'bg-green-500/10 text-green-400' },
+      rejected: { label: '已拒绝', className: 'bg-red-500/10 text-red-400' },
+    };
+    const config = map[status];
+    return config ? (
+      <Badge className={config.className}>
+        {config.label}
+      </Badge>
+    ) : (
+      <Badge className="bg-gray-500/10 text-gray-400">{status}</Badge>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -222,7 +239,9 @@ export default function DepositRequestDetailPage() {
             {/* 状态 */}
             <div className="flex justify-between items-start py-3 border-b border-slate-700">
               <Label className="text-gray-400 text-sm min-w-[120px]">状态</Label>
-              <div className="flex-1 text-white">{request.status}</div>
+              <div className="flex-1">
+                {getStatusBadge(request.status)}
+              </div>
             </div>
 
             {/* 申请时间 */}
