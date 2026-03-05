@@ -177,11 +177,10 @@ export default function DepositPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError('');
 
-    console.log('Submit button clicked!');
+    console.log('Submit function called!');
 
     if (user?.accountType === 'demo') {
       toast.error('模拟账户不支持此操作，請註冊正式用戶！');
@@ -316,7 +315,7 @@ export default function DepositPage() {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="px-4 py-6 space-y-6">
+              <div className="px-4 py-6 space-y-6">
                 <div>
                   <Label className="text-gray-700 mb-2 block">數位貨幣</Label>
                   <div className="relative">
@@ -433,14 +432,17 @@ export default function DepositPage() {
                 )}
 
                 <Button
-                  type="submit"
+                  type="button"
                   disabled={isSubmitting}
                   className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base font-medium rounded-lg"
-                  onClick={() => console.log('Button clicked!')}
+                  onClick={() => {
+                    console.log('Button clicked!');
+                    handleSubmit();
+                  }}
                 >
                   {isSubmitting ? '提交中...' : '提交'}
                 </Button>
-              </form>
+              </div>
             </div>
           )}
 
