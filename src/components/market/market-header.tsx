@@ -54,7 +54,7 @@ export function MarketHeader({ activeCategory: externalActiveCategory, onCategor
             className={`whitespace-nowrap rounded px-4 py-2 text-sm font-normal transition-all active:scale-95 w-[80px] ${
               externalActiveCategory === category.value
                 ? 'bg-blue-500 text-white'
-                : 'bg-transparent text-gray-600 hover:text-gray-800'
+                : 'bg-transparent text-gray-400 hover:text-gray-600'
             }`}
           >
             {t(category.key)}
