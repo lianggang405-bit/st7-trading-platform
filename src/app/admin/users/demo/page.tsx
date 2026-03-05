@@ -29,7 +29,6 @@ import {
 } from '@/components/ui/select';
 import {
   Search,
-  Plus,
   Filter,
   MoreVertical,
   Eye,
@@ -39,7 +38,6 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import CreateDemoAccountDialog from '@/components/admin/CreateDemoAccountDialog';
 import EditDemoAccountDialog from '@/components/admin/EditDemoAccountDialog';
 
 interface DemoAccount {
@@ -60,7 +58,6 @@ export default function DemoAccountsPage() {
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(15);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
@@ -196,13 +193,6 @@ export default function DemoAccountsPage() {
           </div>
           <Button variant="outline" size="icon" className="border-slate-600 hover:bg-slate-700">
             <Filter className="w-4 h-4" />
-          </Button>
-          <Button
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => setCreateDialogOpen(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            创建模拟账户
           </Button>
         </div>
       </div>
@@ -346,13 +336,6 @@ export default function DemoAccountsPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* 创建模拟账户对话框 */}
-      <CreateDemoAccountDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        onSuccess={() => fetchAccounts()}
-      />
 
       {/* 编辑模拟账户对话框 */}
       {selectedAccountId && (
