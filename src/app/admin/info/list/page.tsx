@@ -653,6 +653,18 @@ export default function InfoManagementPage() {
                   {viewInfo.isShow ? '展示内容' : '隐藏'}
                 </div>
               </div>
+              <div>
+                <Label className="text-gray-400">摘要</Label>
+                <div className="text-white mt-1 bg-slate-700 p-3 rounded">
+                  {viewInfo.summary || '—'}
+                </div>
+              </div>
+              <div>
+                <Label className="text-gray-400">内容</Label>
+                <div className="text-white mt-1 bg-slate-700 p-3 rounded max-h-64 overflow-y-auto whitespace-pre-wrap">
+                  {viewInfo.content || '—'}
+                </div>
+              </div>
             </div>
           )}
           <DialogFooter>
