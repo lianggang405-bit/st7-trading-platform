@@ -6,6 +6,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
 interface DepositRequest {
@@ -28,6 +34,7 @@ export default function DepositRequestDetailPage() {
   const [request, setRequest] = useState<DepositRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     amount: '',
     usdAmount: '',
@@ -66,6 +73,14 @@ export default function DepositRequestDetailPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePreviewImage = (imageSrc: string) => {
+    setPreviewImage(imageSrc);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewImage(null);
   };
 
   const handleSubmit = async (continueEditing: boolean = false) => {
@@ -181,15 +196,26 @@ export default function DepositRequestDetailPage() {
               <Label className="text-gray-400 text-sm min-w-[120px]">付款凭证</Label>
               <div className="flex-1 space-y-3">
                 {request.proofImage ? (
-                  <div className="rounded-lg overflow-hidden border border-slate-700">
-                    <img
-                      src={request.proofImage}
-                      alt="付款凭证"
-                      className="w-full max-w-md"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
+                  <div className="space-y-3">
+                    <div
+                      className="rounded-lg overflow-hidden border border-slate-700 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+                      onClick={() => handlePreviewImage(request.proofImage)}
+                      title="点击查看大图"
+                    >
+                      <img
+                        src={request.proofImage}
+                        alt="付款凭证"
+                        className="w-full max-w-md"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          toast.error('图片加载失败');
+                        }}
+                        onLoad={(e) => {
+                          e.currentTarget.style.display = 'block';
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 text-center">点击图片查看大图</p>
                   </div>
                 ) : (
                   <span className="text-gray-500">—</span>
@@ -213,8 +239,10 @@ export default function DepositRequestDetailPage() {
                   day: '2-digit',
                   hour: '2-digit',
                   minute: '2-digit',
+                  second: '2-digit',
                   hour12: false,
                 })}
+                <span className="ml-2 text-gray-500">GMT</span>
               </div>
             </div>
           </div>
@@ -244,6 +272,28 @@ export default function DepositRequestDetailPage() {
           {isSubmitting ? '保存中...' : '保存'}
         </Button>
       </div>
+
+      {/* 图片预览弹窗 */}
+      <Dialog open={!!previewImage} onOpenChange={handleClosePreview}>
+        <DialogContent className="max-w-4xl bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">付款凭证预览</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <div className="flex justify-center items-center bg-slate-900 rounded-lg p-4">
+              <img
+                src={previewImage}
+                alt="付款凭证"
+                className="max-w-full max-h-[600px] object-contain"
+                onError={(e) => {
+                  toast.error('图片加载失败');
+                  handleClosePreview();
+                }}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

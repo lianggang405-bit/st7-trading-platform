@@ -6,6 +6,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { MoreVertical, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -30,6 +36,7 @@ export default function DepositRequestViewPage() {
   const params = useParams();
   const [request, setRequest] = useState<DepositRequest | null>(null);
   const [loading, setLoading] = useState(true);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (params.id) {
@@ -69,6 +76,14 @@ export default function DepositRequestViewPage() {
     } catch (error) {
       toast.error('复制失败');
     }
+  };
+
+  const handlePreviewImage = (imageSrc: string) => {
+    setPreviewImage(imageSrc);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewImage(null);
   };
 
   const getStatusBadge = (status: string) => {
@@ -200,15 +215,27 @@ export default function DepositRequestViewPage() {
               <Label className="text-gray-400 text-sm min-w-[120px] block mb-3">付款凭证</Label>
               <div className="space-y-3">
                 {request.proofImage ? (
-                  <div className="rounded-lg overflow-hidden border border-slate-700 bg-slate-900/50 p-4">
-                    <img
-                      src={request.proofImage}
-                      alt="付款凭证"
-                      className="w-full max-w-md mx-auto"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
+                  <div className="space-y-3">
+                    {/* 缩略图 */}
+                    <div
+                      className="rounded-lg overflow-hidden border border-slate-700 bg-slate-900/50 p-4 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+                      onClick={() => handlePreviewImage(request.proofImage)}
+                      title="点击查看大图"
+                    >
+                      <img
+                        src={request.proofImage}
+                        alt="付款凭证"
+                        className="w-full max-w-md mx-auto"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          toast.error('图片加载失败');
+                        }}
+                        onLoad={(e) => {
+                          e.currentTarget.style.display = 'block';
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 text-center">点击图片查看大图</p>
                   </div>
                 ) : (
                   <div className="text-gray-500 text-sm">暂无付款凭证</div>
@@ -252,6 +279,28 @@ export default function DepositRequestViewPage() {
           编辑
         </Button>
       </div>
+
+      {/* 图片预览弹窗 */}
+      <Dialog open={!!previewImage} onOpenChange={handleClosePreview}>
+        <DialogContent className="max-w-4xl bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">付款凭证预览</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <div className="flex justify-center items-center bg-slate-900 rounded-lg p-4">
+              <img
+                src={previewImage}
+                alt="付款凭证"
+                className="max-w-full max-h-[600px] object-contain"
+                onError={(e) => {
+                  toast.error('图片加载失败');
+                  handleClosePreview();
+                }}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

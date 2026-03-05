@@ -6,6 +6,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { 
   RefreshCw, 
   Plus, 
@@ -48,6 +54,7 @@ export default function DepositRequestsPage() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     console.log('[DepositRequestsPage] Component mounted, fetching requests...');
@@ -109,6 +116,14 @@ export default function DepositRequestsPage() {
     } catch (error) {
       toast.error('复制失败');
     }
+  };
+
+  const handlePreviewImage = (imageSrc: string) => {
+    setPreviewImage(imageSrc);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewImage(null);
   };
 
   const handleApprove = async (id: number) => {
@@ -320,9 +335,9 @@ export default function DepositRequestsPage() {
                       <td className="p-4">
                         {req.proofImage ? (
                           <div className="relative group">
-                            <div 
+                            <div
                               className="w-12 h-12 rounded overflow-hidden bg-slate-700 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
-                              onClick={() => window.open(req.proofImage, '_blank')}
+                              onClick={() => handlePreviewImage(req.proofImage)}
                               title="点击查看大图"
                             >
                               <img
@@ -418,6 +433,28 @@ export default function DepositRequestsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 图片预览弹窗 */}
+      <Dialog open={!!previewImage} onOpenChange={handleClosePreview}>
+        <DialogContent className="max-w-4xl bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">付款凭证预览</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <div className="flex justify-center items-center bg-slate-900 rounded-lg p-4">
+              <img
+                src={previewImage}
+                alt="付款凭证"
+                className="max-w-full max-h-[600px] object-contain"
+                onError={(e) => {
+                  toast.error('图片加载失败');
+                  handleClosePreview();
+                }}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
