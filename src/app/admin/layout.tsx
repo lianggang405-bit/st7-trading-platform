@@ -183,14 +183,6 @@ export default function AdminLayout({
     },
   ];
 
-  // 移动端导航：隐藏用户管理的子菜单
-  const mobileNavigation = navigation.map(item => {
-    if (item.name === '用户管理') {
-      return { ...item, children: [] };
-    }
-    return item;
-  });
-
   // 在 navigation 定义后生成面包屑
   const breadcrumb = generateBreadcrumb(navigation);
 
@@ -296,113 +288,70 @@ export default function AdminLayout({
 
         {/* Navigation - Scrollable area */}
         <nav className="mt-6 px-2 lg:px-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar">
-          {/* Mobile navigation (hide user children) */}
-          <div className="lg:hidden">
-            {mobileNavigation.map((item) => {
-              const isActive = isMenuActive(item);
-              const hasChildren = item.children && item.children.length > 0;
-              const isExpanded = expandedMenus.has(item.name);
+          {navigation.map((item) => {
+            const isActive = isMenuActive(item);
+            const hasChildren = item.children && item.children.length > 0;
+            const isExpanded = expandedMenus.has(item.name);
 
-              return (
-                <div key={item.name}>
-                  {hasChildren ? (
-                    <Link
-                      href={item.href}
-                      onClick={() => setSidebarOpen(false)}
-                      className={`flex items-center gap-2 px-2 py-2 rounded-md text-xs font-medium transition-colors ${
-                        isActive
-                          ? 'text-white bg-slate-700'
-                          : 'text-gray-400 hover:bg-slate-700 hover:text-white'
-                      }`}
-                    >
-                      <item.icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : ''} flex-shrink-0`} />
+            return (
+              <div key={item.name}>
+                {hasChildren ? (
+                  <button
+                    onClick={() => toggleMenu(item.name)}
+                    className={`w-full flex items-center justify-between gap-2 lg:gap-3 px-2 lg:px-3 py-2 lg:py-2.5 rounded-md text-xs lg:text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'text-white bg-slate-700'
+                        : 'text-gray-400 hover:bg-slate-700 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 lg:gap-3">
+                      <item.icon className={`w-4 h-4 lg:w-5 lg:h-5 ${isActive ? 'text-blue-400' : ''}`} />
                       <span className="truncate">{item.name}</span>
-                    </Link>
-                  ) : (
-                    <Link
-                      href={item.href}
-                      onClick={() => setSidebarOpen(false)}
-                      className={`flex items-center gap-2 px-2 py-2 rounded-md text-xs font-medium transition-colors ${
-                        isActive
-                          ? 'text-white bg-slate-700'
-                          : 'text-gray-400 hover:bg-slate-700 hover:text-white'
-                      }`}
-                    >
-                      <item.icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : ''} flex-shrink-0`} />
-                      <span className="truncate">{item.name}</span>
-                    </Link>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Desktop navigation (show all children) */}
-          <div className="hidden lg:block">
-            {navigation.map((item) => {
-              const isActive = isMenuActive(item);
-              const hasChildren = item.children && item.children.length > 0;
-              const isExpanded = expandedMenus.has(item.name);
-
-              return (
-                <div key={item.name}>
-                  {hasChildren ? (
-                    <button
-                      onClick={() => toggleMenu(item.name)}
-                      className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                        isActive
-                          ? 'text-white bg-slate-700'
-                          : 'text-gray-400 hover:bg-slate-700 hover:text-white'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <item.icon className={`w-5 h-5 ${isActive ? 'text-blue-400' : ''}`} />
-                        <span className="truncate">{item.name}</span>
-                      </div>
-                      <ChevronDown
-                        className={`w-4 h-4 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-                  ) : (
-                    <Link
-                      href={item.href}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                        isActive
-                          ? 'text-white bg-slate-700'
-                          : 'text-gray-400 hover:bg-slate-700 hover:text-white'
-                      }`}
-                    >
-                      <item.icon className={`w-5 h-5 ${isActive ? 'text-blue-400' : ''}`} />
-                      <span className="truncate">{item.name}</span>
-                    </Link>
-                  )}
-
-                  {hasChildren && isExpanded && (
-                    <div className="mt-1 ml-4 space-y-1">
-                      {item.children.map((child: any) => {
-                        const isChildActive = pathname === child.href;
-                        return (
-                          <Link
-                            key={child.name}
-                            href={child.href}
-                            onClick={() => setSidebarOpen(false)}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                              isChildActive
-                                ? 'text-white bg-slate-700'
-                                : 'text-gray-400 hover:bg-slate-700 hover:text-white'
-                            }`}
-                          >
-                            <div className="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0" />
-                            <span className="truncate">{child.name}</span>
-                          </Link>
-                        );
-                      })}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                    <ChevronDown
+                      className={`w-3 h-3 lg:w-4 lg:h-4 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                ) : (
+                  <Link
+                    href={item.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center gap-2 lg:gap-3 px-2 lg:px-3 py-2 lg:py-2.5 rounded-md text-xs lg:text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'text-white bg-slate-700'
+                        : 'text-gray-400 hover:bg-slate-700 hover:text-white'
+                    }`}
+                  >
+                    <item.icon className={`w-4 h-4 lg:w-5 lg:h-5 ${isActive ? 'text-blue-400' : ''} flex-shrink-0`} />
+                    <span className="truncate">{item.name}</span>
+                  </Link>
+                )}
+
+                {hasChildren && isExpanded && (
+                  <div className="mt-1 ml-3 lg:ml-4 space-y-1">
+                    {item.children.map((child: any) => {
+                      const isChildActive = pathname === child.href;
+                      return (
+                        <Link
+                          key={child.name}
+                          href={child.href}
+                          onClick={() => setSidebarOpen(false)}
+                          className={`flex items-center gap-2 lg:gap-3 px-2 lg:px-3 py-2 lg:py-2.5 rounded-md text-xs lg:text-sm font-medium transition-colors ${
+                            isChildActive
+                              ? 'text-white bg-slate-700'
+                              : 'text-gray-400 hover:bg-slate-700 hover:text-white'
+                          }`}
+                        >
+                          <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-blue-400 flex-shrink-0" />
+                          <span className="truncate">{child.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         {/* Bottom logout button */}
