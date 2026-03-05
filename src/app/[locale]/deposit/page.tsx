@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
@@ -20,7 +20,6 @@ import {
   ChevronLeft,
   Copy,
   Camera,
-  ChevronRight,
   FileText,
   DollarSign,
 } from 'lucide-react';
@@ -32,7 +31,7 @@ interface CryptoCurrency {
   name: string;
   nameEn: string;
   symbol: string;
-  protocol: string; // 添加协议字段
+  protocol: string;
   walletAddress: string;
   qrCode: string;
   minAmount: number;
@@ -56,7 +55,6 @@ export default function DepositPage() {
   const router = useRouter();
   const { isHydrated, user } = useAuthStore();
 
-  // 数字货币相关状态
   const [cryptoCurrencies, setCryptoCurrencies] = useState<CryptoCurrency[]>([]);
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoCurrency | null>(null);
   const [cryptoAmount, setCryptoAmount] = useState('');
@@ -70,7 +68,6 @@ export default function DepositPage() {
   const [depositRecords, setDepositRecords] = useState<DepositRecord[]>([]);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
 
-  // 加载加密货币列表
   useEffect(() => {
     fetchCryptoCurrencies();
   }, []);
@@ -87,7 +84,6 @@ export default function DepositPage() {
       const data = await response.json();
       if (data.success) {
         setCryptoCurrencies(data.currencies || []);
-        // 默认选择第一个
         if (data.currencies && data.currencies.length > 0) {
           setSelectedCrypto(data.currencies[0]);
         }
@@ -97,7 +93,6 @@ export default function DepositPage() {
     }
   };
 
-  // 获取入金记录
   const fetchDepositRecords = async () => {
     if (!user?.id) {
       setError('用戶未登錄');
@@ -121,14 +116,12 @@ export default function DepositPage() {
     }
   };
 
-  // 当切换到记录Tab时加载数据
   useEffect(() => {
     if (activeTab === 'records') {
       fetchDepositRecords();
     }
   }, [activeTab]);
 
-  // 生成二维码
   const generateQRCode = async (address: string) => {
     if (!address) return;
     try {
@@ -146,35 +139,35 @@ export default function DepositPage() {
     }
   };
 
-  // 当选中币种变化时，生成二维码
   useEffect(() => {
     if (selectedCrypto && selectedCrypto.walletAddress) {
       generateQRCode(selectedCrypto.walletAddress);
     }
   }, [selectedCrypto]);
 
-  const handleCopyAddress = (address: string) => {
-    navigator.clipboard.writeText(address);
-    toast.success('已複製錢包地址');
+  const handleCopyAddress = async (address: string) => {
+    try {
+      await navigator.clipboard.writeText(address);
+      toast.success('已複製錢包地址');
+    } catch (error) {
+      toast.error('複製失敗');
+    }
   };
 
   const handlePaymentProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 验证文件类型
     if (!file.type.startsWith('image/')) {
       toast.error('請上傳圖片文件');
       return;
     }
 
-    // 验证文件大小（5MB）
     if (file.size > 5 * 1024 * 1024) {
       toast.error('文件大小不能超過 5MB');
       return;
     }
 
-    // 创建预览
     const reader = new FileReader();
     reader.onloadend = () => {
       const preview = reader.result as string;
@@ -188,7 +181,8 @@ export default function DepositPage() {
     e.preventDefault();
     setError('');
 
-    // 检查是否为模拟账户
+    console.log('Submit button clicked!');
+
     if (user?.accountType === 'demo') {
       toast.error('模拟账户不支持此操作，請註冊正式用戶！');
       return;
@@ -225,23 +219,29 @@ export default function DepositPage() {
     try {
       const formData = new FormData();
       formData.append('type', 'crypto');
-      formData.append('currencyId', selectedCrypto!.id.toString());
+      formData.append('currencyId', selectedCrypto.id.toString());
       formData.append('amount', cryptoAmount);
       if (paymentProof) {
         formData.append('proof', paymentProof);
       }
 
+      console.log('Submitting to /api/applications...');
       const response = await fetch('/api/applications', {
         method: 'POST',
         body: formData,
       });
 
+      console.log('Response status:', response.status);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
         setError('網絡錯誤，請稍後重試');
         return;
       }
 
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (data.success) {
         toast.success('入金申請已提交，等待審核通過');
@@ -261,7 +261,6 @@ export default function DepositPage() {
     <PageShell loading={!isHydrated}>
       <AuthGuard>
         <div className="min-h-screen bg-white">
-          {/* 顶部导航 */}
           <div className="sticky top-0 bg-white z-10">
             <div className="px-4 py-4 flex items-center justify-between">
               <button
@@ -279,7 +278,6 @@ export default function DepositPage() {
               </div>
             </div>
 
-            {/* 申请入金 / 入金记录切换标签 */}
             <div className="px-4 py-2">
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
@@ -306,23 +304,19 @@ export default function DepositPage() {
             </div>
           </div>
 
-          {/* 申请入金表单 */}
           {activeTab === 'apply' && (
             <div className="px-4 py-2">
-              {/* 原有内容 */}
               <div className="px-4 py-2">
-            <div className="flex bg-gray-100 rounded-lg p-1">
-              <button
-                className="flex-1 py-2 px-4 rounded-md text-sm font-medium bg-blue-600 text-white"
-              >
-                數位貨幣
-              </button>
-            </div>
-          </div>
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  <button
+                    className="flex-1 py-2 px-4 rounded-md text-sm font-medium bg-blue-600 text-white"
+                  >
+                    數位貨幣
+                  </button>
+                </div>
+              </div>
 
-          {/* 表单内容 */}
-          <form onSubmit={handleSubmit} className="px-4 py-6 space-y-6">
-            {/* 数字货币选择 */}
+              <form onSubmit={handleSubmit} className="px-4 py-6 space-y-6">
                 <div>
                   <Label className="text-gray-700 mb-2 block">數位貨幣</Label>
                   <div className="relative">
@@ -344,23 +338,19 @@ export default function DepositPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
 
-                {/* 钱包地址 */}
                 {selectedCrypto && (
                   <div>
                     <Label className="text-gray-700 mb-2 block">錢包地址</Label>
                     <div className="flex flex-col gap-3">
-                      {/* 钱包地址显示栏 */}
                       <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                         <p className="text-sm text-gray-900 break-all font-mono">
                           {selectedCrypto.walletAddress}
                         </p>
                       </div>
 
-                      {/* 二维码显示窗口 */}
                       <div className="relative bg-white border-2 border-blue-500 rounded-lg p-8 flex items-center justify-center">
                         {qrCodeUrl ? (
                           <img
@@ -371,14 +361,12 @@ export default function DepositPage() {
                         ) : (
                           <div className="w-40 h-40 bg-gray-100 animate-pulse rounded" />
                         )}
-                        {/* 蓝色四角定位框 */}
                         <div className="absolute top-2 left-2 w-8 h-8 border-l-4 border-t-4 border-blue-500" />
                         <div className="absolute top-2 right-2 w-8 h-8 border-r-4 border-t-4 border-blue-500" />
                         <div className="absolute bottom-2 left-2 w-8 h-8 border-l-4 border-b-4 border-blue-500" />
                         <div className="absolute bottom-2 right-2 w-8 h-8 border-r-4 border-b-4 border-blue-500" />
                       </div>
 
-                      {/* 复制按钮 */}
                       <Button
                         type="button"
                         onClick={() => handleCopyAddress(selectedCrypto.walletAddress)}
@@ -391,7 +379,6 @@ export default function DepositPage() {
                   </div>
                 )}
 
-                {/* 充币数量 */}
                 <div>
                   <Label className="text-gray-700 mb-2 block">充幣數量</Label>
                   <Input
@@ -409,14 +396,13 @@ export default function DepositPage() {
                   )}
                 </div>
 
-                {/* 支付凭证 */}
                 <div>
                   <Label className="text-gray-700 mb-2 block">支付憑證</Label>
                   <div className="relative">
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => handlePaymentProofChange(e)}
+                      onChange={handlePaymentProofChange}
                       className="hidden"
                       id="payment-proof"
                     />
@@ -440,26 +426,24 @@ export default function DepositPage() {
                   </div>
                 </div>
 
-            {/* 错误提示 */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
 
-            {/* 提交按钮 */}
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base font-medium rounded-lg"
-            >
-              {isSubmitting ? '提交中...' : '提交'}
-            </Button>
-          </form>
-        </div>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base font-medium rounded-lg"
+                  onClick={() => console.log('Button clicked!')}
+                >
+                  {isSubmitting ? '提交中...' : '提交'}
+                </Button>
+              </form>
+            </div>
           )}
 
-          {/* 入金记录 */}
           {activeTab === 'records' && (
             <div className="px-4 py-2">
               {isLoadingRecords ? (
@@ -481,7 +465,6 @@ export default function DepositPage() {
                       key={record.id}
                       className="bg-gray-50 rounded-xl p-4 border border-gray-100"
                     >
-                      {/* 记录头部 */}
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-2">
                           <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -508,7 +491,6 @@ export default function DepositPage() {
                         </span>
                       </div>
 
-                      {/* 记录详情 */}
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">數量</span>
