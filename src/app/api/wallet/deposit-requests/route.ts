@@ -31,9 +31,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 从请求头或 cookie 中获取 user_id
-    // 注意：这里需要完善身份验证逻辑
-    let userId = 1; // 默认用户 ID（实际应该从 token 中解析）
+    // 从 Authorization header 获取 token
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: '未提供认证令牌' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+
+    // 解析 token 获取 user_id
+    const match = token.match(/^token_(.+)_(\d+)$/);
+    if (!match) {
+      // 检查是否为模拟账户token
+      const demoMatch = token.match(/^token_demo_(.+)_(\d+)$/);
+      if (demoMatch) {
+        return NextResponse.json(
+          { error: '模拟账户无法进行入金操作' },
+          { status: 403 }
+        );
+      }
+      return NextResponse.json(
+        { error: '无效的认证令牌' },
+        { status: 401 }
+      );
+    }
+
+    const userId = match[1];
+
+    // 查询用户信息，检查账户类型
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, is_demo, account_type')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: '用户不存在' },
+        { status: 404 }
+      );
+    }
+
+    // 禁止模拟账户入金
+    if (user.is_demo || user.account_type === 'demo') {
+      console.error(`[Deposit Request] Demo account ${userId} attempted to make a deposit`);
+      return NextResponse.json(
+        { error: '模拟账户无法进行入金操作，请切换到正式账户' },
+        { status: 403 }
+      );
+    }
 
     // 插入入金请求
     const { data: depositRequest, error } = await supabase
@@ -59,6 +108,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    console.log(`[Deposit Request] User ${userId} (account_type: ${user.account_type}) submitted deposit request: ${depositRequest.id}`);
 
     return NextResponse.json({
       success: true,

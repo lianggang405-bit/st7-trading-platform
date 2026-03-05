@@ -29,6 +29,29 @@ export async function POST(request: NextRequest) {
     // 验证 token 并获取用户 ID
     const userId = await verifyTokenAndGetUserId(request);
 
+    // 查询用户账户类型
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, is_demo, account_type')
+      .eq('id', parseInt(userId))
+      .maybeSingle();
+
+    if (userError || !user) {
+      return NextResponse.json({
+        success: false,
+        error: '用户不存在'
+      }, { status: 404 });
+    }
+
+    // 禁止模拟账户提现
+    if (user.is_demo || user.account_type === 'demo') {
+      console.error(`[Withdraw] Demo account ${userId} attempted to make a withdrawal`);
+      return NextResponse.json(
+        { success: false, error: '模拟账户无法进行提现操作，请切换到正式账户' },
+        { status: 403 }
+      );
+    }
+
     // 查询用户钱包余额
     const { data: wallet, error: walletError } = await supabase
       .from('user_wallets')

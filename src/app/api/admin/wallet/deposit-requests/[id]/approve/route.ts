@@ -48,6 +48,26 @@ export async function POST(
       return NextResponse.json({ success: true, request: depositRequest });
     }
 
+    // 1.5 检查用户账户类型，禁止为模拟账户批准入金
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, is_demo, account_type')
+      .eq('id', depositRequest.user_id)
+      .maybeSingle();
+
+    if (userError || !user) {
+      console.error('[DepositRequests Approve] Failed to fetch user info:', userError);
+      return NextResponse.json({ success: false, error: '用户信息查询失败' }, { status: 500 });
+    }
+
+    if (user.is_demo || user.account_type === 'demo') {
+      console.error(`[DepositRequests Approve] Cannot approve deposit for demo account user_id=${depositRequest.user_id}`);
+      return NextResponse.json(
+        { success: false, error: '无法为模拟账户批准入金申请' },
+        { status: 403 }
+      );
+    }
+
     // 2. 计算入金金额（USDT 等同于 USD，入多少算多少）
     const usdAmount = parseFloat(depositRequest.amount);
 
