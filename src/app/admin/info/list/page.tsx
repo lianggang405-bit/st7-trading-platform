@@ -304,7 +304,7 @@ export default function InfoManagementPage() {
                 <TableHead className="w-12 bg-slate-800">
                   <input
                     type="checkbox"
-                    className="rounded border-gray-500 bg-slate-700"
+                    className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                     checked={selectedInfos.size === infos.length && infos.length > 0}
                     onChange={(e) => handleSelectAll(e.target.checked)}
                   />
@@ -338,7 +338,7 @@ export default function InfoManagementPage() {
                   <TableCell>
                     <input
                       type="checkbox"
-                      className="rounded border-gray-500 bg-slate-700"
+                      className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                       checked={selectedInfos.has(info.id)}
                       onChange={(e) => handleSelectInfo(info.id, e.target.checked)}
                     />

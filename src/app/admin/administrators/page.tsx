@@ -207,7 +207,7 @@ export default function AdministratorsPage() {
                   <TableHead className="w-12">
                     <input
                       type="checkbox"
-                      className="rounded border-gray-300"
+                      className="w-4 h-4 rounded border-gray-300"
                       checked={selectedAdministrators.size === administrators.length && administrators.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                     />
@@ -279,7 +279,7 @@ export default function AdministratorsPage() {
                       <TableCell>
                         <input
                           type="checkbox"
-                          className="rounded border-gray-300"
+                          className="w-4 h-4 rounded border-gray-300"
                           checked={selectedAdministrators.has(administrator.id)}
                           onChange={(e) => handleSelectAdministrator(administrator.id, e.target.checked)}
                         />

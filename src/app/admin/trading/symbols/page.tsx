@@ -217,7 +217,7 @@ export default function SymbolsPage() {
                 <TableHead className="w-12 bg-slate-800">
                   <input
                     type="checkbox"
-                    className="rounded border-gray-500 bg-slate-700"
+                    className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                     checked={selectedSymbols.size === symbols.length && symbols.length > 0}
                     onChange={(e) => handleSelectAll(e.target.checked)}
                   />
@@ -252,7 +252,7 @@ export default function SymbolsPage() {
                   <TableCell>
                     <input
                       type="checkbox"
-                      className="rounded border-gray-500 bg-slate-700"
+                      className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                       checked={selectedSymbols.has(symbol.id)}
                       onChange={(e) => handleSelectSymbol(symbol.id, e.target.checked)}
                     />

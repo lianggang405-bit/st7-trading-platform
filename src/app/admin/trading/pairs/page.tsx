@@ -177,7 +177,7 @@ export default function TradingPairsPage() {
                 <TableHead className="w-12 bg-slate-800">
                   <input
                     type="checkbox"
-                    className="rounded border-gray-500 bg-slate-700"
+                    className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                     checked={selectedPairs.size === pairs.length && pairs.length > 0}
                     onChange={(e) => handleSelectAll(e.target.checked)}
                   />
@@ -211,7 +211,7 @@ export default function TradingPairsPage() {
                   <TableCell>
                     <input
                       type="checkbox"
-                      className="rounded border-gray-500 bg-slate-700"
+                      className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                       checked={selectedPairs.has(pair.id)}
                       onChange={(e) => handleSelectPair(pair.id, e.target.checked)}
                     />

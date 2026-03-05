@@ -178,7 +178,7 @@ export default function SymbolEditPage() {
                 id="isVisible"
                 checked={formData.isVisible}
                 onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })}
-                className="w-5 h-5 rounded border-gray-500 bg-slate-700"
+                className="w-4 h-4 rounded border-gray-500 bg-slate-700"
               />
               <Label htmlFor="isVisible" className="text-gray-300 cursor-pointer flex-1">
                 展示在前端

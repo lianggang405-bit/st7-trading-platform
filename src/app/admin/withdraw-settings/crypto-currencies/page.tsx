@@ -388,7 +388,7 @@ export default function CryptoCurrenciesPage() {
                   <TableHead className="w-12">
                     <input
                       type="checkbox"
-                      className="rounded border-gray-300"
+                      className="w-4 h-4 rounded border-gray-300"
                       checked={selectedCurrencies.size === currencies.length && currencies.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                     />
@@ -444,7 +444,7 @@ export default function CryptoCurrenciesPage() {
                       <TableCell>
                         <input
                           type="checkbox"
-                          className="rounded border-gray-300"
+                          className="w-4 h-4 rounded border-gray-300"
                           checked={selectedCurrencies.has(currency.id)}
                           onChange={(e) => handleSelectCurrency(currency.id, e.target.checked)}
                         />

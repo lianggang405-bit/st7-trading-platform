@@ -177,7 +177,7 @@ export default function FinancialRecordsPage() {
                   <TableHead className="w-12 bg-slate-800 whitespace-nowrap">
                     <input
                       type="checkbox"
-                      className="rounded border-gray-500 bg-slate-700"
+                      className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                       checked={selectedRecords.size === records.length && records.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                     />
@@ -211,7 +211,7 @@ export default function FinancialRecordsPage() {
                     <TableCell className="whitespace-nowrap">
                       <input
                         type="checkbox"
-                        className="rounded border-gray-500 bg-slate-700"
+                        className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                         checked={selectedRecords.has(record.id)}
                         onChange={(e) => handleSelectRecord(record.id, e.target.checked)}
                       />

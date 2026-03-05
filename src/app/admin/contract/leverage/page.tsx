@@ -179,7 +179,7 @@ export default function LeverageSettingsPage() {
                 <TableHead className="w-12 bg-slate-800">
                   <input
                     type="checkbox"
-                    className="rounded border-gray-500 bg-slate-700"
+                    className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                     checked={selectedSettings.size === settings.length && settings.length > 0}
                     onChange={(e) => handleSelectAll(e.target.checked)}
                   />
@@ -232,7 +232,7 @@ export default function LeverageSettingsPage() {
                     <TableCell>
                       <input
                         type="checkbox"
-                        className="rounded border-gray-500 bg-slate-700"
+                        className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                         checked={selectedSettings.has(setting.id)}
                         onChange={(e) => handleSelectSetting(setting.id, e.target.checked)}
                       />

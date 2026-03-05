@@ -241,7 +241,7 @@ export default function InvestmentProjectsPage() {
                   <input
                     type="checkbox"
                     disabled
-                    className="rounded border-gray-500 bg-slate-700 opacity-50 cursor-not-allowed"
+                    className="w-4 h-4 rounded border-gray-500 bg-slate-700 opacity-50 cursor-not-allowed"
                   />
                 </TableHead>
                 <TableHead className="bg-slate-800 text-gray-400">
@@ -275,7 +275,7 @@ export default function InvestmentProjectsPage() {
                     <input
                       type="checkbox"
                       disabled
-                      className="rounded border-gray-500 bg-slate-700 opacity-50 cursor-not-allowed"
+                      className="w-4 h-4 rounded border-gray-500 bg-slate-700 opacity-50 cursor-not-allowed"
                     />
                   </TableCell>
                   <TableCell className="text-blue-400 font-medium">{project.id}</TableCell>

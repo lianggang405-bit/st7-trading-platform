@@ -162,7 +162,7 @@ export default function CurrencyKxesPage() {
                 <TableHead className="w-12 bg-slate-800">
                   <input
                     type="checkbox"
-                    className="rounded border-gray-500 bg-slate-700"
+                    className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                     checked={selectedCurrencies.size === currencies.length && currencies.length > 0}
                     onChange={(e) => handleSelectAll(e.target.checked)}
                   />
@@ -192,7 +192,7 @@ export default function CurrencyKxesPage() {
                   <TableCell>
                     <input
                       type="checkbox"
-                      className="rounded border-gray-500 bg-slate-700"
+                      className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                       checked={selectedCurrencies.has(currency.id)}
                       onChange={(e) => handleSelectCurrency(currency.id, e.target.checked)}
                     />

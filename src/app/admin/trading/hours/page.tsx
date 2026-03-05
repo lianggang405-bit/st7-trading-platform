@@ -165,7 +165,7 @@ export default function TradingHoursPage() {
                   <TableHead className="bg-slate-800 text-gray-400 sticky left-0 w-12">
                     <input
                       type="checkbox"
-                      className="rounded border-gray-500 bg-slate-700"
+                      className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                       checked={selectedHours.size === hours.length && hours.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                     />
@@ -203,7 +203,7 @@ export default function TradingHoursPage() {
                     <TableCell className="sticky left-0 bg-slate-800/50">
                       <input
                         type="checkbox"
-                        className="rounded border-gray-500 bg-slate-700"
+                        className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                         checked={selectedHours.has(hour.id)}
                         onChange={(e) => handleSelectHour(hour.id, e.target.checked)}
                       />

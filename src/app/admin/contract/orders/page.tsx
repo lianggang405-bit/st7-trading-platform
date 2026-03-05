@@ -343,7 +343,7 @@ export default function ContractOrdersPage() {
                   <TableHead className="w-12 bg-slate-800 whitespace-nowrap">
                     <input
                       type="checkbox"
-                      className="rounded border-gray-500 bg-slate-700"
+                      className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                       checked={selectedOrders.size === orders.length && orders.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                     />
@@ -388,7 +388,7 @@ export default function ContractOrdersPage() {
                     <TableCell className="whitespace-nowrap">
                       <input
                         type="checkbox"
-                        className="rounded border-gray-500 bg-slate-700"
+                        className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                         checked={selectedOrders.has(order.id)}
                         onChange={(e) => handleSelectOrder(order.id, e.target.checked)}
                       />

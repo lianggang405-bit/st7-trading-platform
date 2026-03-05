@@ -237,7 +237,7 @@ export default function UserListPage() {
                 <TableHead className="w-12 bg-slate-800">
                   <input
                     type="checkbox"
-                    className="rounded border-gray-500 bg-slate-700"
+                    className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                     checked={selectedUsers.size === users.length && users.length > 0}
                     onChange={(e) => handleSelectAll(e.target.checked)}
                   />
@@ -310,7 +310,7 @@ export default function UserListPage() {
                   <TableCell>
                     <input
                       type="checkbox"
-                      className="rounded border-gray-500 bg-slate-700"
+                      className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                       checked={selectedUsers.has(user.id)}
                       onChange={(e) => handleSelectUser(user.id, e.target.checked)}
                     />

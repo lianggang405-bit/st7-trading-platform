@@ -255,7 +255,7 @@ export default function DepositRequestsPage() {
                       type="checkbox"
                       checked={selectedIds.length === filteredRequests.length && filteredRequests.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="rounded border-slate-600 bg-slate-700"
+                      className="w-4 h-4 rounded border-slate-600 bg-slate-700"
                     />
                   </th>
                   <th className="text-left p-4 text-gray-400 font-medium">ID</th>
@@ -291,7 +291,7 @@ export default function DepositRequestsPage() {
                           type="checkbox"
                           checked={selectedIds.includes(req.id)}
                           onChange={(e) => handleSelectRow(req.id, e.target.checked)}
-                          className="rounded border-slate-600 bg-slate-700"
+                          className="w-4 h-4 rounded border-slate-600 bg-slate-700"
                         />
                       </td>
                       <td className="p-4 text-white">{req.id}</td>

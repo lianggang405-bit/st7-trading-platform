@@ -260,7 +260,7 @@ export default function WithdrawRequestsPage() {
                       type="checkbox"
                       checked={selectedIds.length === requests.length && requests.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="rounded border-slate-600 bg-slate-700"
+                      className="w-4 h-4 rounded border-slate-600 bg-slate-700"
                     />
                   </th>
                   <th
@@ -317,7 +317,7 @@ export default function WithdrawRequestsPage() {
                           type="checkbox"
                           checked={selectedIds.includes(req.id)}
                           onChange={(e) => handleSelectRow(req.id, e.target.checked)}
-                          className="rounded border-slate-600 bg-slate-700"
+                          className="w-4 h-4 rounded border-slate-600 bg-slate-700"
                         />
                       </td>
                       <td className="p-4 text-white font-mono">{req.id}</td>

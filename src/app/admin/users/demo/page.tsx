@@ -216,7 +216,7 @@ export default function DemoAccountsPage() {
                 <TableHead className="w-12 bg-slate-800">
                   <input
                     type="checkbox"
-                    className="rounded border-gray-500 bg-slate-700"
+                    className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                     checked={selectedAccounts.size === accounts.length && accounts.length > 0}
                     onChange={(e) => handleSelectAll(e.target.checked)}
                   />
@@ -259,7 +259,7 @@ export default function DemoAccountsPage() {
                   <TableCell>
                     <input
                       type="checkbox"
-                      className="rounded border-gray-500 bg-slate-700"
+                      className="w-4 h-4 rounded border-gray-500 bg-slate-700"
                       checked={selectedAccounts.has(account.id)}
                       onChange={(e) => handleSelectAccount(account.id, e.target.checked)}
                     />
