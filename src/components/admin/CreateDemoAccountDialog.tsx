@@ -32,7 +32,6 @@ export default function CreateDemoAccountDialog({
   onSuccess,
 }: CreateDemoAccountDialogProps) {
   const [formData, setFormData] = useState({
-    email: '',
     status: '',
     password: '',
     registeredAt: '',
@@ -42,20 +41,8 @@ export default function CreateDemoAccountDialog({
 
   const handleSubmit = async () => {
     // 验证必填字段
-    if (!formData.email.trim()) {
-      toast.error('邮箱为必填项');
-      return;
-    }
-
     if (!formData.password.trim()) {
       toast.error('密码为必填项');
-      return;
-    }
-
-    // 验证邮箱格式
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      toast.error('请输入有效的邮箱地址');
       return;
     }
 
@@ -70,7 +57,6 @@ export default function CreateDemoAccountDialog({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: formData.email,
           status: statusToSubmit,
           password: formData.password,
           registeredAt: formData.registeredAt || new Date().toISOString(),
@@ -91,7 +77,6 @@ export default function CreateDemoAccountDialog({
         toast.success('模拟账户创建成功');
         // 重置表单
         setFormData({
-          email: '',
           status: '',
           password: '',
           registeredAt: '',
@@ -116,7 +101,6 @@ export default function CreateDemoAccountDialog({
 
   const handleCancel = () => {
     setFormData({
-      email: '',
       status: '',
       password: '',
       registeredAt: '',
@@ -137,20 +121,16 @@ export default function CreateDemoAccountDialog({
           <DialogTitle className="text-white">创建 模拟账户</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          {/* 邮箱 */}
+          {/* 邮箱提示 - 自动生成 */}
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">
-              邮箱 <span className="text-red-500">*</span>
+            <Label className="text-right text-gray-400">
+              邮箱
             </Label>
             <div className="col-span-3">
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="邮箱"
-                className="bg-slate-700 border-slate-600 text-white"
-              />
+              <div className="bg-slate-700/50 border border-slate-600 rounded-md px-4 py-3 text-gray-400 text-sm">
+                <span className="text-yellow-400 mr-2">ℹ️</span>
+                模拟账户邮箱将自动生成，无需手动输入
+              </div>
             </div>
           </div>
 

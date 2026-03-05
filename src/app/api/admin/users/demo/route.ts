@@ -67,43 +67,34 @@ export async function GET(request: NextRequest) {
 // POST - 创建模拟账户
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, status } = await request.json();
+    const { password, status } = await request.json();
 
     // 验证必填字段
-    if (!email || !password) {
+    if (!password) {
       return NextResponse.json(
         {
           success: false,
-          error: '邮箱和密码为必填项',
+          error: '密码为必填项',
         },
         { status: 400 }
       );
     }
 
-    // 验证邮箱格式
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: '请输入有效的邮箱地址',
-        },
-        { status: 400 }
-      );
-    }
+    // 自动生成随机邮箱（模拟账户）
+    const randomEmail = `demo_${Date.now()}@simulated.st7.com`;
 
     // 检查邮箱是否已存在
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
-      .eq('email', email)
+      .eq('email', randomEmail)
       .single();
 
     if (existingUser) {
       return NextResponse.json(
         {
           success: false,
-          error: '该邮箱已被使用',
+          error: '生成的随机邮箱已被使用，请重试',
         },
         { status: 400 }
       );
@@ -112,13 +103,13 @@ export async function POST(request: NextRequest) {
     // 加密密码
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // 插入模拟账户到 Supabase
+    // 插入模拟账户到 Supabase（使用自动生成的随机邮箱）
     const { data, error } = await supabase
       .from('users')
       .insert([{
-        email,
+        email: randomEmail,
         password_hash: passwordHash,
-        username: email.split('@')[0],
+        username: `demo_user_${Date.now()}`,
         account_type: 'demo',      // 模拟账户
         balance: 100000,            // 初始金额 100,000
         credit_score: 100,
