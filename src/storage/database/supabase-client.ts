@@ -30,6 +30,12 @@ const supabaseClient: SupabaseClient = (supabaseUrl && apiKey)
           // 添加自定义头部来避免缓存问题
           'Cache-Control': 'no-cache',
         },
+        fetch: (url, options) => {
+          return fetch(url, {
+            ...options,
+            signal: AbortSignal.timeout(10000), // 10秒超时
+          });
+        },
       },
     })
   : createClient('http://localhost', 'placeholder', {

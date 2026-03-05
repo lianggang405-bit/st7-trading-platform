@@ -1,8 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { createClient } from '@supabase/supabase-js';
 import { compressImage, base64ToBlob, generateFileName } from '@/lib/image-utils';
+import { PerformanceLogger } from '@/lib/performance-logger';
 
-const supabase = getSupabaseClient();
+// 为每个请求创建新的 Supabase 客户端，避免连接复用问题
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.COZE_SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.COZE_SUPABASE_SERVICE_ROLE_KEY || '';
+
+const createSupabaseClient = () => {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase URL or Service Key not configured');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    db: { schema: 'public' },
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      fetch: (url, options) => {
+        return fetch(url, {
+          ...options,
+          signal: AbortSignal.timeout(10000), // 10秒超时
+        });
+      },
+    },
+  });
+};
 
 // ✅ Mock 数据生成函数
 function generateMockDepositRequests(page: number, limit: number, search: string = '') {
@@ -26,8 +48,11 @@ function generateMockDepositRequests(page: number, limit: number, search: string
 
 // GET /api/admin/wallet/deposit-requests - 获取充值申请列表
 export async function GET(request: NextRequest) {
+  const logger = new PerformanceLogger();
   console.log('[DepositRequests GET] API called');
   try {
+    logger.checkpoint('parse_params');
+
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '15');
@@ -35,9 +60,13 @@ export async function GET(request: NextRequest) {
     const order = searchParams.get('order') || 'desc';
     const search = searchParams.get('search') || '';
 
+    logger.checkpoint('build_query');
     console.log('[DepositRequests GET] Query params:', { page, limit, sort, order, search });
 
     const offset = (page - 1) * limit;
+
+    // 创建 Supabase 客户端
+    const supabase = createSupabaseClient();
 
     // 构建查询 - 不关联用户表（暂时）
     let query = supabase
@@ -50,65 +79,16 @@ export async function GET(request: NextRequest) {
     // 分页
     query = query.range(offset, offset + limit - 1);
 
+    logger.checkpoint('execute_query');
     // 第一次尝试
-    let firstResult: any;
-    try {
-      firstResult = await query;
-    } catch (err: any) {
-      firstResult = { data: null, error: err };
-    }
+    const firstResult = await query;
+    logger.checkpoint('query_completed');
 
     let requests = firstResult.data;
     let error = firstResult.error;
     let count = firstResult.count;
 
-    // 如果遇到 schema cache 错误，尝试刷新 schema cache 并重试
-    if (error && error.message && error.message.includes('schema cache')) {
-      console.log('[DepositRequests List] Schema cache error detected, trying to refresh...');
-      
-      // 多次尝试刷新 schema cache
-      for (let i = 0; i < 3; i++) {
-        try {
-          console.log(`[DepositRequests List] Schema cache refresh attempt ${i + 1}...`);
-          await supabase.from('deposit_requests').select('id').limit(1);
-          console.log('[DepositRequests List] Schema cache refreshed, retrying query...');
-
-          // 重试查询
-          let retryQuery = supabase
-            .from('deposit_requests')
-            .select('*', { count: 'exact' });
-
-          // 排序
-          retryQuery = retryQuery.order(sort, { ascending: order === 'asc' });
-
-          // 分页
-          retryQuery = retryQuery.range(offset, offset + limit - 1);
-
-          const retryResult = await retryQuery;
-          
-          if (!retryResult.error) {
-            requests = retryResult.data;
-            error = retryResult.error;
-            count = retryResult.count;
-            console.log('[DepositRequests List] Retry successful!');
-            break;
-          } else {
-            console.log(`[DepositRequests List] Retry ${i + 1} failed:`, retryResult.error.message);
-            error = retryResult.error;
-          }
-        } catch (retryError: any) {
-          console.error('[DepositRequests List] Retry also failed:', retryError);
-          error = retryError;
-        }
-        
-        // 等待一小段时间再重试
-        if (i < 2) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
-    }
-
-    // ❌ 如果出错，返回错误信息
+    // 如果出错，直接返回错误
     if (error) {
       console.error('[DepositRequests API] Table query failed:', error.message, error);
       return NextResponse.json(
@@ -117,6 +97,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    logger.checkpoint('format_data');
     // 转换数据格式以匹配前端期望
     const formattedRequests = requests?.map((req: any) => ({
       id: req.id,
@@ -133,6 +114,9 @@ export async function GET(request: NextRequest) {
       txHash: req.tx_hash,
     })) || [];
 
+    logger.checkpoint('prepare_response');
+    console.log('[DepositRequests GET] Performance:', logger.getReport());
+
     return NextResponse.json({
       success: true,
       requests: formattedRequests,
@@ -141,6 +125,8 @@ export async function GET(request: NextRequest) {
       pageSize: limit
     });
   } catch (error) {
+    logger.checkpoint('error');
+    console.log('[DepositRequests GET] Performance:', logger.getReport());
     console.error('Error in GET deposit requests:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
@@ -152,6 +138,10 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/wallet/deposit-requests - 创建充值申请
 export async function POST(request: NextRequest) {
   console.log('[DepositRequests POST] API called');
+
+  // 创建 Supabase 客户端
+  const supabase = createSupabaseClient();
+
   try {
     const body = await request.json();
     const {

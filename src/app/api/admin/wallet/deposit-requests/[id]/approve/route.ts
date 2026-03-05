@@ -21,15 +21,16 @@ export async function POST(
     console.log('[DepositRequests Approve] Approving request:', requestId);
 
     // 1. 查询充值申请详情
-    const { data: allRequests, error: fetchError } = await supabase
+    const { data: depositRequest, error: fetchError } = await supabase
       .from('deposit_requests')
-      .select('*');
+      .select('*')
+      .eq('id', requestId)
+      .maybeSingle();
 
-    console.log('[DepositRequests Approve] Fetch result:', { 
-      requestId, 
-      totalCount: allRequests?.length,
-      fetchError,
-      firstFewIds: allRequests?.slice(0, 10).map((r: any) => ({ id: r.id, status: r.status }))
+    console.log('[DepositRequests Approve] Fetch result:', {
+      requestId,
+      found: !!depositRequest,
+      fetchError
     });
 
     if (fetchError) {
@@ -37,11 +38,8 @@ export async function POST(
       return NextResponse.json({ success: false, error: fetchError.message }, { status: 500 });
     }
 
-    const depositRequest = allRequests?.find((r: any) => r.id === requestId);
-
     if (!depositRequest) {
       console.error('[DepositRequests Approve] Deposit request not found for ID:', requestId);
-      console.error('[DepositRequests Approve] Available IDs:', allRequests?.map((r: any) => r.id));
       return NextResponse.json({ success: false, error: 'Deposit request not found' }, { status: 404 });
     }
 

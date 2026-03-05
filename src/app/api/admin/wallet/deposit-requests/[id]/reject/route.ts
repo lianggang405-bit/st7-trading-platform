@@ -28,45 +28,13 @@ export async function POST(
       updateData.remark = remark;
     }
 
-    // 尝试执行更新，如果遇到 schema cache 错误则先刷新 schema cache 再重试
-    let depositRequest: any;
-    let error: any;
-    
-    // 第一次尝试
-    const firstResult = await supabase
+    // 执行更新
+    const { data: depositRequest, error } = await supabase
       .from('deposit_requests')
       .update(updateData)
       .eq('id', requestId)
       .select()
-      .single();
-    
-    depositRequest = firstResult.data;
-    error = firstResult.error;
-    
-    // 如果遇到 schema cache 错误，尝试刷新 schema cache 并重试
-    if (error && error.message && error.message.includes('schema cache')) {
-      console.log('[DepositRequests Reject] Schema cache error detected, trying to refresh...');
-      
-      // 刷新 schema cache：通过执行一个简单的查询来刷新
-      try {
-        await supabase.from('deposit_requests').select('id').limit(1);
-        console.log('[DepositRequests Reject] Schema cache refreshed, retrying update...');
-        
-        // 重试更新
-        const retryResult = await supabase
-          .from('deposit_requests')
-          .update(updateData)
-          .eq('id', requestId)
-          .select()
-          .single();
-        
-        depositRequest = retryResult.data;
-        error = retryResult.error;
-      } catch (retryError: any) {
-        console.error('[DepositRequests Reject] Retry also failed:', retryError);
-        // 保持原始错误
-      }
-    }
+      .maybeSingle();
 
     if (error) {
       console.error('Failed to reject deposit request:', error);
