@@ -24,25 +24,24 @@ const messagesMap = {
   'de': deMessages,
 } as const;
 
-export default getRequestConfig(async ({ requestLocale }) => {
-  let locale = await requestLocale;
+export default getRequestConfig(async ({ locale }) => {
+  console.log('[i18n.ts] Received locale:', locale);
+  
+  let selectedLocale = locale;
 
-  console.log('[i18n.ts] requestLocale:', requestLocale);
-  console.log('[i18n.ts] locale before validation:', locale);
-
-  if (!locale || !locales.includes(locale as any)) {
+  if (!selectedLocale || !locales.includes(selectedLocale as any)) {
     console.log('[i18n.ts] Invalid locale, using default:', defaultLocale);
-    locale = defaultLocale;
+    selectedLocale = defaultLocale;
   }
 
-  const messages = messagesMap[locale as Locale];
+  const messages = messagesMap[selectedLocale as Locale];
 
-  console.log('[i18n.ts] Final locale:', locale);
+  console.log('[i18n.ts] Final locale:', selectedLocale);
   console.log('[i18n.ts] Messages type:', typeof messages);
   console.log('[i18n.ts] Market messages preview:', messages?.market);
 
   return {
-    locale,
+    locale: selectedLocale,
     messages: messages as any,
     timeZone: 'UTC',
     now: new Date(),
