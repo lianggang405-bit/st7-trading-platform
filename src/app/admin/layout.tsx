@@ -42,9 +42,9 @@ export default function AdminLayout({
 
     if (segments[1] !== 'admin') {
       const segmentName = segments[1];
-      const menuItem = nav.find(item =>
+      const menuItem = nav.find((item: any) =>
         item.href === `/admin/${segmentName}` ||
-        item.children?.some(child => child.href === pathname)
+        item.children?.some((child: any) => child.href === pathname)
       );
 
       if (menuItem && menuItem.href !== '/admin') {
@@ -56,7 +56,7 @@ export default function AdminLayout({
 
       // 检查是否有子菜单
       if (menuItem?.children) {
-        const childMenu = menuItem.children.find(child => child.href === pathname);
+        const childMenu = menuItem.children.find((child: any) => child.href === pathname);
         if (childMenu) {
           breadcrumbs.push({
             name: childMenu.name,
