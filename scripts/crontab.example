@@ -1,0 +1,18 @@
+# ST7 交易平台定时任务配置
+# 使用方法: sudo crontab -e
+# 然后将以下内容添加到 crontab 中
+
+# 每天凌晨 2 点执行数据库备份
+0 2 * * * /var/www/st7-trading-platform/scripts/backup-database.sh >> /var/log/st7-backup.log 2>&1
+
+# 每周一凌晨 3 点清理过期日志
+0 3 * * 1 find /var/www/st7-trading-platform/logs -name "*.log" -mtime +30 -delete
+
+# 每小时检查服务状态
+0 * * * * systemctl is-active --quiet st7-trading-platform || systemctl start st7-trading-platform
+
+# 每天凌晨 4 点清理临时文件
+0 4 * * * find /tmp -name "st7-*" -mtime +1 -delete
+
+# 每天凌晨 5 点重启服务（可选，根据需要启用）
+# 0 5 * * * systemctl restart st7-trading-platform
