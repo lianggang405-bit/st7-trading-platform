@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       userId: record.user_id,
       cryptoCode: record.currency,
       amount: record.amount,
-      status: record.status === 'SUCCESS' ? 'approved' : record.status === 'FAIL' ? 'rejected' : 'pending',
+      status: record.status as 'pending' | 'approved' | 'rejected',
       rejectReason: record.remark,
       createdAt: record.created_at,
       updatedAt: record.updated_at,

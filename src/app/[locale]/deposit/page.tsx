@@ -242,9 +242,8 @@ export default function DepositPage() {
       const proofImageBase64 = await new Promise<string>((resolve) => {
         reader.onloadend = () => {
           const base64 = reader.result as string;
-          // 移除 data URL 前缀，只保留 Base64 部分
-          const base64Data = base64.split(',')[1];
-          resolve(base64Data);
+          // 保留完整的 data URL 前缀（data:image/png;base64,...）
+          resolve(base64);
         };
         reader.readAsDataURL(paymentProof);
       });
@@ -549,7 +548,8 @@ export default function DepositPage() {
                               day: '2-digit',
                               hour: '2-digit',
                               minute: '2-digit',
-                            })}
+                              second: '2-digit',
+                            })} (GMT+8)
                           </span>
                         </div>
                         {record.status === 'rejected' && record.rejectReason && (

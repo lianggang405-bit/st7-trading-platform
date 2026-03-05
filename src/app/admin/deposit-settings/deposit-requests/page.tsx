@@ -203,8 +203,9 @@ export default function DepositRequestsPage() {
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
+      second: '2-digit',
       hour12: false,
-    }).replace(/\//g, '/');
+    }).replace(/\//g, '/') + ' (GMT+8)';
   };
 
   const filteredRequests = requests.filter(req => {
