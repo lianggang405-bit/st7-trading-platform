@@ -6,12 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { ImagePreview } from '@/components/image-preview';
 import { toast } from 'sonner';
 
 interface DepositRequest {
@@ -274,26 +269,12 @@ export default function DepositRequestDetailPage() {
       </div>
 
       {/* 图片预览弹窗 */}
-      <Dialog open={!!previewImage} onOpenChange={handleClosePreview}>
-        <DialogContent className="max-w-4xl bg-slate-800 border-slate-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">付款凭证预览</DialogTitle>
-          </DialogHeader>
-          {previewImage && (
-            <div className="flex justify-center items-center bg-slate-900 rounded-lg p-4">
-              <img
-                src={previewImage}
-                alt="付款凭证"
-                className="max-w-full max-h-[600px] object-contain"
-                onError={(e) => {
-                  toast.error('图片加载失败');
-                  handleClosePreview();
-                }}
-              />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <ImagePreview
+        open={!!previewImage}
+        onOpenChange={(open) => !open && handleClosePreview()}
+        src={previewImage || ''}
+        title="付款凭证预览"
+      />
     </div>
   );
 }
