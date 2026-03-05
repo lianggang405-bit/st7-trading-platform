@@ -16,31 +16,32 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { processedBy = 'admin' } = body;
+    const { processedBy = 1 } = body; // 默认使用管理员 user_id = 1
 
     console.log('[DepositRequests Approve] Approving request:', requestId);
 
-    // 1. 查询充值申请详情 - 获取所有记录后在内存中筛选（临时调试方案）
-    const { data: allRequests, error: listError } = await supabase
+    // 1. 查询充值申请详情
+    const { data: allRequests, error: fetchError } = await supabase
       .from('deposit_requests')
       .select('*');
 
     console.log('[DepositRequests Approve] Fetch result:', { 
       requestId, 
-      totalCount: allRequests?.length, 
-      listError,
-      allIds: allRequests?.map((r: any) => r.id).slice(0, 10)
+      totalCount: allRequests?.length,
+      fetchError,
+      firstFewIds: allRequests?.slice(0, 10).map((r: any) => ({ id: r.id, status: r.status }))
     });
 
-    if (listError) {
-      console.error('[DepositRequests Approve] Database error:', listError);
-      return NextResponse.json({ success: false, error: listError.message }, { status: 500 });
+    if (fetchError) {
+      console.error('[DepositRequests Approve] Database error:', fetchError);
+      return NextResponse.json({ success: false, error: fetchError.message }, { status: 500 });
     }
 
     const depositRequest = allRequests?.find((r: any) => r.id === requestId);
 
     if (!depositRequest) {
       console.error('[DepositRequests Approve] Deposit request not found for ID:', requestId);
+      console.error('[DepositRequests Approve] Available IDs:', allRequests?.map((r: any) => r.id));
       return NextResponse.json({ success: false, error: 'Deposit request not found' }, { status: 404 });
     }
 
@@ -67,7 +68,7 @@ export async function POST(
       })
       .eq('id', requestId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error('[DepositRequests Approve] Failed to update deposit request:', updateError);

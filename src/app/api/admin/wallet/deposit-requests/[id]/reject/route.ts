@@ -16,7 +16,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { processedBy = 'admin', remark } = body;
+    const { processedBy = 1, remark } = body; // 默认使用管理员 user_id = 1
 
     const updateData: any = {
       status: 'rejected',

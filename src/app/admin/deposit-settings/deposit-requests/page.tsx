@@ -116,10 +116,10 @@ export default function DepositRequestsPage() {
   const handleApprove = async (id: number) => {
     if (!confirm('确认通过该申请？')) return;
     try {
-      const response = await fetch(`/api/admin/wallet/deposit-requests/${id}/approve`, { 
+      const response = await fetch(`/api/admin/wallet/deposit-requests/${id}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ processedBy: 'admin' }),
+        body: JSON.stringify({ processedBy: 1 }), // 使用管理员 user_id = 1
       });
       const data = await response.json();
       if (data.success) {
@@ -136,10 +136,10 @@ export default function DepositRequestsPage() {
   const handleReject = async (id: number) => {
     if (!confirm('确认拒绝该申请？')) return;
     try {
-      const response = await fetch(`/api/admin/wallet/deposit-requests/${id}/reject`, { 
+      const response = await fetch(`/api/admin/wallet/deposit-requests/${id}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ processedBy: 'admin' }),
+        body: JSON.stringify({ processedBy: 1 }), // 使用管理员 user_id = 1
       });
       const data = await response.json();
       if (data.success) {
