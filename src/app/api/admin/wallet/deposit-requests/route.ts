@@ -38,24 +38,10 @@ export async function GET(request: NextRequest) {
 
     const offset = (page - 1) * limit;
 
-    // 构建查询 - 关联用户表获取邮箱
+    // 构建查询 - 不关联用户表（暂时）
     let query = supabase
       .from('deposit_requests')
-      .select(`
-        id,
-        user_id,
-        type,
-        currency,
-        amount,
-        tx_hash,
-        proof_image,
-        status,
-        remark,
-        created_at,
-        users (
-          email
-        )
-      `, { count: 'exact' });
+      .select('*', { count: 'exact' });
 
     // 排序
     query = query.order(sort, { ascending: order === 'asc' });
@@ -89,21 +75,7 @@ export async function GET(request: NextRequest) {
           // 重试查询
           let retryQuery = supabase
             .from('deposit_requests')
-            .select(`
-              id,
-              user_id,
-              type,
-              currency,
-              amount,
-              tx_hash,
-              proof_image,
-              status,
-              remark,
-              created_at,
-              users (
-                email
-              )
-            `, { count: 'exact' });
+            .select('*', { count: 'exact' });
 
           // 排序
           retryQuery = retryQuery.order(sort, { ascending: order === 'asc' });
@@ -135,26 +107,20 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // ❌ 如果出错，返回错误信息而不是 mock 数据
+    // ❌ 如果出错，返回错误信息
     if (error) {
       console.error('[DepositRequests API] Table query failed:', error.message, error);
-      // 临时返回 mock 数据，待修复 Supabase schema cache 问题
-      console.warn('[DepositRequests API] Temporarily returning mock data due to schema cache issue');
-      const mockData = generateMockDepositRequests(page, limit, search);
-      return NextResponse.json({
-        success: true,
-        requests: mockData,
-        total: 2,
-        page,
-        pageSize: limit
-      });
+      return NextResponse.json(
+        { success: false, error: error.message || 'Failed to fetch deposit requests' },
+        { status: 500 }
+      );
     }
 
     // 转换数据格式以匹配前端期望
     const formattedRequests = requests?.map((req: any) => ({
       id: req.id,
-      account: req.users?.[0]?.email || '',
-      email: req.users?.[0]?.email || '',
+      account: `User ${req.user_id}`,
+      email: `user-${req.user_id}@example.com`, // 临时方案，后续可查询真实邮箱
       currency: req.currency,
       paymentAddress: req.tx_hash || '-',
       amount: parseFloat(req.amount) || 0,
@@ -175,20 +141,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error in GET deposit requests:', error);
-    // ✅ 返回 mock 数据作为兜底
-    const searchParams = request.nextUrl.searchParams;
-    const mockData = generateMockDepositRequests(
-      parseInt(searchParams.get('page') || '1'),
-      parseInt(searchParams.get('limit') || '15'),
-      searchParams.get('search') || ''
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
     );
-    return NextResponse.json({
-      success: true,
-      requests: mockData,
-      total: 2,
-      page: parseInt(searchParams.get('page') || '1'),
-      pageSize: parseInt(searchParams.get('limit') || '15')
-    });
   }
 }
 
