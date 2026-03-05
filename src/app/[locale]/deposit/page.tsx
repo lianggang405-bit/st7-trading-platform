@@ -228,6 +228,7 @@ export default function DepositPage() {
       const response = await fetch('/api/applications', {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       });
 
       console.log('Response status:', response.status);
