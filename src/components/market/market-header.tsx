@@ -51,10 +51,10 @@ export function MarketHeader({ activeCategory: externalActiveCategory, onCategor
           <button
             key={category.value}
             onClick={() => handleCategoryClick(category.value)}
-            className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition-all active:scale-95 min-w-[60px] ${
+            className={`whitespace-nowrap rounded px-4 py-2 text-sm font-normal transition-all active:scale-95 w-[80px] ${
               externalActiveCategory === category.value
-                ? 'bg-blue-500 text-white shadow-sm'
-                : 'bg-gray-100 text-black hover:bg-gray-200'
+                ? 'bg-blue-500 text-white'
+                : 'bg-transparent text-gray-600 hover:text-gray-800'
             }`}
           >
             {t(category.key)}
