@@ -33,6 +33,8 @@ export async function GET(request: NextRequest) {
     const order = searchParams.get('order') || 'desc';
     const search = searchParams.get('search') || '';
 
+    console.log('[DepositRequests GET] Query params:', { page, limit, sort, order, search });
+
     const offset = (page - 1) * limit;
 
     // 构建查询 - 关联用户表获取邮箱
@@ -185,7 +187,10 @@ export async function POST(request: NextRequest) {
       status = 'pending'
     } = body;
 
+    console.log('[DepositRequests POST] Creating deposit request:', { userId, type, currency, amount, txHash });
+
     if (!userId || !currency || amount === undefined) {
+      console.error('[DepositRequests POST] Missing required fields');
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -255,21 +260,24 @@ export async function POST(request: NextRequest) {
     // ✅ 如果出错，返回成功响应（模拟创建）
     if (error) {
       console.warn('[DepositRequests API] Insert failed, returning mock data:', error.message);
+      const mockRequest = {
+        id: Math.floor(Math.random() * 1000),
+        user_id: userId,
+        type,
+        currency,
+        amount,
+        tx_hash: txHash,
+        status,
+        created_at: new Date().toISOString()
+      };
+      console.log('[DepositRequests API] Returning mock request:', mockRequest);
       return NextResponse.json({
         success: true,
-        request: {
-          id: Math.floor(Math.random() * 1000),
-          user_id: userId,
-          type,
-          currency,
-          amount,
-          tx_hash: txHash,
-          status,
-          created_at: new Date().toISOString()
-        }
+        request: mockRequest
       }, { status: 201 });
     }
 
+    console.log('[DepositRequests API] Insert successful:', depositRequest);
     return NextResponse.json({ success: true, request: depositRequest }, { status: 201 });
   } catch (error) {
     console.error('Error in POST deposit requests:', error);

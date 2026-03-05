@@ -236,19 +236,22 @@ export default function DepositPage() {
 
     try {
       console.log('Submitting to /api/admin/wallet/deposit-requests...');
+      const payload = {
+        userId: parseInt(user?.id || '1'),
+        type: 'crypto',
+        currency: selectedCrypto.code,
+        amount: parseFloat(cryptoAmount),
+        txHash: selectedCrypto.walletAddress,
+        status: 'pending',
+      };
+      console.log('Payload:', payload);
+      
       const response = await fetch('/api/admin/wallet/deposit-requests', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          userId: user?.id || 1,
-          type: 'crypto',
-          currency: selectedCrypto.code,
-          amount: parseFloat(cryptoAmount),
-          txHash: selectedCrypto.walletAddress,
-          status: 'pending',
-        }),
+        body: JSON.stringify(payload),
         credentials: 'include',
       });
 
@@ -265,7 +268,8 @@ export default function DepositPage() {
       console.log('Response data:', data);
 
       if (data.success) {
-        toast.success('入金申請已提交，等待審核通過');
+        // 弹出窗口提醒
+        alert('申请成功！系统会在审核后尽快为您入金，如有需要请联系客服');
         router.back();
       } else {
         setError(data.error || '提交失敗');
