@@ -25,6 +25,9 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { FlashOrderViewDialog } from '@/components/admin/FlashOrderViewDialog';
+import { FlashOrderEditDialog } from '@/components/admin/FlashOrderEditDialog';
+import { formatPrice, formatDateTime, getStatusBadge, getTypeBadge, getResultBadge, getPnlColor } from '@/components/admin/flashOrderHelpers';
 
 interface FlashOrder {
   id: number;
@@ -51,6 +54,9 @@ export default function FlashOrdersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(15);
   const [totalCount, setTotalCount] = useState(0);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<FlashOrder | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -121,58 +127,14 @@ export default function FlashOrdersPage() {
     }
   };
 
-  const handleView = (order: any) => {
-    toast.info(`查看秒合约订单: ${order.id}`);
-    // TODO: 打开查看对话框
+  const handleView = (order: FlashOrder) => {
+    setSelectedOrder(order);
+    setViewDialogOpen(true);
   };
 
-  const handleEdit = (order: any) => {
-    toast.info(`编辑秒合约订单: ${order.id}`);
-    // TODO: 打开编辑对话框
-  };
-
-  const formatPrice = (value: number) => {
-    return value.toFixed(8);
-  };
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toISOString().replace('T', ' ').substring(0, 19) + 'Z';
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { color: string; text: string }> = {
-      已平仓: { color: 'bg-gray-500/10 text-gray-400', text: '已平仓' },
-      进行中: { color: 'bg-blue-500/10 text-blue-400', text: '进行中' },
-      已取消: { color: 'bg-red-500/10 text-red-400', text: '已取消' },
-    };
-    const config = statusMap[status] || statusMap.已平仓;
-    return <Badge className={config.color}>{config.text}</Badge>;
-  };
-
-  const getTypeBadge = (type: string) => {
-    if (type === '涨') {
-      return <Badge className="bg-green-500/10 text-green-400">涨</Badge>;
-    } else if (type === '跌') {
-      return <Badge className="bg-red-500/10 text-red-400">跌</Badge>;
-    }
-    return <Badge className="bg-gray-500/10 text-gray-400">{type}</Badge>;
-  };
-
-  const getResultBadge = (result: string) => {
-    const resultMap: Record<string, { color: string; text: string }> = {
-      盈利: { color: 'bg-green-500/10 text-green-400', text: '盈利' },
-      亏损: { color: 'bg-red-500/10 text-red-400', text: '亏损' },
-      无: { color: 'bg-gray-500/10 text-gray-400', text: '无' },
-    };
-    const config = resultMap[result] || resultMap.无;
-    return <Badge className={config.color}>{config.text}</Badge>;
-  };
-
-  const getPnlColor = (profit: number) => {
-    if (profit > 0) return 'text-green-400';
-    if (profit < 0) return 'text-red-400';
-    return 'text-gray-400';
+  const handleEdit = (order: FlashOrder) => {
+    setSelectedOrder(order);
+    setEditDialogOpen(true);
   };
 
   return (
@@ -336,6 +298,19 @@ export default function FlashOrdersPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 对话框 */}
+      <FlashOrderViewDialog
+        open={viewDialogOpen}
+        onClose={() => setViewDialogOpen(false)}
+        order={selectedOrder}
+      />
+      <FlashOrderEditDialog
+        open={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        order={selectedOrder}
+        onSave={fetchOrders}
+      />
     </div>
   );
 }
