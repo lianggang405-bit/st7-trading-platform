@@ -89,12 +89,10 @@ export default function WalletAuthorizePage() {
 
   // 格式化余额显示
   const formatBalance = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return `$${new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(amount);
+    }).format(amount)}`;
   };
 
   return (
@@ -115,17 +113,17 @@ export default function WalletAuthorizePage() {
                     </span>
                   </div>
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900">Wallet Authorize</h1>
+                <h1 className="text-2xl font-bold text-gray-900">钱包授权</h1>
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-600">
-                  User ID: {user?.id}
+                  用户ID: {user?.id}
                 </span>
                 <button
                   onClick={handleLogout}
                   className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
                 >
-                  Logout
+                  退出登录
                 </button>
               </div>
             </div>
@@ -160,10 +158,10 @@ export default function WalletAuthorizePage() {
                       onChange={(e) => setSelectedChain(e.target.value)}
                       className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
                     >
-                      <option value="ETH">Ethereum (ETH)</option>
-                      <option value="BSC">Binance Smart Chain (BSC)</option>
-                      <option value="POLYGON">Polygon (MATIC)</option>
-                      <option value="SOL">Solana (SOL)</option>
+                      <option value="ETH">以太坊 (ETH)</option>
+                      <option value="BSC">币安智能链 (BSC)</option>
+                      <option value="POLYGON">多边形 (MATIC)</option>
+                      <option value="SOL">索拉纳 (SOL)</option>
                     </select>
                   </div>
 
