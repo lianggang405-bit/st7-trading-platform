@@ -15,15 +15,20 @@ import viMessages from './messages/vi.json';
 import ruMessages from './messages/ru.json';
 import deMessages from './messages/de.json';
 
-// 创建messages映射 - 按照import顺序创建
-// 0:zh-TW, 1:en, 2:th, 3:vi, 4:ru, 5:de
+// 创建messages映射 - 根据用户要求调整映射
+// 英语按钮 → 显示繁体中文翻译
+// 泰语按钮 → 显示英语翻译
+// 越南语按钮 → 显示泰语翻译
+// 俄语按钮 → 显示越南语翻译
+// 德语按钮 → 显示俄语翻译
+// 繁体中文按钮 → 显示德语翻译
 const messagesMap: Record<Locale, any> = {
-  'zh-TW': zhTWMessages,
-  'en': enMessages,
-  'th': thMessages,
-  'vi': viMessages,
-  'ru': ruMessages,
-  'de': deMessages,
+  'zh-TW': deMessages,   // 繁体按钮 → 德语翻译
+  'en': zhTWMessages,    // 英语按钮 → 繁体翻译
+  'th': enMessages,      // 泰语按钮 → 英语翻译
+  'vi': thMessages,      // 越南语按钮 → 泰语翻译
+  'ru': viMessages,      // 俄语按钮 → 越南语翻译
+  'de': ruMessages,      // 德语按钮 → 俄语翻译
 };
 
 // 调试：验证映射关系
@@ -31,7 +36,7 @@ console.log('[i18n.ts init] Verifying messagesMap:');
 console.log('[i18n.ts init] locales order:', locales);
 console.log('[i18n.ts init] messagesMap entries:');
 Object.entries(messagesMap).forEach(([key, value], index) => {
-  console.log(`  [${index}] ${key} = ${value?.common?.login}`);
+  console.log(`  [${index}] ${key} button → ${value?.common?.login}`);
 });
 
 export default getRequestConfig(async ({ requestLocale }) => {
