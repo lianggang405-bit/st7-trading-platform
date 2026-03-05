@@ -223,6 +223,125 @@ body {
   background: #6B7280;
 }
 
+/* 移动端触摸优化 */
+@media (max-width: 768px) {
+  /* 增大所有交互元素的触摸区域 */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* 防止 iOS 上的双击缩放和高亮 */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  /* 允许文本选择的内容 */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  textarea {
+    user-select: auto;
+  }
+
+  /* 优化触摸反馈 */
+  button:active,
+  a:active {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+  }
+
+  /* 滚动优化 */
+  .overflow-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 移动端表单优化 */
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* 移动端卡片间距优化 */
+  .mobile-card {
+    margin-bottom: 12px;
+    padding: 16px;
+  }
+
+  /* 移动端按钮组优化 */
+  .mobile-button-group {
+    display: flex;
+    gap: 12px;
+    padding: 0 16px;
+  }
+
+  .mobile-button-group button {
+    flex: 1;
+    min-height: 48px;
+    font-size: 16px;
+  }
+}
+
+/* 平板端优化 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* 平板端的触摸区域稍小但仍可点击 */
+  button,
+  a,
+  input,
+  select {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
+/* 移动端输入框聚焦优化 */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
+  -webkit-appearance: none;
+}
+
+/* 移动端模态框优化 */
+@media (max-width: 768px) {
+  .mobile-modal {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 80vh;
+    border-radius: 20px 20px 0 0;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+  }
+
+  .mobile-modal.open {
+    transform: translateY(0);
+  }
+
+  /* 移动端下拉菜单优化 */
+  select {
+    font-size: 16px; /* 防止 iOS 自动缩放 */
+  }
+}
+
 /* 移动端输入框字体大小优化 */
 @media (max-width: 768px) {
   input[type="number"],

@@ -576,7 +576,8 @@ export default function TradePage() {
                   min="0.01"
                   value={volume}
                   onChange={(e) => setVolume(Math.max(0.01, parseFloat(e.target.value) || 0.01))}
-                  className="w-20 text-right font-bold bg-gray-100 rounded px-3 py-2 text-base"
+                  className="w-20 text-right font-bold bg-gray-100 rounded px-3 py-2 text-base text-lg"
+                  style={{ fontSize: '16px' }}
                 />
                 <button
                   onClick={() => setVolume(volume + 0.01)}
