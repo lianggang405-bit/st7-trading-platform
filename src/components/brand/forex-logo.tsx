@@ -7,7 +7,7 @@ export function ForexLogo() {
     <img
       src="/logo.png"
       alt="FOREX Logo"
-      className="h-24 w-auto"
+      className="h-32 w-auto"
     />
   );
 }
