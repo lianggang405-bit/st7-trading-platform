@@ -2,10 +2,10 @@ import { getRequestConfig } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 
-export const locales = ['zh-TW', 'en', 'th', 'vi', 'ru', 'de'] as const;
+export const locales = ['en', 'th', 'vi', 'ru', 'de', 'zh-TW'] as const;
 export type Locale = (typeof locales)[number];
 
-export const defaultLocale: Locale = 'zh-TW';
+export const defaultLocale: Locale = 'en';
 
 // 静态导入所有messages文件
 import zhTWMessages from './messages/zh-TW.json';
@@ -15,14 +15,14 @@ import viMessages from './messages/vi.json';
 import ruMessages from './messages/ru.json';
 import deMessages from './messages/de.json';
 
-// 创建messages映射 - 按索引顺序排列
+// 创建messages映射 - 按索引顺序排列（1-based索引：索引1对应index 0，索引2对应index 1，依此类推）
 const messagesByIndex = [
-  zhTWMessages,  // index 0: zh-TW
-  enMessages,    // index 1: en
-  thMessages,    // index 2: th
-  viMessages,    // index 3: vi
-  ruMessages,    // index 4: ru
-  deMessages,    // index 5: de
+  enMessages,    // index 0: 对应索引1 - en
+  thMessages,    // index 1: 对应索引2 - th
+  viMessages,    // index 2: 对应索引3 - vi
+  ruMessages,    // index 3: 对应索引4 - ru
+  deMessages,    // index 4: 对应索引5 - de
+  zhTWMessages,  // index 5: 对应索引6 - zh-TW
 ];
 
 // 添加调试信息
