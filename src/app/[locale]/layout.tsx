@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { locales } from '../../../i18n';
+import { locales } from '../../i18n';
 import { BottomTab } from '../../components/layout/bottom-tab';
 import { AuthProvider } from '../../components/providers/auth-provider';
 import '../globals.css';

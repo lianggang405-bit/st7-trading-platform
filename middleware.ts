@@ -16,19 +16,22 @@ export default function middleware(request: NextRequest) {
 
   // 🔒 排除管理端路径和 API 路径，不进行 locale 处理
   if (pathname.startsWith('/admin') || pathname.startsWith('/api')) {
+    // 应用认证逻辑
+    if (pathname.startsWith('/admin') && !token) {
+      return NextResponse.redirect(new URL('/admin/login', request.url));
+    }
     return NextResponse.next();
   }
 
-  // 先处理国际化
-  const intlResponse = intlMiddleware(request);
-  if (intlResponse) {
-    // 如果国际化中间件返回了响应（比如重定向），直接返回
-    if (intlResponse.status >= 300 && intlResponse.status < 400) {
-      return intlResponse;
-    }
+  // 先让 next-intl 处理国际化
+  const response = intlMiddleware(request);
+
+  // 如果 intlMiddleware 返回了重定向（比如添加了 locale），直接返回
+  if (response && response.status >= 300 && response.status < 400) {
+    return response;
   }
 
-  // 提取 locale
+  // 提取 locale（现在应该已经由 intlMiddleware 处理过了）
   const locale = locales.find(loc => pathname.startsWith(`/${loc}`)) || defaultLocale;
   const pathnameWithoutLocale = pathname.replace(new RegExp(`^/${locale}`), '');
 
@@ -38,20 +41,20 @@ export default function middleware(request: NextRequest) {
   const isLoginPage = pathnameWithoutLocale === '/login';
   const isRegisterPage = pathnameWithoutLocale === '/register';
 
-  // 2️⃣ 未登录访问受限页 → login
-  if (!token && !isPublicPage) {
+  // 未登录访问受限页 → login
+  if (!token && !isPublicPage && pathnameWithoutLocale !== '/') {
     const loginUrl = new URL(`/${locale}/login`, request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 3️⃣ 登录页已登录 → market
+  // 登录页已登录 → market
   if (token && (isLoginPage || isRegisterPage)) {
     return NextResponse.redirect(new URL(`/${locale}/market`, request.url));
   }
 
-  // 其他情况 → 放行
-  return NextResponse.next();
+  // 返回 intlMiddleware 的响应，或者创建新的响应
+  return response || NextResponse.next();
 }
 
 export const config = {
