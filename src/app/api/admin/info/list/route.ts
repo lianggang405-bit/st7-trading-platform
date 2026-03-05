@@ -85,6 +85,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // 添加详细日志
+    console.log('[Admin Info API] Count:', count);
+    console.log('[Admin Info API] Data items count:', data?.length || 0);
+    data?.forEach((item: any, index: number) => {
+      console.log(`[Admin Info API] Item ${index}: id=${item.id}, title=${item.title}, is_show=${item.is_show}`);
+    });
+
     // Format data
     const formattedInfos = data?.map((item: any) => ({
       id: item.id,

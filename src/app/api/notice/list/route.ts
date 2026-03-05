@@ -77,6 +77,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // 添加详细日志
+    console.log('[Notice API] Count:', count);
+    console.log('[Notice API] Data items count:', data?.length || 0);
+    data?.forEach((item: any, index: number) => {
+      console.log(`[Notice API] Item ${index}: id=${item.id}, title=${item.title}, is_show=${item.is_show}`);
+    });
+
     // 格式化数据
     const formattedNotices = data?.map((item: any) => ({
       id: item.id,
