@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { ArrowLeft, ChevronRight, FileText } from 'lucide-react';
+import { ArrowLeft, ChevronRight, FileText, RefreshCw } from 'lucide-react';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 interface NoticeItem {
@@ -15,6 +15,8 @@ interface NoticeItem {
   isShow: boolean;
   keywords: string;
   created_at: string;
+  summary?: string;
+  content?: string;
 }
 
 export default function NoticePage() {
@@ -24,10 +26,32 @@ export default function NoticePage() {
 
   const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 添加下拉刷新的触摸状态
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchNotices();
+
+    // 添加页面可见性监听，当页面重新可见时刷新
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchNotices();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const fetchNotices = async () => {
@@ -48,7 +72,40 @@ export default function NoticePage() {
       setError('网络错误，请稍后重试');
     } finally {
       setLoading(false);
+      setRefreshing(false);
+      setPullDistance(0);
+      setIsPulling(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchNotices();
+  };
+
+  // 下拉刷新事件处理
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientY);
+    const distance = touchEnd - touchStart;
+
+    // 只在页面顶部时才允许下拉
+    if (listRef.current && listRef.current.scrollTop === 0 && distance > 0) {
+      setPullDistance(Math.min(distance, 80)); // 最大下拉距离 80px
+      setIsPulling(distance > 60); // 下拉超过 60px 时触发刷新
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isPulling) {
+      handleRefresh();
+    }
+    setTouchStart(0);
+    setTouchEnd(0);
+    setIsPulling(false);
   };
 
   const handleBack = () => {
@@ -67,12 +124,40 @@ export default function NoticePage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-lg font-semibold text-gray-900">公告</h1>
-          <div className="w-5" />
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing || loading}
+            className="p-1 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
-      {/* 公告列表 */}
-      <div className="px-4 py-4">
+      {/* 下拉刷新提示 */}
+      {pullDistance > 0 && (
+        <div
+          className="fixed top-14 left-0 right-0 flex justify-center items-center z-40 bg-gray-50"
+          style={{
+            transform: `translateY(${Math.min(pullDistance, 60)}px)`,
+            opacity: Math.min(pullDistance / 60, 1),
+          }}
+        >
+          <div className="bg-white rounded-lg px-4 py-2 shadow-sm flex items-center gap-2">
+            <RefreshCw size={16} className={isPulling ? 'animate-spin' : ''} />
+            <span className="text-sm text-gray-700">{isPulling ? '释放刷新' : '下拉刷新'}</span>
+          </div>
+        </div>
+      )}
+
+      {/* 公告列表 - 支持下拉刷新 */}
+      <div
+        ref={listRef}
+        className="px-4 py-4"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-gray-500">加载中...</div>
