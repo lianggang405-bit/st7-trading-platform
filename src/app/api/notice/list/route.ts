@@ -128,17 +128,21 @@ export async function GET(request: NextRequest) {
 
 // 生成模拟数据
 function generateMockData(page: number, limit: number, type: string, language: string): any[] {
+  // 注意：这只是fallback数据，实际生产环境应该使用真实数据库数据
+  // 如果使用mock数据，请确保与数据库中的数据一致
   const mockData = [
     {
-      id: 8,
-      title: '公告',
+      id: 9,
+      title: '特别公告',
       type: '公告',
-      language: '中文简体',
+      language: '中文繁体',
       sort: 1,
-      coverImage: '/images/info-cover-8.jpg',
+      coverImage: '',
       isShow: true,
       keywords: '公告',
-      created_at: '2024-02-01T10:00:00Z',
+      summary: '特别强调！！',
+      content: '由於政策原因，不向朝鮮，以色列，中國，瓦努阿圖，古巴提供服務。',
+      created_at: '2026-03-05T13:15:23.90018+00:00',
     },
   ];
 
