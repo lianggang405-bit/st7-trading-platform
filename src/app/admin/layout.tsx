@@ -228,11 +228,12 @@ export default function AdminLayout({
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-800 border-r border-slate-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-800 border-r border-slate-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 flex flex-col ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between h-16 px-6 border-b border-slate-700">
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-between h-16 px-6 border-b border-slate-700 flex-shrink-0">
           <h1 className="text-xl font-bold text-white">管理后台</h1>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -242,7 +243,8 @@ export default function AdminLayout({
           </button>
         </div>
 
-        <nav className="mt-6 px-3 space-y-1">
+        {/* Navigation - Scrollable area */}
+        <nav className="mt-6 px-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar">
           {navigation.map((item) => {
             const isActive = isMenuActive(item);
             const hasChildren = item.children && item.children.length > 0;
@@ -307,7 +309,8 @@ export default function AdminLayout({
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700">
+        {/* Bottom logout button */}
+        <div className="p-4 border-t border-slate-700 flex-shrink-0">
           <Button
             variant="ghost"
             className="w-full justify-start text-gray-400 hover:text-white hover:bg-slate-700"
