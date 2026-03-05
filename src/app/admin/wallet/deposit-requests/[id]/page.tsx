@@ -20,6 +20,8 @@ interface DepositRequest {
   status: string;
   createdAt: string;
   txHash: string;
+  remark?: string;
+  user_id?: number;
 }
 
 export default function DepositRequestDetailPage() {
@@ -60,6 +62,8 @@ export default function DepositRequestDetailPage() {
           status: req.status,
           createdAt: req.created_at,
           txHash: req.tx_hash || '',
+          remark: req.remark,
+          user_id: req.user_id,
         };
         
         setRequest(formattedRequest);
@@ -89,6 +93,7 @@ export default function DepositRequestDetailPage() {
         body: JSON.stringify({
           amount: parseFloat(formData.amount),
           usdAmount: parseFloat(formData.usdAmount),
+          remark: '管理员编辑了充币申请金额',
         }),
       });
       
@@ -130,33 +135,48 @@ export default function DepositRequestDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* 面包屑导航 */}
       <div className="flex items-center gap-2 text-sm text-gray-400">
         <span>资源</span> / <span>充币设置</span> / <span>充币申请</span> / <span className="text-white">更新 充币申请: {request.id}</span>
       </div>
       
+      {/* 页面标题 */}
       <div>
         <h1 className="text-2xl font-bold text-white">更新 充币申请: {request.id}</h1>
       </div>
 
+      {/* 表单卡片 */}
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="pt-6">
-          <div className="space-y-6">
+          <div className="space-y-0">
             {/* 账号 */}
             <div className="flex justify-between items-start py-3 border-b border-slate-700">
               <Label className="text-gray-400 text-sm min-w-[120px]">账号</Label>
-              <div className="flex-1 text-white">{request.account}</div>
+              <div className="flex-1">
+                <div className="bg-slate-700/50 text-gray-300 px-3 py-2 rounded font-mono text-sm">
+                  {request.account}
+                </div>
+              </div>
             </div>
 
             {/* 品种 */}
             <div className="flex justify-between items-start py-3 border-b border-slate-700">
               <Label className="text-gray-400 text-sm min-w-[120px]">品种</Label>
-              <div className="flex-1 text-white">{request.currency}</div>
+              <div className="flex-1">
+                <div className="bg-slate-700/50 text-gray-300 px-3 py-2 rounded">
+                  {request.currency}
+                </div>
+              </div>
             </div>
 
             {/* 付款地址 */}
             <div className="flex justify-between items-start py-3 border-b border-slate-700">
               <Label className="text-gray-400 text-sm min-w-[120px]">付款地址</Label>
-              <div className="flex-1 text-white font-mono text-sm break-all">{request.paymentAddress}</div>
+              <div className="flex-1">
+                <div className="bg-slate-700/50 text-gray-300 px-3 py-2 rounded font-mono text-xs break-all">
+                  {request.paymentAddress}
+                </div>
+              </div>
             </div>
 
             {/* 付款数量 */}
@@ -168,7 +188,7 @@ export default function DepositRequestDetailPage() {
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   step="0.00000001"
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-slate-700 border-slate-600 text-white font-mono"
                 />
               </div>
             </div>
@@ -182,7 +202,7 @@ export default function DepositRequestDetailPage() {
                   value={formData.usdAmount}
                   onChange={(e) => setFormData({ ...formData, usdAmount: e.target.value })}
                   step="0.00000001"
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-slate-700 border-slate-600 text-white font-mono"
                 />
               </div>
             </div>
@@ -191,33 +211,43 @@ export default function DepositRequestDetailPage() {
             <div className="flex justify-between items-start py-3 border-b border-slate-700">
               <Label className="text-gray-400 text-sm min-w-[120px]">付款凭证</Label>
               <div className="flex-1 space-y-3">
-                {request.proofImage && (
-                  <div className="rounded-lg overflow-hidden border border-slate-700">
-                    <img
-                      src={request.proofImage}
-                      alt="付款凭证"
-                      className="w-full max-w-md"
-                    />
+                {request.proofImage ? (
+                  <div className="space-y-2">
+                    <div className="rounded-lg overflow-hidden border border-slate-700 bg-white">
+                      <img
+                        src={request.proofImage}
+                        alt="付款凭证"
+                        className="w-full max-w-md"
+                      />
+                    </div>
+                    <div className="text-xs text-gray-500 font-mono">
+                      {request.proofImage}
+                    </div>
                   </div>
+                ) : (
+                  <div className="text-gray-500">暂无付款凭证</div>
                 )}
-                <div className="text-xs text-gray-500 font-mono">{request.proofImage}</div>
               </div>
             </div>
 
             {/* 申请时间 */}
             <div className="flex justify-between items-start py-3">
               <Label className="text-gray-400 text-sm min-w-[120px]">申请时间</Label>
-              <div className="flex-1 text-white text-sm">
-                {new Date(request.createdAt).toLocaleString('zh-CN', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                  hour12: false,
-                }).replace(/\//g, '/')}
-                <span className="ml-2 text-gray-500">Europe/London</span>
+              <div className="flex-1 flex items-center gap-2">
+                <div className="bg-slate-700/50 text-gray-300 px-3 py-2 rounded font-mono text-sm">
+                  {new Date(request.createdAt).toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false,
+                  }).replace(/\//g, '/')}
+                </div>
+                <div className="bg-slate-700/50 text-gray-400 px-3 py-2 rounded text-xs">
+                  Europe/London
+                </div>
               </div>
             </div>
           </div>
