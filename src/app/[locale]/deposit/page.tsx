@@ -216,18 +216,20 @@ export default function DepositPage() {
     setIsSubmitting(true);
 
     try {
-      const formData = new FormData();
-      formData.append('type', 'crypto');
-      formData.append('currencyId', selectedCrypto.id.toString());
-      formData.append('amount', cryptoAmount);
-      if (paymentProof) {
-        formData.append('proof', paymentProof);
-      }
-
-      console.log('Submitting to /api/applications...');
-      const response = await fetch('/api/applications', {
+      console.log('Submitting to /api/admin/wallet/deposit-requests...');
+      const response = await fetch('/api/admin/wallet/deposit-requests', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user?.id || 1,
+          type: 'crypto',
+          currency: selectedCrypto.code,
+          amount: parseFloat(cryptoAmount),
+          txHash: selectedCrypto.walletAddress,
+          status: 'pending',
+        }),
         credentials: 'include',
       });
 
