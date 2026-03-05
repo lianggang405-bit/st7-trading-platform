@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { compressImage, base64ToBlob, generateFileName } from '@/lib/image-utils';
 
 const supabase = getSupabaseClient();
 
@@ -172,6 +173,59 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
+    // 📸 处理图片上传到 Supabase Storage
+    let proofImageUrl: string | null = null;
+
+    if (proofImage) {
+      try {
+        console.log('[DepositRequests POST] Processing image upload...');
+
+        // 将 Base64 转换为 Blob
+        const blob = base64ToBlob(proofImage);
+        if (!blob) {
+          return NextResponse.json(
+            { success: false, error: 'Invalid image data' },
+            { status: 400 }
+          );
+        }
+
+        // 生成文件名
+        const fileName = generateFileName(userId.toString(), 'proof.png');
+
+        // 上传到 Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('deposit-proofs')
+          .upload(fileName, blob, {
+            contentType: blob.type,
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('[DepositRequests POST] Image upload failed:', uploadError);
+          return NextResponse.json(
+            { success: false, error: `Image upload failed: ${uploadError.message}` },
+            { status: 500 }
+          );
+        }
+
+        console.log('[DepositRequests POST] Image uploaded successfully:', uploadData.path);
+
+        // 获取公共 URL
+        const { data: publicUrlData } = supabase.storage
+          .from('deposit-proofs')
+          .getPublicUrl(fileName);
+
+        proofImageUrl = publicUrlData.publicUrl;
+        console.log('[DepositRequests POST] Public URL generated:', proofImageUrl);
+      } catch (error: any) {
+        console.error('[DepositRequests POST] Error processing image:', error);
+        return NextResponse.json(
+          { success: false, error: `Failed to process image: ${error.message}` },
+          { status: 500 }
+        );
+      }
+    }
+
     // 尝试执行插入，如果遇到 schema cache 错误则先刷新 schema cache 再重试
     let depositRequest: any;
     let error: any;
@@ -188,7 +242,7 @@ export async function POST(request: NextRequest) {
             currency,
             amount,
             tx_hash: txHash,
-            proof_image: proofImage,
+            proof_image: proofImageUrl, // 使用 URL 而不是 Base64
             remark,
             status,
           }
@@ -221,7 +275,7 @@ export async function POST(request: NextRequest) {
               currency,
               amount,
               tx_hash: txHash,
-              proof_image: proofImage,
+              proof_image: proofImageUrl, // 使用 URL 而不是 Base64
               remark,
               status,
             }
@@ -247,7 +301,7 @@ export async function POST(request: NextRequest) {
         currency,
         amount,
         tx_hash: txHash,
-        proof_image: proofImage,
+        proof_image: proofImageUrl, // 使用 URL 而不是 Base64
         status,
         created_at: new Date().toISOString()
       };
@@ -272,6 +326,7 @@ export async function POST(request: NextRequest) {
         currency: 'USDT',
         amount: 1000,
         tx_hash: '0xabc123...',
+        proof_image: null, // 模拟数据不包含图片
         status: 'pending',
         created_at: new Date().toISOString()
       }
