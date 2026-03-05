@@ -29,8 +29,8 @@ export default function AdminLayout({
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
-  // 生成面包屑导航
-  const generateBreadcrumb = () => {
+  // 生成面包屑导航函数
+  const generateBreadcrumb = (nav: any[]) => {
     if (pathname === '/admin' || pathname === '/admin/login') return null;
 
     const segments = pathname.split('/').filter(Boolean);
@@ -42,7 +42,7 @@ export default function AdminLayout({
 
     if (segments[1] !== 'admin') {
       const segmentName = segments[1];
-      const menuItem = navigation.find(item =>
+      const menuItem = nav.find(item =>
         item.href === `/admin/${segmentName}` ||
         item.children?.some(child => child.href === pathname)
       );
@@ -68,8 +68,6 @@ export default function AdminLayout({
 
     return breadcrumbs;
   };
-
-  const breadcrumb = generateBreadcrumb();
 
   const navigation = [
     {
@@ -184,6 +182,9 @@ export default function AdminLayout({
       ]
     },
   ];
+
+  // 在 navigation 定义后生成面包屑
+  const breadcrumb = generateBreadcrumb(navigation);
 
   const toggleMenu = (menuName: string) => {
     setExpandedMenus((prev: Set<string>) => {
