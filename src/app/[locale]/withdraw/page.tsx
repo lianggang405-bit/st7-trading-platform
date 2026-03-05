@@ -72,11 +72,13 @@ export default function WithdrawPage() {
   const [withdrawRecords, setWithdrawRecords] = useState<WithdrawalRecord[]>([]);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
 
-  // 加载数据
+  // 加载数据 - 等待isHydrated为true后再调用
   useEffect(() => {
-    fetchCryptoCurrencies();
-    fetchUserBalance();
-  }, []);
+    if (isHydrated) {
+      fetchCryptoCurrencies();
+      fetchUserBalance();
+    }
+  }, [isHydrated]);
 
   const fetchCryptoCurrencies = async () => {
     try {
@@ -358,14 +360,15 @@ export default function WithdrawPage() {
               <Label className="text-gray-700 mb-2 block">貨幣</Label>
               <div className="relative">
                 <Select
-                  value={selectedCrypto?.id.toString()}
+                  value={selectedCrypto ? selectedCrypto.id.toString() : undefined}
                   onValueChange={(value) => {
                     const crypto = cryptoCurrencies.find((c) => c.id === parseInt(value));
                     setSelectedCrypto(crypto || null);
                   }}
+                  disabled={cryptoCurrencies.length === 0}
                 >
                   <SelectTrigger className="w-full h-12 bg-gray-50 border-0 rounded-lg">
-                    <SelectValue placeholder="請選擇數位貨幣" />
+                    <SelectValue placeholder={cryptoCurrencies.length === 0 ? '加載中...' : '請選擇數位貨幣'} />
                   </SelectTrigger>
                   <SelectContent>
                     {cryptoCurrencies.map((currency) => (
