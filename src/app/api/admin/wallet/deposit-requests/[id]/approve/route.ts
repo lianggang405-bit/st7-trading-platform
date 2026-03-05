@@ -49,29 +49,15 @@ export async function POST(
       return NextResponse.json({ success: true, request: depositRequest });
     }
 
-    // 2. 计算 USD 金额（简化方案：暂时假设 amount 就是 USD 等值）
-    // TODO: 后续应该从 crypto_rates 表获取汇率
-    const cryptoAmount = parseFloat(depositRequest.amount);
-    
-    // 临时硬编码汇率（从 crypto_rates 表获取）
-    const rates: Record<string, number> = {
-      'BTC': 95000,
-      'ETH': 3500,
-      'USDT': 1,
-      'USDC': 1,
-    };
-    
-    const rateUsd = rates[depositRequest.currency] || 1;
-    const usdAmount = cryptoAmount * rateUsd;
+    // 2. 计算入金金额（USDT 等同于 USD，入多少算多少）
+    const usdAmount = parseFloat(depositRequest.amount);
 
-    console.log('[DepositRequests Approve] Calculating amount:', {
-      cryptoAmount,
+    console.log('[DepositRequests Approve] Processing amount:', {
       currency: depositRequest.currency,
-      rateUsd,
       usdAmount
     });
 
-    // 4. 更新充值申请状态
+    // 3. 更新充值申请状态
     const { data: updatedRequest, error: updateError } = await supabase
       .from('deposit_requests')
       .update({
