@@ -6,7 +6,6 @@ import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
 import { MarketHeader } from '../../../components/market/market-header';
 import { MarketList, MarketSymbol } from '../../../components/market/market-list';
-import TradingChart from '../../../components/trading/TradingChart';
 import { useAuthStore } from '../../../stores/authStore';
 import { useMarketStore } from '../../../stores/marketStore';
 import { mockSymbols } from '../../../lib/market-mock-data';
@@ -138,11 +137,6 @@ export default function MarketPage() {
             activeCategory={categoryFilter}
             onCategoryChange={setCategoryFilter}
           />
-
-          {/* 交易所级别K线图 */}
-          <div className="mt-2">
-            <TradingChart symbol="BTCUSD" height={400} />
-          </div>
 
           {/* 行情列表 */}
           <div className="mt-2">
