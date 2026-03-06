@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { AuthGuard } from '../../../components/auth-guard';
 import { Price } from '../../../components/data';
 import { KlineChart } from '../../../components/trade/kline-chart';
+import TradingChart from '../../../components/trading/TradingChart';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useAuthStore } from '../../../stores/authStore';
 import { useMarketStore } from '../../../stores/marketStore';
@@ -396,9 +397,9 @@ export default function TradePage() {
           </div>
         </div>
 
-        {/* K线图区域 */}
+        {/* 交易所级别K线图 */}
         {currentSymbol && (
-          <KlineChart symbol={currentSymbol} timeframe={timeframe} />
+          <TradingChart symbol={currentSymbol} height={400} />
         )}
 
         {/* 交易操作区 - 中间 */}
