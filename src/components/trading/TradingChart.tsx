@@ -101,24 +101,25 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   }
 
   useEffect(() => {
+    // 立即清理旧的资源
+    isDisposedRef.current = true;
+    
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    
     if (chartInstanceRef.current) {
-      isDisposedRef.current = true;
-      
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      
       try {
         chartInstanceRef.current.remove();
       } catch (error) {}
-      
       chartInstanceRef.current = null;
     }
 
-    if (!chartRef.current) return;
-
+    // 重置销毁标志，准备创建新图表
     isDisposedRef.current = false;
+
+    if (!chartRef.current) return;
     const timeframeConfig = TIMEFRAMES.find(tf => tf.value === selectedTimeframe) || TIMEFRAMES[0];
     const interval = timeframeConfig.interval;
 
@@ -346,6 +347,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     let price = basePrice;
     
     intervalRef.current = setInterval(async () => {
+      // 第一道防线：定时器回调开始时就检查
       if (isDisposedRef.current || !chartInstanceRef.current) {
         return;
       }
@@ -367,6 +369,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         price += change;
       }
 
+      // 第二道防线：获取价格后再次检查
       if (isDisposedRef.current || !chartInstanceRef.current) {
         return;
       }
@@ -374,7 +377,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       // 计算当前时间戳（对齐到周期边界）
       const currentTime = alignTimeToPeriod(Math.floor(Date.now() / 1000), interval);
       
-      // 再次检查所有引用是否有效
+      // 第三道防线：再次检查所有引用是否有效
       if (!lastCandleRef.current || !candlestickSeriesRef.current || !chartInstanceRef.current) {
         return;
       }
@@ -398,9 +401,12 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         };
 
         try {
-          if (candlestickSeriesRef.current) {
-            candlestickSeriesRef.current.update(newCandle);
+          // 再次检查所有引用是否有效
+          if (!candlestickSeriesRef.current || !chartInstanceRef.current || isDisposedRef.current) {
+            return;
           }
+
+          candlestickSeriesRef.current.update(newCandle);
 
           pricesRef.current.push(newClose);
           if (pricesRef.current.length > 200) pricesRef.current.shift();
@@ -416,6 +422,16 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
             }
           }
         } catch (error) {
+          // 捕获 "Cannot update oldest data" 错误，并记录详细信息
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('Cannot update oldest data')) {
+            console.warn('[K线图] 尝试更新过期的数据，跳过本次更新:', {
+              currentTime,
+              lastCandleTime,
+              newCandle
+            });
+            return;
+          }
           console.error('[K线图] 创建新 K 线失败:', error);
         }
 
@@ -435,9 +451,12 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         };
 
         try {
-          if (candlestickSeriesRef.current) {
-            candlestickSeriesRef.current.update(updatedCandle);
+          // 再次检查所有引用是否有效
+          if (!candlestickSeriesRef.current || !chartInstanceRef.current || isDisposedRef.current) {
+            return;
           }
+
+          candlestickSeriesRef.current.update(updatedCandle);
 
           pricesRef.current[pricesRef.current.length - 1] = newClose;
 
@@ -452,6 +471,16 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
             }
           }
         } catch (error) {
+          // 捕获 "Cannot update oldest data" 错误，并记录详细信息
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('Cannot update oldest data')) {
+            console.warn('[K线图] 尝试更新过期的数据，跳过本次更新:', {
+              currentTime,
+              lastCandleTime,
+              updatedCandle
+            });
+            return;
+          }
           console.error('[K线图] 更新当前 K 线失败:', error);
         }
 
