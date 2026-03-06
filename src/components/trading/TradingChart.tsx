@@ -75,6 +75,11 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   const pricesRef = useRef<number[]>([]);
   const lastCandleRef = useRef<any>(null); // 保存最后一根 K 线
 
+  // 计算时间戳对齐到周期边界（类似欧意交易所）
+  function alignTimeToPeriod(timestamp: number, periodMs: number): Time {
+    return (Math.floor(timestamp / periodMs) * periodMs) as Time;
+  }
+
   function getBasePrice(symbol: string): number {
     const basePrices: { [key: string]: number } = {
       'EURUSD': 1.0856,
@@ -241,14 +246,31 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
     setCurrentPrice(basePrice);
 
-    // 保存最后一根 K 线
-    lastCandleRef.current = {
-      time: Math.floor(Date.now() / 1000) as Time,
-      open: Math.round(klineData[klineData.length - 1].open),
-      high: Math.round(klineData[klineData.length - 1].high),
-      low: Math.round(klineData[klineData.length - 1].low),
-      close: Math.round(klineData[klineData.length - 1].close),
-    };
+    // 保存最后一根 K 线，时间戳对齐到周期边界（类似欧意交易所）
+    const lastCandleTime = alignTimeToPeriod(Math.floor(Date.now() / 1000), interval);
+    const lastCandle = klineData[klineData.length - 1];
+    
+    // 检查最后一根 K 线的时间是否与当前周期对齐
+    const currentTime = alignTimeToPeriod(Math.floor(Date.now() / 1000), interval);
+    
+    if (lastCandle.time !== currentTime) {
+      // 如果不对齐，创建新的当前 K 线
+      lastCandleRef.current = {
+        time: currentTime,
+        open: Math.round(lastCandle.close),
+        high: Math.round(lastCandle.close),
+        low: Math.round(lastCandle.close),
+        close: Math.round(lastCandle.close),
+      };
+    } else {
+      lastCandleRef.current = {
+        time: currentTime,
+        open: Math.round(lastCandle.open),
+        high: Math.round(lastCandle.high),
+        low: Math.round(lastCandle.low),
+        close: Math.round(lastCandle.close),
+      };
+    }
 
     if (tooltipRef.current && tooltipRef.current.parentNode) {
       try {
@@ -343,7 +365,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
     window.addEventListener('resize', handleResize);
 
-    // ✅ 优化实时更新：降低更新频率到 3 秒，价格变化更平滑
+    // ✅ 优化实时更新：类似欧意交易所，检查周期边界
     let price = basePrice;
     intervalRef.current = setInterval(async () => {
       if (isDisposedRef.current || !chartInstanceRef.current) {
@@ -358,7 +380,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
           price = price * 0.7 + realPrice * 0.3;
         } else {
           // 模拟价格变化：减小波动幅度
-          const change = (Math.random() - 0.5) * 50; // 从 200 降低到 50
+          const change = (Math.random() - 0.5) * 50;
           price += change;
         }
       } catch (error) {
@@ -371,57 +393,100 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         return;
       }
 
-      // 更新最后一根 K 线
+      // 计算当前时间戳（对齐到周期边界）
+      const currentTime = alignTimeToPeriod(Math.floor(Date.now() / 1000), interval);
+      
+      // 更新 K 线（类似欧意交易所逻辑）
       if (lastCandleRef.current) {
         const lastCandle = lastCandleRef.current;
-        
-        // 更新收盘价
         const newClose = price;
-        
-        // 更新最高价和最低价
-        const newHigh = Math.max(lastCandle.high, newClose);
-        const newLow = Math.min(lastCandle.low, newClose);
 
-        const updatedCandle = {
-          time: lastCandle.time,
-          open: lastCandle.open,
-          high: Math.round(newHigh),
-          low: Math.round(newLow),
-          close: Math.round(newClose),
-        };
+        // 检查是否跨越了周期边界（需要创建新 K 线）
+        if (currentTime !== lastCandle.time) {
+          // 创建新 K 线，以旧 K 线的收盘价作为开盘价
+          const newCandle = {
+            time: currentTime,
+            open: Math.round(lastCandle.close),
+            high: Math.round(newClose),
+            low: Math.round(newClose),
+            close: Math.round(newClose),
+          };
 
-        try {
-          if (candlestickSeriesRef.current) {
-            candlestickSeriesRef.current.update(updatedCandle);
-          }
+          try {
+            if (candlestickSeriesRef.current) {
+              candlestickSeriesRef.current.update(newCandle);
+            }
 
-          pricesRef.current.push(newClose);
-          if (pricesRef.current.length > 200) pricesRef.current.shift();
+            pricesRef.current.push(newClose);
+            if (pricesRef.current.length > 200) pricesRef.current.shift();
 
-          if (pricesRef.current.length >= 5 && ma5SeriesRef.current) {
-            const ma5 = pricesRef.current.slice(-5).reduce((a, b) => a + b, 0) / 5;
-            ma5SeriesRef.current.update({ time: lastCandle.time, value: Math.round(ma5) });
-          }
+            // 更新 MA
+            if (pricesRef.current.length >= 5 && ma5SeriesRef.current) {
+              const ma5 = pricesRef.current.slice(-5).reduce((a, b) => a + b, 0) / 5;
+              ma5SeriesRef.current.update({ time: currentTime, value: Math.round(ma5) });
+            }
 
-          if (pricesRef.current.length >= 10 && ma10SeriesRef.current) {
-            const ma10 = pricesRef.current.slice(-10).reduce((a, b) => a + b, 0) / 10;
-            ma10SeriesRef.current.update({ time: lastCandle.time, value: Math.round(ma10) });
-          }
+            if (pricesRef.current.length >= 10 && ma10SeriesRef.current) {
+              const ma10 = pricesRef.current.slice(-10).reduce((a, b) => a + b, 0) / 10;
+              ma10SeriesRef.current.update({ time: currentTime, value: Math.round(ma10) });
+            }
 
-          if (pricesRef.current.length >= 20 && ma20SeriesRef.current) {
-            const ma20 = pricesRef.current.slice(-20).reduce((a, b) => a + b, 0) / 20;
-            ma20SeriesRef.current.update({ time: lastCandle.time, value: Math.round(ma20) });
-          }
+            if (pricesRef.current.length >= 20 && ma20SeriesRef.current) {
+              const ma20 = pricesRef.current.slice(-20).reduce((a, b) => a + b, 0) / 20;
+              ma20SeriesRef.current.update({ time: currentTime, value: Math.round(ma20) });
+            }
 
-          setCurrentPrice(newClose);
+            setCurrentPrice(newClose);
 
-          chart.timeScale().scrollToRealTime();
-        } catch (error) {}
+            chart.timeScale().scrollToRealTime();
+          } catch (error) {}
 
-        // 更新引用
-        lastCandleRef.current = updatedCandle;
+          // 更新引用
+          lastCandleRef.current = newCandle;
+        } else {
+          // 未跨越周期边界，更新当前 K 线
+          const newHigh = Math.max(lastCandle.high, newClose);
+          const newLow = Math.min(lastCandle.low, newClose);
+
+          const updatedCandle = {
+            time: lastCandle.time,
+            open: lastCandle.open,
+            high: Math.round(newHigh),
+            low: Math.round(newLow),
+            close: Math.round(newClose),
+          };
+
+          try {
+            if (candlestickSeriesRef.current) {
+              candlestickSeriesRef.current.update(updatedCandle);
+            }
+
+            pricesRef.current[pricesRef.current.length - 1] = newClose;
+
+            // 更新 MA
+            if (pricesRef.current.length >= 5 && ma5SeriesRef.current) {
+              const ma5 = pricesRef.current.slice(-5).reduce((a, b) => a + b, 0) / 5;
+              ma5SeriesRef.current.update({ time: lastCandle.time, value: Math.round(ma5) });
+            }
+
+            if (pricesRef.current.length >= 10 && ma10SeriesRef.current) {
+              const ma10 = pricesRef.current.slice(-10).reduce((a, b) => a + b, 0) / 10;
+              ma10SeriesRef.current.update({ time: lastCandle.time, value: Math.round(ma10) });
+            }
+
+            if (pricesRef.current.length >= 20 && ma20SeriesRef.current) {
+              const ma20 = pricesRef.current.slice(-20).reduce((a, b) => a + b, 0) / 20;
+              ma20SeriesRef.current.update({ time: lastCandle.time, value: Math.round(ma20) });
+            }
+
+            setCurrentPrice(newClose);
+          } catch (error) {}
+
+          // 更新引用
+          lastCandleRef.current = updatedCandle;
+        }
       }
-    }, 3000); // ✅ 从 1 秒改为 3 秒，减少频繁更新
+    }, 3000);
 
     return () => {
       isDisposedRef.current = true;
