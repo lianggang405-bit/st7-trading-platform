@@ -13,15 +13,15 @@ interface TradingChartProps {
 // 时间周期类型
 type Timeframe = '1M' | '5M' | '15M' | '30M' | '1H' | '4H' | '1D';
 
-// 时间周期配置
+// 时间周期配置（单位：秒）
 const TIMEFRAMES: { value: Timeframe; label: string; interval: number }[] = [
-  { value: '1M', label: '1M', interval: 60000 },      // 1分钟
-  { value: '5M', label: '5M', interval: 300000 },     // 5分钟
-  { value: '15M', label: '15M', interval: 900000 },   // 15分钟
-  { value: '30M', label: '30M', interval: 1800000 },  // 30分钟
-  { value: '1H', label: '1H', interval: 3600000 },    // 1小时
-  { value: '4H', label: '4H', interval: 14400000 },   // 4小时
-  { value: '1D', label: '1D', interval: 86400000 },   // 1天
+  { value: '1M', label: '1M', interval: 60 },          // 1分钟 = 60秒
+  { value: '5M', label: '5M', interval: 300 },         // 5分钟 = 300秒
+  { value: '15M', label: '15M', interval: 900 },       // 15分钟 = 900秒
+  { value: '30M', label: '30M', interval: 1800 },      // 30分钟 = 1800秒
+  { value: '1H', label: '1H', interval: 3600 },        // 1小时 = 3600秒
+  { value: '4H', label: '4H', interval: 14400 },       // 4小时 = 14400秒
+  { value: '1D', label: '1D', interval: 86400 },       // 1天 = 86400秒
 ];
 
 interface KlineData {
@@ -73,8 +73,8 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   const lastCandleRef = useRef<any>(null); // 保存最后一根 K 线
 
   // 计算时间戳对齐到周期边界（类似欧意交易所）
-  function alignTimeToPeriod(timestamp: number, periodMs: number): Time {
-    return (Math.floor(timestamp / periodMs) * periodMs) as Time;
+  function alignTimeToPeriod(timestamp: number, periodSec: number): number {
+    return Math.floor(timestamp / periodSec) * periodSec;
   }
 
   function getBasePrice(symbol: string): number {
@@ -176,7 +176,11 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     pricesRef.current = prices;
 
     for (let i = 200; i >= 0; i--) {
-      const time = new Date(now.getTime() - i * interval);
+      // interval 现在是秒数，所以直接用秒计算
+      const currentTimestamp = Math.floor(now.getTime() / 1000);
+      const alignedTimestamp = alignTimeToPeriod(currentTimestamp, interval);
+      const timeSec = alignedTimestamp - i * interval;
+      const time = new Date(timeSec * 1000);
       const open = basePrice + (Math.random() - 0.5) * 1000;
       const close = open + (Math.random() - 0.5) * 500;
       const high = Math.max(open, close) + Math.random() * 200;
@@ -184,7 +188,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       const volume = Math.floor(Math.random() * 1000000);
 
       klineData.push({
-        time: (time.getTime() / 1000) as Time,
+        time: timeSec as Time,
         open: Math.round(open),
         high: Math.round(high),
         low: Math.round(low),
@@ -319,8 +323,9 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
     window.addEventListener('resize', handleResize);
 
-    // ✅ 优化实时更新：类似欧意交易所，检查周期边界
+    // ✅ 实时更新：类似欧意交易所，检查周期边界
     let price = basePrice;
+    
     intervalRef.current = setInterval(async () => {
       if (isDisposedRef.current || !chartInstanceRef.current) {
         return;
@@ -333,13 +338,13 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
           // 平滑过渡：新价格 = 旧价格 * 0.7 + 新价格 * 0.3
           price = price * 0.7 + realPrice * 0.3;
         } else {
-          // 模拟价格变化：减小波动幅度
-          const change = (Math.random() - 0.5) * 50;
+          // 模拟价格变化
+          const change = (Math.random() - 0.5) * 200;
           price += change;
         }
       } catch (error) {
-        // 模拟价格变化：减小波动幅度
-        const change = (Math.random() - 0.5) * 50;
+        // 模拟价格变化
+        const change = (Math.random() - 0.5) * 200;
         price += change;
       }
 
@@ -377,7 +382,9 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
             setCurrentPrice(newClose);
 
             chart.timeScale().scrollToRealTime();
-          } catch (error) {}
+          } catch (error) {
+            console.error('[K线图] 创建新 K 线失败:', error);
+          }
 
           // 更新引用
           lastCandleRef.current = newCandle;
@@ -402,7 +409,12 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
             pricesRef.current[pricesRef.current.length - 1] = newClose;
 
             setCurrentPrice(newClose);
-          } catch (error) {}
+            
+            // 滚动到最新位置
+            chart.timeScale().scrollToRealTime();
+          } catch (error) {
+            console.error('[K线图] 更新当前 K 线失败:', error);
+          }
 
           // 更新引用
           lastCandleRef.current = updatedCandle;
