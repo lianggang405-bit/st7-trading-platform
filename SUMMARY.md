@@ -63,6 +63,11 @@
   - **TradingChart.tsx 修复 v5 API**:
     - 修复 `chart.addCandlestickSeries is not a function` 错误
     - 更新为 lightweight-charts v5 的正确 API
+  - **TradingChart.tsx 修复 TypeScript 类型错误 (最新)**:
+    - **问题**: 构建时报错 `Type 'number' is not assignable to type 'Time'`
+    - **解决方案**: 
+      - 在更新 K 线时，将 `time` 字段显式转换为 `Time` 类型
+      - 使用 `lastCandle.time as Time` 确保类型兼容
 
 ## 数据流统一说明
 
@@ -141,6 +146,11 @@
   - **解决方案**: 让 TradePage 每秒调用 `/api/market/data` 获取真实价格
 - 问题: `chart.addCandlestickSeries is not a function` 运行时错误
   - **解决方案**: 更新为 lightweight-charts v5 的正确 API
+- 问题: 构建时 TypeScript 类型错误
+  - **问题**: `Type 'number' is not assignable to type 'Time'` 在更新 K 线时
+  - **解决方案**: 
+    - 在更新当前 K 线时，将 `time` 字段显式转换为 `Time` 类型
+    - 使用 `lastCandle.time as Time` 确保类型兼容
 
 ## 验证结果
 - ✅ 构建检查通过: `npx tsc --noEmit` 无错误

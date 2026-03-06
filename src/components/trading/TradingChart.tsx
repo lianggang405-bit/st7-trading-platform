@@ -250,7 +250,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       } else {
         // 更新当前 K 线
         const updatedCandle = {
-          time: lastCandle.time,
+          time: lastCandle.time as Time,
           open: lastCandle.open,
           high: Math.round(Math.max(lastCandle.high, newPrice)),
           low: Math.round(Math.min(lastCandle.low, newPrice)),
