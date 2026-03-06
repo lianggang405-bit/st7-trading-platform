@@ -94,6 +94,20 @@
     "cfd": "指數差價合約",
     "search": "搜索"
   },
+  "chart": {
+    "open": "開",
+    "high": "高",
+    "low": "低",
+    "close": "收",
+    "volume": "成交量",
+    "price": "價格",
+    "time": "時間",
+    "change": "漲跌幅",
+    "ma5": "MA5",
+    "ma10": "MA10",
+    "ma20": "MA20",
+    "loading": "圖表加載中..."
+  },
   "me": {
     "deposit": "入金",
     "withdraw": "出金",

@@ -94,6 +94,20 @@
     "cfd": "CFD",
     "search": "Search"
   },
+  "chart": {
+    "open": "Open",
+    "high": "High",
+    "low": "Low",
+    "close": "Close",
+    "volume": "Volume",
+    "price": "Price",
+    "time": "Time",
+    "change": "Change",
+    "ma5": "MA5",
+    "ma10": "MA10",
+    "ma20": "MA20",
+    "loading": "Loading chart..."
+  },
   "me": {
     "deposit": "Deposit",
     "withdraw": "Withdraw",
