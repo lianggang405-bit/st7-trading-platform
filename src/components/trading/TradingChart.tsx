@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, IChartApi, MouseEventParams, Time } from 'lightweight-charts';
 import { CandlestickSeries, LineSeries } from 'lightweight-charts';
 import { useTranslations } from 'next-intl';
@@ -9,6 +9,20 @@ interface TradingChartProps {
   symbol?: string;
   height?: number;
 }
+
+// 时间周期类型
+type Timeframe = '1M' | '5M' | '15M' | '30M' | '1H' | '4H' | '1D';
+
+// 时间周期配置
+const TIMEFRAMES: { value: Timeframe; label: string; interval: number }[] = [
+  { value: '1M', label: '1M', interval: 60000 },      // 1分钟
+  { value: '5M', label: '5M', interval: 300000 },     // 5分钟
+  { value: '15M', label: '15M', interval: 900000 },   // 15分钟
+  { value: '30M', label: '30M', interval: 1800000 },  // 30分钟
+  { value: '1H', label: '1H', interval: 3600000 },    // 1小时
+  { value: '4H', label: '4H', interval: 14400000 },   // 4小时
+  { value: '1D', label: '1D', interval: 86400000 },   // 1天
+];
 
 interface KlineData {
   time: Time;
@@ -24,11 +38,16 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   const chartInstanceRef = useRef<IChartApi | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const t = useTranslations('chart');
+  const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>('1M');
 
   useEffect(() => {
     if (!chartRef.current) return;
 
-    console.log('[TradingChart] Initializing chart for symbol:', symbol);
+    console.log('[TradingChart] Initializing chart for symbol:', symbol, 'timeframe:', selectedTimeframe);
+
+    // 获取当前时间周期的间隔
+    const timeframeConfig = TIMEFRAMES.find(tf => tf.value === selectedTimeframe) || TIMEFRAMES[0];
+    const interval = timeframeConfig.interval;
 
     // 创建图表实例
     const chart = createChart(chartRef.current, {
@@ -108,7 +127,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     const prices: number[] = [];
 
     for (let i = 200; i >= 0; i--) {
-      const time = new Date(now.getTime() - i * 60000); // 每分钟一个数据点
+      const time = new Date(now.getTime() - i * interval); // 使用选中的时间间隔
       const open = basePrice + (Math.random() - 0.5) * 1000;
       const close = open + (Math.random() - 0.5) * 500;
       const high = Math.max(open, close) + Math.random() * 200;
@@ -295,17 +314,34 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       chart.remove();
       console.log('[TradingChart] Chart removed');
     };
-  }, [symbol, height, t]);
+  }, [symbol, height, t, selectedTimeframe]);
 
   return (
     <div className="relative">
+      {/* 时间周期选择器 */}
+      <div className="absolute top-2 left-2 z-10 flex gap-1 bg-[#1a1a1a] rounded-lg p-1">
+        {TIMEFRAMES.map((tf) => (
+          <button
+            key={tf.value}
+            onClick={() => setSelectedTimeframe(tf.value)}
+            className={`px-3 py-1 text-xs rounded transition-colors ${
+              selectedTimeframe === tf.value
+                ? 'bg-[#2d2d2d] text-white'
+                : 'text-gray-400 hover:text-white hover:bg-[#2d2d2d]'
+            }`}
+          >
+            {tf.label}
+          </button>
+        ))}
+      </div>
+
       <div
         ref={chartRef}
         className="w-full bg-[#0a0a0a] rounded-lg overflow-hidden"
         style={{ height: `${height}px` }}
       />
-      {/* 图例 */}
-      <div className="absolute top-2 left-2 flex gap-4 text-xs">
+      {/* MA 均线图例 */}
+      <div className="absolute top-2 right-2 flex gap-4 text-xs">
         <div className="flex items-center gap-1">
           <div className="w-3 h-1 bg-[#f7931a]"></div>
           <span className="text-gray-400">MA5</span>
