@@ -7,7 +7,7 @@ import { Price } from '../../../components/data';
 import { KlineChart } from '../../../components/trade/kline-chart';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useAuthStore } from '../../../stores/authStore';
-import { useMarketStore } from '../../../stores/marketStore';
+import { useMarketStore, TradingSymbol } from '../../../stores/marketStore';
 import { usePositionStore } from '../../../stores/positionStore';
 import { useAssetStore } from '../../../stores/assetStore';
 import { useRiskControlStore } from '../../../stores/riskControlStore';
@@ -166,13 +166,39 @@ export default function TradePage() {
     updateRisk({ equity, usedMargin });
   }, [equity, usedMargin, updateRisk]);
 
-  // 模擬价格刷新
+  // ✅ 实时价格刷新：使用真实 API 数据
   useEffect(() => {
-    const interval = setInterval(() => {
-      tick();
-    }, 1000);
+    const interval = setInterval(async () => {
+      try {
+        // 调用市场数据 API 获取实时价格
+        const response = await fetch(`/api/market/data?symbols=${currentSymbol || 'BTCUSD'}&useRealData=true`);
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          // 更新对应交易对的价格
+          const updatedSymbols = symbols.map((s: TradingSymbol) => {
+            const symbolData = result.data[s.symbol];
+            if (symbolData && symbolData.price) {
+              return {
+                ...s,
+                price: symbolData.price,
+                change: symbolData.change !== undefined ? symbolData.change : s.change,
+              };
+            }
+            return s;
+          });
+
+          setSymbols(updatedSymbols);
+        }
+      } catch (error) {
+        console.error('[TradePage] Failed to fetch real-time prices:', error);
+        // 如果 API 调用失败，降级到模拟价格
+        tick();
+      }
+    }, 1000); // 每秒更新一次
+
     return () => clearInterval(interval);
-  }, [tick]);
+  }, [currentSymbol, symbols, setSymbols, tick]);
 
   const handleSubmit = async (side: 'buy' | 'sell') => {
     if (!currentSymbol) {
