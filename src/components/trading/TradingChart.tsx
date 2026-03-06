@@ -202,7 +202,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       const volume = Math.floor(Math.random() * 1000000);
 
       klineData.push({
-        time: timeSec as Time,
+        time: timeSec as Time,  // 使用 Time 类型
         open: Math.round(open),
         high: Math.round(high),
         low: Math.round(low),
@@ -222,13 +222,15 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     setCurrentPrice(basePrice);
 
     // 保存最后一根 K 线，时间戳对齐到周期边界（类似欧意交易所）
-    const lastCandleTime = alignTimeToPeriod(Math.floor(Date.now() / 1000), interval);
     const lastCandle = klineData[klineData.length - 1];
     
     // 检查最后一根 K 线的时间是否与当前周期对齐
     const currentTime = alignTimeToPeriod(Math.floor(Date.now() / 1000), interval);
     
-    if (lastCandle.time !== currentTime) {
+    // 确保 lastCandle.time 是数字类型
+    const lastCandleTime = typeof lastCandle.time === 'number' ? lastCandle.time : parseInt(String(lastCandle.time));
+    
+    if (lastCandleTime !== currentTime) {
       // 如果不对齐，创建新的当前 K 线
       lastCandleRef.current = {
         time: currentTime,
@@ -381,8 +383,11 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       const lastCandle = lastCandleRef.current;
       const newClose = price;
 
+      // 确保 lastCandle.time 是数字类型（lightweight-charts 可能会返回字符串）
+      const lastCandleTime = typeof lastCandle.time === 'number' ? lastCandle.time : parseInt(String(lastCandle.time));
+
       // 检查是否跨越了周期边界（需要创建新 K 线）
-      if (currentTime !== lastCandle.time) {
+      if (currentTime !== lastCandleTime) {
         // 创建新 K 线，以旧 K 线的收盘价作为开盘价
         const newCandle = {
           time: currentTime,
@@ -422,7 +427,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         const newLow = Math.min(lastCandle.low, newClose);
 
         const updatedCandle = {
-          time: lastCandle.time,
+          time: lastCandleTime,  // 使用已经转换为数字的时间戳
           open: lastCandle.open,
           high: Math.round(newHigh),
           low: Math.round(newLow),
