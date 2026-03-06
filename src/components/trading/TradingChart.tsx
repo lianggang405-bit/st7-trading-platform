@@ -372,70 +372,86 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       // 计算当前时间戳（对齐到周期边界）
       const currentTime = alignTimeToPeriod(Math.floor(Date.now() / 1000), interval);
       
+      // 再次检查所有引用是否有效
+      if (!lastCandleRef.current || !candlestickSeriesRef.current || !chartInstanceRef.current) {
+        return;
+      }
+      
       // 更新 K 线（类似欧意交易所逻辑）
-      if (lastCandleRef.current) {
-        const lastCandle = lastCandleRef.current;
-        const newClose = price;
+      const lastCandle = lastCandleRef.current;
+      const newClose = price;
 
-        // 检查是否跨越了周期边界（需要创建新 K 线）
-        if (currentTime !== lastCandle.time) {
-          // 创建新 K 线，以旧 K 线的收盘价作为开盘价
-          const newCandle = {
-            time: currentTime,
-            open: Math.round(lastCandle.close),
-            high: Math.round(newClose),
-            low: Math.round(newClose),
-            close: Math.round(newClose),
-          };
+      // 检查是否跨越了周期边界（需要创建新 K 线）
+      if (currentTime !== lastCandle.time) {
+        // 创建新 K 线，以旧 K 线的收盘价作为开盘价
+        const newCandle = {
+          time: currentTime,
+          open: Math.round(lastCandle.close),
+          high: Math.round(newClose),
+          low: Math.round(newClose),
+          close: Math.round(newClose),
+        };
 
-          try {
-            if (candlestickSeriesRef.current) {
-              candlestickSeriesRef.current.update(newCandle);
-            }
-
-            pricesRef.current.push(newClose);
-            if (pricesRef.current.length > 200) pricesRef.current.shift();
-
-            setCurrentPrice(newClose);
-
-            chart.timeScale().scrollToPosition(0, true);
-          } catch (error) {
-            console.error('[K线图] 创建新 K 线失败:', error);
+        try {
+          if (candlestickSeriesRef.current) {
+            candlestickSeriesRef.current.update(newCandle);
           }
 
-          // 更新引用
-          lastCandleRef.current = newCandle;
-        } else {
-          // 未跨越周期边界，更新当前 K 线
-          const newHigh = Math.max(lastCandle.high, newClose);
-          const newLow = Math.min(lastCandle.low, newClose);
+          pricesRef.current.push(newClose);
+          if (pricesRef.current.length > 200) pricesRef.current.shift();
 
-          const updatedCandle = {
-            time: lastCandle.time,
-            open: lastCandle.open,
-            high: Math.round(newHigh),
-            low: Math.round(newLow),
-            close: Math.round(newClose),
-          };
+          setCurrentPrice(newClose);
 
-          try {
-            if (candlestickSeriesRef.current) {
-              candlestickSeriesRef.current.update(updatedCandle);
+          // 检查图表是否仍然有效
+          if (chartInstanceRef.current && !isDisposedRef.current) {
+            try {
+              chart.timeScale().scrollToPosition(0, true);
+            } catch (scrollError) {
+              // 忽略滚动错误，图表可能已经被销毁
             }
-
-            pricesRef.current[pricesRef.current.length - 1] = newClose;
-
-            setCurrentPrice(newClose);
-            
-            // 滚动到最新位置
-            chart.timeScale().scrollToPosition(0, true);
-          } catch (error) {
-            console.error('[K线图] 更新当前 K 线失败:', error);
           }
-
-          // 更新引用
-          lastCandleRef.current = updatedCandle;
+        } catch (error) {
+          console.error('[K线图] 创建新 K 线失败:', error);
         }
+
+        // 更新引用
+        lastCandleRef.current = newCandle;
+      } else {
+        // 未跨越周期边界，更新当前 K 线
+        const newHigh = Math.max(lastCandle.high, newClose);
+        const newLow = Math.min(lastCandle.low, newClose);
+
+        const updatedCandle = {
+          time: lastCandle.time,
+          open: lastCandle.open,
+          high: Math.round(newHigh),
+          low: Math.round(newLow),
+          close: Math.round(newClose),
+        };
+
+        try {
+          if (candlestickSeriesRef.current) {
+            candlestickSeriesRef.current.update(updatedCandle);
+          }
+
+          pricesRef.current[pricesRef.current.length - 1] = newClose;
+
+          setCurrentPrice(newClose);
+          
+          // 检查图表是否仍然有效
+          if (chartInstanceRef.current && !isDisposedRef.current) {
+            try {
+              chart.timeScale().scrollToPosition(0, true);
+            } catch (scrollError) {
+              // 忽略滚动错误，图表可能已经被销毁
+            }
+          }
+        } catch (error) {
+          console.error('[K线图] 更新当前 K 线失败:', error);
+        }
+
+        // 更新引用
+        lastCandleRef.current = updatedCandle;
       }
     }, 800);
 
