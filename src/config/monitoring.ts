@@ -37,7 +37,7 @@ export enum LogType {
 // 监控配置
 export const monitoringConfig = {
   // 是否启用监控（开发环境默认开启，便于测试）
-  enabled: process.env.NEXT_PUBLIC_ENABLE_MONITORING !== 'false',
+  enabled: false, // 暂时禁用，排查问题
 
   // 日志上报 API 地址
   apiEndpoint: '/api/monitoring/log',
