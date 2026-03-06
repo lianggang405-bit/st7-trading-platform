@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { createChart, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
+import { CandlestickSeries } from 'lightweight-charts';
 
 interface TradingChartProps {
   symbol?: string;
@@ -11,7 +12,7 @@ interface TradingChartProps {
 export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: TradingChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const seriesRef = useRef<any>(null);
 
   useEffect(() => {
     if (!chartRef.current) return;
@@ -44,7 +45,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     });
 
     // 添加K线系列
-    const series = chart.addCandlestickSeries({
+    const series = chart.addSeries(CandlestickSeries, {
       upColor: '#00ff9c',
       downColor: '#ff4976',
       borderVisible: false,
