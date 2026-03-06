@@ -6,6 +6,7 @@ import { AuthGuard } from '../../../components/auth-guard';
 import { Price } from '../../../components/data';
 import { KlineChart } from '../../../components/trade/kline-chart';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { useAuthStore } from '../../../stores/authStore';
 import { useMarketStore, TradingSymbol } from '../../../stores/marketStore';
 import { usePositionStore } from '../../../stores/positionStore';
@@ -57,7 +58,7 @@ export default function TradePage() {
   });
 
   const [volume, setVolume] = useState(0.1);
-  const [leverage, setLeverage] = useState<10 | 20 | 50 | 100>(10);
+  const [leverage, setLeverage] = useState<100 | 200 | 300 | 400 | 500>(100);
   const [timeframe, setTimeframe] = useState<Timeframe>('1H');
   const [tradeMode, setTradeMode] = useState<'instant' | 'pending'>('instant');
   const [useStopLoss, setUseStopLoss] = useState(false);
@@ -458,28 +459,21 @@ export default function TradePage() {
             {/* 倍数 */}
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <span className="text-base font-bold text-gray-900">{t('leverage')}</span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setLeverage(prev => prev === 10 ? 10 : prev === 20 ? 10 : prev === 50 ? 20 : 50)}
-                  className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded hover:bg-gray-200 active:scale-95 transition-all"
-                >
-                  -
-                </button>
-                <div className="relative">
-                  <button className="flex items-center gap-1 px-4 py-2 bg-gray-100 rounded font-bold text-base min-w-[80px]">
-                    {leverage}x
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                </div>
-                <button
-                  onClick={() => setLeverage(prev => prev === 10 ? 20 : prev === 20 ? 50 : prev === 50 ? 100 : 100)}
-                  className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded hover:bg-gray-200 active:scale-95 transition-all"
-                >
-                  +
-                </button>
-              </div>
+              <Select
+                value={leverage.toString()}
+                onValueChange={(value) => setLeverage(parseInt(value) as 100 | 200 | 300 | 400 | 500)}
+              >
+                <SelectTrigger className="w-24">
+                  <SelectValue placeholder="倍数" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="100">100x</SelectItem>
+                  <SelectItem value="200">200x</SelectItem>
+                  <SelectItem value="300">300x</SelectItem>
+                  <SelectItem value="400">400x</SelectItem>
+                  <SelectItem value="500">500x</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* 止损 */}
@@ -593,22 +587,22 @@ export default function TradePage() {
               <span className="text-base font-bold text-gray-900">{t('volume')}</span>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setVolume(Math.max(0.01, volume - 0.01))}
+                  onClick={() => setVolume(Math.max(0, volume - 0.1))}
                   className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded hover:bg-gray-200 active:scale-95 transition-all"
                 >
                   -
                 </button>
                 <input
                   type="number"
-                  step="0.01"
-                  min="0.01"
+                  step="0.1"
+                  min="0"
                   value={volume}
-                  onChange={(e) => setVolume(Math.max(0.01, parseFloat(e.target.value) || 0.01))}
+                  onChange={(e) => setVolume(Math.max(0, parseFloat(e.target.value) || 0))}
                   className="w-20 text-right font-bold bg-gray-100 rounded px-3 py-2 text-base text-lg"
                   style={{ fontSize: '16px' }}
                 />
                 <button
-                  onClick={() => setVolume(volume + 0.01)}
+                  onClick={() => setVolume(volume + 0.1)}
                   className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded hover:bg-gray-200 active:scale-95 transition-all"
                 >
                   +
