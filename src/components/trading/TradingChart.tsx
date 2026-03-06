@@ -196,10 +196,11 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       const alignedTimestamp = alignTimeToPeriod(currentTimestamp, interval);
       const timeSec = alignedTimestamp - i * interval;
       const time = new Date(timeSec * 1000);
-      const open = basePrice + (Math.random() - 0.5) * 100;
-      const close = open + (Math.random() - 0.5) * 50;
-      const high = Math.max(open, close) + Math.random() * 20;
-      const low = Math.min(open, close) - Math.random() * 20;
+      // ✅ 大幅增加波动幅度，使K线明显可见（适合 98000 价格级别的交易对）
+      const open = basePrice + (Math.random() - 0.5) * 400;
+      const close = open + (Math.random() - 0.5) * 200;
+      const high = Math.max(open, close) + Math.random() * 100;
+      const low = Math.min(open, close) - Math.random() * 100;
       const volume = Math.floor(Math.random() * 1000000);
 
       klineData.push({
@@ -359,13 +360,13 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
           // 平滑过渡：新价格 = 旧价格 * 0.7 + 新价格 * 0.3
           price = price * 0.7 + realPrice * 0.3;
         } else {
-          // 模拟价格变化
-          const change = (Math.random() - 0.5) * 50;
+          // 模拟价格变化（与K线波动幅度匹配）
+          const change = (Math.random() - 0.5) * 100;
           price += change;
         }
       } catch (error) {
-        // 模拟价格变化
-        const change = (Math.random() - 0.5) * 50;
+        // 模拟价格变化（与K线波动幅度匹配）
+        const change = (Math.random() - 0.5) * 100;
         price += change;
       }
 
