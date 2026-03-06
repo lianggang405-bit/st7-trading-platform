@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { LOGO_PATH, LOGO_WIDTH, LOGO_HEIGHT } from '../../constants/paths';
+import { ASSETS, ASSET_SIZES } from '../../constants/assets';
 
 /**
  * FOREX Logo 组件
@@ -9,6 +9,7 @@ import { LOGO_PATH, LOGO_WIDTH, LOGO_HEIGHT } from '../../constants/paths';
  * - 添加 unoptimized 属性，禁用 Next.js 图片优化服务
  * - 适配静态部署、CDN 托管、Nginx 静态站等生产环境
  * - 避免 /_next/image 400 错误
+ * - 使用绝对路径 /logo.png，避免多语言路由问题
  * 
  * 优势（保留 Image 组件的好处）：
  * - 统一的图片组件 API
@@ -19,10 +20,10 @@ import { LOGO_PATH, LOGO_WIDTH, LOGO_HEIGHT } from '../../constants/paths';
 export function ForexLogo() {
   return (
     <Image
-      src={LOGO_PATH}
+      src={ASSETS.logo}
       alt="FOREX Logo"
-      width={LOGO_WIDTH}
-      height={LOGO_HEIGHT}
+      width={ASSET_SIZES.logo.width}
+      height={ASSET_SIZES.logo.height}
       className="h-28 w-auto"
       priority
       unoptimized
