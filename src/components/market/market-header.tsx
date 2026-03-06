@@ -12,11 +12,6 @@ interface MarketHeaderProps {
 export function MarketHeader({ activeCategory: externalActiveCategory, onCategoryChange }: MarketHeaderProps) {
   const t = useTranslations('market');
   
-  // 调试日志
-  console.log('[MarketHeader] t function:', t);
-  console.log('[MarketHeader] forex translation:', t('forex'));
-  console.log('[MarketHeader] metal translation:', t('metal'));
-  
   const categories = [
     { key: 'forex', value: 'Forex' },
     { key: 'metal', value: 'Metal' },
