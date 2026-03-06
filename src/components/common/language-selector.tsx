@@ -17,6 +17,17 @@ export function LanguageSelector() {
   const currentLocale = pathSegments[0] || 'zh-TW';
 
   const handleLanguageChange = (languageCode: string) => {
+    // 保存用户选择到 localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('locale', languageCode);
+      
+      // 同时设置 cookie，用于服务端重定向
+      // 设置 365 天过期
+      const expires = new Date();
+      expires.setTime(expires.getTime() + 365 * 24 * 60 * 60 * 1000);
+      document.cookie = `locale=${languageCode}; expires=${expires.toUTCString()}; path=/`;
+    }
+    
     // 更安全的路径替换逻辑
     let newPathname: string;
 

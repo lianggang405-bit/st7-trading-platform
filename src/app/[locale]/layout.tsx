@@ -2,9 +2,10 @@ import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { locales } from '../../i18n';
+import { locales } from '../../config/locales';
 import { BottomTab } from '../../components/layout/bottom-tab';
 import { AuthProvider } from '../../components/providers/auth-provider';
+import { LocaleRedirect } from '../../components/providers/locale-redirect';
 import '../globals.css';
 
 export const metadata: Metadata = {
@@ -102,6 +103,7 @@ export default async function LocaleLayout({
   return (
     <AuthProvider isDev={isDev}>
       <NextIntlClientProvider messages={messages}>
+        <LocaleRedirect />
         <main className="pb-28 min-h-screen">
           {children}
         </main>

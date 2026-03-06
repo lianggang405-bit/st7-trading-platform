@@ -5,7 +5,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuthStore } from '../../../stores/authStore';
 import { ForexLogo } from '../../../components/brand/forex-logo';
-import { locales } from '../../../i18n';
+import { locales } from '../../../config/locales';
 
 export default function LoginPage() {
   const router = useRouter();

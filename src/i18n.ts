@@ -1,11 +1,9 @@
 import { getRequestConfig } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
+import { locales, defaultLocale } from './config/locales';
 
-export const locales = ['zh-TW', 'en', 'th', 'vi', 'ru', 'de'] as const;
 export type Locale = (typeof locales)[number];
-
-export const defaultLocale: Locale = 'zh-TW';
 
 // 静态导入所有messages文件 - 按 locales 相同顺序导入
 import zhTWMessages from './messages/zh-TW.json';
