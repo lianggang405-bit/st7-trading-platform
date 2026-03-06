@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, IChartApi, MouseEventParams, Time } from 'lightweight-charts';
-import { CandlestickSeries, HistogramSeries, LineSeries } from 'lightweight-charts';
+import { CandlestickSeries, LineSeries } from 'lightweight-charts';
 import { useTranslations } from 'next-intl';
 
 interface TradingChartProps {
@@ -63,7 +63,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<any>(null);
-  const volumeSeriesRef = useRef<any>(null);
   const ma5SeriesRef = useRef<any>(null);
   const ma10SeriesRef = useRef<any>(null);
   const ma20SeriesRef = useRef<any>(null);
@@ -168,15 +167,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     });
     candlestickSeriesRef.current = candlestickSeries;
 
-    const volumeSeries = chart.addSeries(HistogramSeries, {
-      color: '#26a69a',
-      priceFormat: {
-        type: 'volume',
-      },
-      priceScaleId: '',
-    });
-    volumeSeriesRef.current = volumeSeries;
-
     const ma5Series = chart.addSeries(LineSeries, {
       color: '#f7931a',
       lineWidth: 1,
@@ -200,7 +190,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
     const now = new Date();
     const klineData: KlineData[] = [];
-    const volumeData: { time: Time; value: number; color: string }[] = [];
     const ma5Data: { time: Time; value: number }[] = [];
     const ma10Data: { time: Time; value: number }[] = [];
     const ma20Data: { time: Time; value: number }[] = [];
@@ -217,8 +206,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       const low = Math.min(open, close) - Math.random() * 200;
       const volume = Math.floor(Math.random() * 1000000);
 
-      const isUp = close >= open;
-
       klineData.push({
         time: (time.getTime() / 1000) as Time,
         open: Math.round(open),
@@ -226,12 +213,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         low: Math.round(low),
         close: Math.round(close),
         volume,
-      });
-
-      volumeData.push({
-        time: (time.getTime() / 1000) as Time,
-        value: volume,
-        color: isUp ? 'rgba(0, 255, 156, 0.5)' : 'rgba(255, 73, 118, 0.5)',
       });
 
       prices.push(close);
@@ -254,7 +235,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     }
 
     candlestickSeries.setData(klineData);
-    volumeSeries.setData(volumeData);
     ma5Series.setData(ma5Data);
     ma10Series.setData(ma10Data);
     ma20Series.setData(ma20Data);
@@ -413,17 +393,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         try {
           if (candlestickSeriesRef.current) {
             candlestickSeriesRef.current.update(updatedCandle);
-          }
-
-          // 更新成交量
-          if (volumeSeriesRef.current) {
-            const isUp = newClose >= lastCandle.open;
-            const volume = Math.floor(Math.random() * 1000000);
-            volumeSeriesRef.current.update({
-              time: lastCandle.time,
-              value: volume,
-              color: isUp ? 'rgba(0, 255, 156, 0.5)' : 'rgba(255, 73, 118, 0.5)',
-            });
           }
 
           pricesRef.current.push(newClose);
