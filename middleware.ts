@@ -67,11 +67,12 @@ export default function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // 匹配所有路径，除了：
+  // 1. API 路径 (api)
+  // 2. Next.js 内部路径 (_next)
+  // 3. 所有带扩展名的文件 (.*\..*) - 包括所有静态资源
+  //    例如: logo.png, favicon.ico, site.webmanifest, style.css, script.js
   matcher: [
-    // 匹配所有路径，除了：
-    // 1. Next.js 内部路径 (_next/static, _next/image, _next/data)
-    // 2. 静态文件扩展名 (png, jpg, svg, webmanifest, ico, json, xml, txt, pdf, css, js, woff, woff2, ttf)
-    // 3. API 路径
-    '/((?!_next/|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|webmanifest|json|xml|txt|pdf|css|js|woff|woff2|ttf)|api/).*)',
+    '/((?!api|_next|.*\\..*).*)',
   ],
 };
