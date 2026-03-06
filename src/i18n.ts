@@ -16,19 +16,19 @@ import ruMessages from './messages/ru.json';
 import deMessages from './messages/de.json';
 
 // 创建messages映射 - 按照用户期望的映射关系
-// 繁体中文按钮 → 泰语翻译
-// 英语按钮 → 越南语翻译
-// 泰语按钮 → 俄语翻译
-// 越南语按钮 → 德语翻译
-// 俄语按钮 → 繁体中文翻译
-// 德语按钮 → 英语翻译
+// 点击 繁体中文 按钮 → 显示泰语翻译
+// 点击 英语 按钮 → 显示越南语翻译
+// 点击 泰语 按钮 → 显示俄语翻译
+// 点击 越南语 按钮 → 显示德语翻译
+// 点击 俄语 按钮 → 显示繁体中文翻译
+// 点击 德语 按钮 → 显示英语翻译
 const messagesMap: Record<Locale, any> = {
-  'zh-TW': thMessages,   // 繁体按钮 → 泰语翻译
-  'en': viMessages,      // 英语按钮 → 越南语翻译
-  'th': ruMessages,      // 泰语按钮 → 俄语翻译
-  'vi': deMessages,      // 越南语按钮 → 德语翻译
-  'ru': zhTWMessages,    // 俄语按钮 → 繁体翻译
-  'de': enMessages,      // 德语按钮 → 英语翻译
+  'zh-TW': thMessages,   // 点击繁体中文按钮 → 显示泰语
+  'en': viMessages,      // 点击英语按钮 → 显示越南语
+  'th': ruMessages,      // 点击泰语按钮 → 显示俄语
+  'vi': deMessages,      // 点击越南语按钮 → 显示德语
+  'ru': zhTWMessages,    // 点击俄语按钮 → 显示繁体中文
+  'de': enMessages,      // 点击德语按钮 → 显示英语
 };
 
 // 调试：验证映射关系
