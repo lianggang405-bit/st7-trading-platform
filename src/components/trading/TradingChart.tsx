@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { createChart, ColorType, IChartApi, MouseEventParams, Time } from 'lightweight-charts';
-import { CandlestickSeries, HistogramSeries, LineSeries } from 'lightweight-charts';
+import { CandlestickSeries, LineSeries } from 'lightweight-charts';
 import { useTranslations } from 'next-intl';
 
 interface TradingChartProps {
@@ -69,28 +69,11 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
     // 添加K线系列
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#00ff9c',
-      downColor: '#ff4976',
+      upColor: '#00ff9c',      // 上涨颜色：绿色
+      downColor: '#ff4976',    // 下跌颜色：红色
       borderVisible: false,
-      wickUpColor: '#00ff9c',
-      wickDownColor: '#ff4976',
-    });
-
-    // 添加成交量柱状图
-    // 创建独立的成交量价格比例尺
-    chart.priceScale('right').applyOptions({
-      scaleMargins: {
-        top: 0.1,
-        bottom: 0.3,
-      },
-    });
-
-    const volumeSeries = chart.addSeries(HistogramSeries, {
-      color: '#26a69a',
-      priceFormat: {
-        type: 'volume',
-      },
-      priceScaleId: '',
+      wickUpColor: '#00ff9c',  // 上涨影线颜色
+      wickDownColor: '#ff4976',// 下跌影线颜色
     });
 
     // 添加MA5均线
@@ -117,7 +100,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     // 生成初始K线数据（模拟历史数据）
     const now = new Date();
     const klineData: KlineData[] = [];
-    const volumeData: { time: Time; value: number; color: string }[] = [];
     const ma5Data: { time: Time; value: number }[] = [];
     const ma10Data: { time: Time; value: number }[] = [];
     const ma20Data: { time: Time; value: number }[] = [];
@@ -142,12 +124,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         volume,
       });
 
-      volumeData.push({
-        time: (time.getTime() / 1000) as Time,
-        value: volume,
-        color: close >= open ? '#00ff9c' : '#ff4976',
-      });
-
       prices.push(close);
       basePrice = close;
 
@@ -169,7 +145,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     }
 
     candlestickSeries.setData(klineData);
-    volumeSeries.setData(volumeData);
     ma5Series.setData(ma5Data);
     ma10Series.setData(ma10Data);
     ma20Series.setData(ma20Data);
@@ -240,10 +215,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
               ${isUp ? '+' : ''}${priceChange.toFixed(2)}%
             </span>
           </div>
-          <div style="display: flex; justify-content: space-between; gap: 16px;">
-            <span style="color: #999;">${t('volume')}:</span>
-            <span style="color: #fff;">${data.volume?.toLocaleString() || 'N/A'}</span>
-          </div>
         </div>
       `;
 
@@ -274,7 +245,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       const newOpen = price - 50;
       const newHigh = price + 80;
       const newLow = price - 120;
-      const newVolume = Math.floor(Math.random() * 1000000);
 
       const newCandle = {
         time: Math.floor(Date.now() / 1000) as Time,
@@ -282,18 +252,10 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         high: Math.round(newHigh),
         low: Math.round(newLow),
         close: Math.round(newClose),
-        volume: newVolume,
       };
 
       // 更新K线
       candlestickSeries.update(newCandle);
-
-      // 更新成交量
-      volumeSeries.update({
-        time: Math.floor(Date.now() / 1000) as Time,
-        value: newVolume,
-        color: newClose >= newOpen ? '#00ff9c' : '#ff4976',
-      });
 
       // 更新价格数组并计算MA
       prices.push(newClose);
