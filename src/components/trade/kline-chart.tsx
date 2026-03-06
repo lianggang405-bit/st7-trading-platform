@@ -31,40 +31,79 @@ export function KlineChart({ symbol, timeframe }: KlineChartProps) {
   const [loading, setLoading] = useState(true);
 
   // 生成模拟 K线数据
-  const generateKlineData = (): KlineData[] => {
+  const generateKlineData = (basePrice?: number, existingData?: KlineData[]): KlineData[] => {
     const now = new Date();
-    const data: KlineData[] = [];
-    let basePrice = 50000;
+    const newData: KlineData[] = [];
+    let price = basePrice || 50000;
 
-    for (let i = 100; i >= 0; i--) {
-      const time = new Date(now.getTime() - i * 60000); // 每分钟一个数据点
-      const open = basePrice + (Math.random() - 0.5) * 1000;
-      const close = open + (Math.random() - 0.5) * 500;
-      const high = Math.max(open, close) + Math.random() * 200;
-      const low = Math.min(open, close) - Math.random() * 200;
+    // 如果有现有数据，保留前99个，更新最后一个
+    if (existingData && existingData.length > 0) {
+      // 保留前99个数据点
+      newData.push(...existingData.slice(0, -1));
 
-      data.push({
-        time: time.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }),
-        open,
-        high,
-        low,
-        close,
+      // 获取最后一个数据点
+      const lastData = existingData[existingData.length - 1];
+      price = lastData.close;
+
+      // 更新最后一个数据点（模拟实时价格变化）
+      const newPrice = price + (Math.random() - 0.5) * 100;
+      const newHigh = Math.max(lastData.high, newPrice);
+      const newLow = Math.min(lastData.low, newPrice);
+
+      newData.push({
+        time: lastData.time,
+        open: lastData.open,
+        high: newHigh,
+        low: newLow,
+        close: newPrice,
       });
+    } else {
+      // 生成初始数据
+      for (let i = 100; i >= 0; i--) {
+        const time = new Date(now.getTime() - i * 60000);
+        const open = price + (Math.random() - 0.5) * 1000;
+        const close = open + (Math.random() - 0.5) * 500;
+        const high = Math.max(open, close) + Math.random() * 200;
+        const low = Math.min(open, close) - Math.random() * 200;
 
-      basePrice = close;
+        newData.push({
+          time: time.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }),
+          open,
+          high,
+          low,
+          close,
+        });
+
+        price = close;
+      }
     }
 
-    return data;
+    return newData;
   };
 
+  // 初始化加载
   useEffect(() => {
     setLoading(true);
-    // 模拟异步加载
+    console.log('[KlineChart] Initializing kline data for:', symbol, timeframe);
     setTimeout(() => {
       setData(generateKlineData());
       setLoading(false);
     }, 500);
   }, [symbol, timeframe]);
+
+  // 实时更新K线数据（每秒更新一次）
+  useEffect(() => {
+    if (loading) return;
+
+    const interval = setInterval(() => {
+      setData(prevData => {
+        const newData = generateKlineData(undefined, prevData);
+        return newData;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [loading, symbol, timeframe]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
