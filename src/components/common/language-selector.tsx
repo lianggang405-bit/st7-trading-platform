@@ -17,14 +17,6 @@ export function LanguageSelector() {
   const currentLocale = pathSegments[0] || 'zh-TW';
 
   const handleLanguageChange = (languageCode: string) => {
-    console.log('===== 语言切换调试 =====');
-    console.log('点击的语言代码:', languageCode);
-    console.log('点击的语言名称:', languages.find(l => l.code === languageCode)?.name);
-    console.log('当前路径:', pathname);
-    console.log('当前 locale:', currentLocale);
-    console.log('语言列表:', languages.map((l, i) => `[${i}] ${l.code} - ${l.name}`).join(', '));
-    console.log('=========================');
-    
     // 更安全的路径替换逻辑
     let newPathname: string;
 
@@ -37,8 +29,6 @@ export function LanguageSelector() {
       newPathname = '/' + pathSegments.join('/');
     }
 
-    console.log('新路径:', newPathname);
-    
     router.push(newPathname);
     setIsOpen(false);
   };

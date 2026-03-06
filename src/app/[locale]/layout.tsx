@@ -90,17 +90,13 @@ export default async function LocaleLayout({
     notFound();
   }
 
-  const messages = await getMessages();
+  // 关键修复：明确传递 locale 参数给 getMessages
+  const messages = await getMessages({ locale });
   const isDev = process.env.NODE_ENV === 'development';
 
-  // 调试日志
-  if (isDev) {
-    console.log('[LocaleLayout] locale:', locale);
-    console.log('[LocaleLayout] messages type:', typeof messages);
-    console.log('[LocaleLayout] messages keys:', Object.keys(messages));
-    console.log('[LocaleLayout] messages structure:', JSON.stringify(messages, null, 2).substring(0, 500));
-    console.log('[LocaleLayout] market messages:', messages.market);
-    console.log('[LocaleLayout] common messages:', messages.common);
+  // 调试日志（仅开发环境）
+  if (isDev && messages.common?.login) {
+    console.log('[LocaleLayout] locale:', locale, '| common.login:', messages.common.login);
   }
 
   return (

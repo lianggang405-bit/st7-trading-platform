@@ -25,27 +25,14 @@ const messagesMap: Record<Locale, any> = {
   'de': deMessages,        // de → 德语翻译
 };
 
-// 调试：验证映射关系
-console.log('[i18n.ts init] Verifying messagesMap:');
-console.log('[i18n.ts init] locales order:', locales);
-console.log('[i18n.ts init] messagesMap entries:');
-Object.entries(messagesMap).forEach(([key, value], index) => {
-  console.log(`  [${index}] ${key} button → ${value?.common?.login}`);
-});
 
 export default getRequestConfig(async ({ requestLocale }) => {
-  console.log('[i18n.ts] ===== New Request =====');
-  console.log('[i18n.ts] requestLocale param:', requestLocale);
-  
-  // 尝试从 requestLocale 获取
   let locale = await requestLocale;
-  console.log('[i18n.ts] After awaiting requestLocale:', locale);
   
   // 如果 requestLocale 为 undefined，尝试从请求头中提取
   if (!locale) {
     const headersList = await headers();
     const referer = headersList.get('referer') || '';
-    console.log('[i18n.ts] Referer from headers:', referer);
     
     // 从 URL 中提取 pathname（去掉协议和域名）
     let pathname = '';
@@ -60,37 +47,22 @@ export default getRequestConfig(async ({ requestLocale }) => {
       pathname = referer;
     }
     
-    console.log('[i18n.ts] Extracted pathname:', pathname);
-    
     // 从 pathname 中提取 locale
     const pathSegments = pathname.split('/').filter(Boolean);
     const potentialLocale = pathSegments[0];
-    console.log('[i18n.ts] Potential locale from path:', potentialLocale);
     
     if (potentialLocale && locales.includes(potentialLocale as any)) {
       locale = potentialLocale;
     }
   }
 
-  console.log('[i18n.ts] locale before validation:', locale);
-
   if (!locale || !locales.includes(locale as any)) {
-    console.log('[i18n.ts] Invalid locale, using default:', defaultLocale);
     locale = defaultLocale;
   }
 
-  console.log('[i18n.ts] ===== 语言切换调试 =====');
-  console.log('[i18n.ts] 请求的语言参数:', locale);
-  console.log('[i18n.ts] 从 messagesMap 获取的 messages key:', locale);
-  
-  const messages = messagesMap[locale as Locale];
-  
-  console.log('[i18n.ts] messages 内容 (login):', messages?.common?.login);
-  console.log('[i18n.ts] =======================');
-
   return {
     locale,
-    messages: messages as any,
+    messages: messagesMap[locale as Locale] as any,
     timeZone: 'UTC',
     now: new Date(),
   };
