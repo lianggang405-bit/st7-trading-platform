@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, IChartApi, MouseEventParams, Time } from 'lightweight-charts';
 import { CandlestickSeries, LineSeries } from 'lightweight-charts';
 import { useTranslations } from 'next-intl';
-import { getPriceFromBinance } from '@/lib/market-data-source';
 
 interface TradingChartProps {
   symbol?: string;
@@ -32,6 +31,34 @@ interface KlineData {
   low: number;
   close: number;
   volume?: number;
+}
+
+// 从后端 API 获取实时价格（避免 CORS 问题）
+async function getRealPriceFromAPI(symbol: string): Promise<number | null> {
+  try {
+    const response = await fetch(`/api/market/data?symbols=${symbol}&useRealData=true`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.warn(`[TradingChart] API request failed for ${symbol}:`, response.status);
+      return null;
+    }
+
+    const result = await response.json();
+    
+    if (result.success && result.data && result.data[symbol]) {
+      return result.data[symbol].price;
+    }
+    
+    return null;
+  } catch (error) {
+    console.warn(`[TradingChart] Error fetching price for ${symbol}:`, error);
+    return null;
+  }
 }
 
 export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: TradingChartProps) {
@@ -287,7 +314,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
     window.addEventListener('resize', handleResize);
 
-    // ✅ 实时更新K线 - 使用真实数据
+    // ✅ 实时更新K线 - 通过后端 API 获取真实数据（避免 CORS）
     let price = basePrice;
     const updateInterval = setInterval(async () => {
       // 检查图表是否已销毁
@@ -297,8 +324,8 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       }
 
       try {
-        // 尝试从 Binance 获取真实价格
-        const realPrice = await getPriceFromBinance(symbol);
+        // 通过后端 API 获取真实价格（避免 CORS 问题）
+        const realPrice = await getRealPriceFromAPI(symbol);
         
         if (realPrice !== null) {
           price = realPrice;
