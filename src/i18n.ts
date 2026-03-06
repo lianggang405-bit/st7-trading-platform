@@ -15,20 +15,14 @@ import viMessages from './messages/vi.json';
 import ruMessages from './messages/ru.json';
 import deMessages from './messages/de.json';
 
-// 创建messages映射 - 按照用户期望的映射关系
-// 点击 繁体中文 按钮 → 显示泰语翻译
-// 点击 英语 按钮 → 显示越南语翻译
-// 点击 泰语 按钮 → 显示俄语翻译
-// 点击 越南语 按钮 → 显示德语翻译
-// 点击 俄语 按钮 → 显示繁体中文翻译
-// 点击 德语 按钮 → 显示英语翻译
+// 创建messages映射 - 正常的一一对应关系
 const messagesMap: Record<Locale, any> = {
-  'zh-TW': thMessages,   // 点击繁体中文按钮 → 显示泰语
-  'en': viMessages,      // 点击英语按钮 → 显示越南语
-  'th': ruMessages,      // 点击泰语按钮 → 显示俄语
-  'vi': deMessages,      // 点击越南语按钮 → 显示德语
-  'ru': zhTWMessages,    // 点击俄语按钮 → 显示繁体中文
-  'de': enMessages,      // 点击德语按钮 → 显示英语
+  'zh-TW': zhTWMessages,   // zh-TW → 繁体中文翻译
+  'en': enMessages,        // en → 英语翻译
+  'th': thMessages,        // th → 泰语翻译
+  'vi': viMessages,        // vi → 越南语翻译
+  'ru': ruMessages,        // ru → 俄语翻译
+  'de': deMessages,        // de → 德语翻译
 };
 
 // 调试：验证映射关系
