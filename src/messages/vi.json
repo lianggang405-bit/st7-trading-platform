@@ -65,20 +65,6 @@
     "cfd": "Hợp đồng chênh lệch chỉ số",
     "search": "Tìm kiếm"
   },
-  "chart": {
-    "open": "Mở",
-    "high": "Cao",
-    "low": "Thấp",
-    "close": "Đóng",
-    "volume": "Khối lượng",
-    "price": "Giá",
-    "time": "Thời gian",
-    "change": "Thay đổi",
-    "ma5": "MA5",
-    "ma10": "MA10",
-    "ma20": "MA20",
-    "loading": "Đang tải biểu đồ..."
-  },
   "me": {
     "deposit": "Nạp tiền",
     "withdraw": "Rút tiền",

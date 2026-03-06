@@ -94,20 +94,6 @@
     "cfd": "CFD",
     "search": "Search"
   },
-  "chart": {
-    "open": "Open",
-    "high": "High",
-    "low": "Low",
-    "close": "Close",
-    "volume": "Volume",
-    "price": "Price",
-    "time": "Time",
-    "change": "Change",
-    "ma5": "MA5",
-    "ma10": "MA10",
-    "ma20": "MA20",
-    "loading": "Loading chart..."
-  },
   "me": {
     "deposit": "Deposit",
     "withdraw": "Withdraw",
@@ -158,8 +144,7 @@
     "useStopLoss": "Use Stop Loss",
     "useTakeProfit": "Use Take Profit",
     "volumeMustBePositive": "Volume must be greater than 0",
-    "invalidVolume": "Volume must be at least 0.01",
-    "invalidLeverage": "Leverage must be between 10 and 500",
+    "invalidLeverage": "Invalid leverage",
     "marginInsufficient": "Margin insufficient",
     "invalidPendingPrice": "Please enter a valid pending order price",
     "insufficientMargin": "Available margin insufficient",

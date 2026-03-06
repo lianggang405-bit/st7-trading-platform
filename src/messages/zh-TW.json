@@ -94,20 +94,6 @@
     "cfd": "指數差價合約",
     "search": "搜索"
   },
-  "chart": {
-    "open": "開",
-    "high": "高",
-    "low": "低",
-    "close": "收",
-    "volume": "成交量",
-    "price": "價格",
-    "time": "時間",
-    "change": "漲跌幅",
-    "ma5": "MA5",
-    "ma10": "MA10",
-    "ma20": "MA20",
-    "loading": "圖表加載中..."
-  },
   "me": {
     "deposit": "入金",
     "withdraw": "出金",
@@ -158,8 +144,7 @@
     "useStopLoss": "使用止損",
     "useTakeProfit": "使用止盈",
     "volumeMustBePositive": "手數必須大於 0",
-    "invalidVolume": "手數必須至少為 0.01",
-    "invalidLeverage": "槓桿必須在 10-500 倍之間",
+    "invalidLeverage": "無效的槓桿",
     "marginInsufficient": "保證金不足",
     "invalidPendingPrice": "請輸入有效的掛單價格",
     "insufficientMargin": "可用保證金不足",
