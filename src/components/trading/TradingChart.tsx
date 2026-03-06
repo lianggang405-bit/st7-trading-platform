@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { createChart, ColorType, IChartApi, MouseEventParams, Time } from 'lightweight-charts';
+import { createChart, ColorType, IChartApi, MouseEventParams, Time, CandlestickSeries } from 'lightweight-charts';
 import { useTranslations } from 'next-intl';
 
 interface TradingChartProps {
@@ -107,7 +107,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       },
     });
 
-    const candlestickSeries = (chart as any).addCandlestickSeries({
+    const candlestickSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#26a69a',
       downColor: '#ef5350',
       borderVisible: false,
