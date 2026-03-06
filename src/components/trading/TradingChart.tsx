@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, IChartApi, MouseEventParams, Time } from 'lightweight-charts';
-import { CandlestickSeries, LineSeries } from 'lightweight-charts';
+import { CandlestickSeries } from 'lightweight-charts';
 import { useTranslations } from 'next-intl';
 
 interface TradingChartProps {
@@ -63,9 +63,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<any>(null);
-  const ma5SeriesRef = useRef<any>(null);
-  const ma10SeriesRef = useRef<any>(null);
-  const ma20SeriesRef = useRef<any>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const isDisposedRef = useRef<boolean>(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -172,33 +169,8 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     });
     candlestickSeriesRef.current = candlestickSeries;
 
-    const ma5Series = chart.addSeries(LineSeries, {
-      color: '#f7931a',
-      lineWidth: 1,
-      title: 'MA5',
-    });
-    ma5SeriesRef.current = ma5Series;
-
-    const ma10Series = chart.addSeries(LineSeries, {
-      color: '#4caf50',
-      lineWidth: 1,
-      title: 'MA10',
-    });
-    ma10SeriesRef.current = ma10Series;
-
-    const ma20Series = chart.addSeries(LineSeries, {
-      color: '#2196f3',
-      lineWidth: 1,
-      title: 'MA20',
-    });
-    ma20SeriesRef.current = ma20Series;
-
     const now = new Date();
     const klineData: KlineData[] = [];
-    const ma5Data: { time: Time; value: number }[] = [];
-    const ma10Data: { time: Time; value: number }[] = [];
-    const ma20Data: { time: Time; value: number }[] = [];
-
     let basePrice = getBasePrice(symbol);
     const prices: number[] = [];
     pricesRef.current = prices;
@@ -222,27 +194,9 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
       prices.push(close);
       basePrice = close;
-
-      if (prices.length >= 5) {
-        const ma5 = prices.slice(-5).reduce((a, b) => a + b, 0) / 5;
-        ma5Data.push({ time: (time.getTime() / 1000) as Time, value: Math.round(ma5) });
-      }
-
-      if (prices.length >= 10) {
-        const ma10 = prices.slice(-10).reduce((a, b) => a + b, 0) / 10;
-        ma10Data.push({ time: (time.getTime() / 1000) as Time, value: Math.round(ma10) });
-      }
-
-      if (prices.length >= 20) {
-        const ma20 = prices.slice(-20).reduce((a, b) => a + b, 0) / 20;
-        ma20Data.push({ time: (time.getTime() / 1000) as Time, value: Math.round(ma20) });
-      }
     }
 
     candlestickSeries.setData(klineData);
-    ma5Series.setData(ma5Data);
-    ma10Series.setData(ma10Data);
-    ma20Series.setData(ma20Data);
 
     setCurrentPrice(basePrice);
 
@@ -420,22 +374,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
             pricesRef.current.push(newClose);
             if (pricesRef.current.length > 200) pricesRef.current.shift();
 
-            // 更新 MA
-            if (pricesRef.current.length >= 5 && ma5SeriesRef.current) {
-              const ma5 = pricesRef.current.slice(-5).reduce((a, b) => a + b, 0) / 5;
-              ma5SeriesRef.current.update({ time: currentTime, value: Math.round(ma5) });
-            }
-
-            if (pricesRef.current.length >= 10 && ma10SeriesRef.current) {
-              const ma10 = pricesRef.current.slice(-10).reduce((a, b) => a + b, 0) / 10;
-              ma10SeriesRef.current.update({ time: currentTime, value: Math.round(ma10) });
-            }
-
-            if (pricesRef.current.length >= 20 && ma20SeriesRef.current) {
-              const ma20 = pricesRef.current.slice(-20).reduce((a, b) => a + b, 0) / 20;
-              ma20SeriesRef.current.update({ time: currentTime, value: Math.round(ma20) });
-            }
-
             setCurrentPrice(newClose);
 
             chart.timeScale().scrollToRealTime();
@@ -462,22 +400,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
             }
 
             pricesRef.current[pricesRef.current.length - 1] = newClose;
-
-            // 更新 MA
-            if (pricesRef.current.length >= 5 && ma5SeriesRef.current) {
-              const ma5 = pricesRef.current.slice(-5).reduce((a, b) => a + b, 0) / 5;
-              ma5SeriesRef.current.update({ time: lastCandle.time, value: Math.round(ma5) });
-            }
-
-            if (pricesRef.current.length >= 10 && ma10SeriesRef.current) {
-              const ma10 = pricesRef.current.slice(-10).reduce((a, b) => a + b, 0) / 10;
-              ma10SeriesRef.current.update({ time: lastCandle.time, value: Math.round(ma10) });
-            }
-
-            if (pricesRef.current.length >= 20 && ma20SeriesRef.current) {
-              const ma20 = pricesRef.current.slice(-20).reduce((a, b) => a + b, 0) / 20;
-              ma20SeriesRef.current.update({ time: lastCandle.time, value: Math.round(ma20) });
-            }
 
             setCurrentPrice(newClose);
           } catch (error) {}
@@ -536,21 +458,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         className="w-full bg-[#0a0a0a] rounded-lg overflow-hidden"
         style={{ height: `${height}px` }}
       />
-      
-      <div className="absolute top-10 right-2 flex gap-4 text-xs">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-1 bg-[#f7931a]"></div>
-          <span className="text-gray-400">MA5</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-1 bg-[#4caf50]"></div>
-          <span className="text-gray-400">MA10</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-1 bg-[#2196f3]"></div>
-          <span className="text-gray-400">MA20</span>
-        </div>
-      </div>
     </div>
   );
 }
