@@ -57,8 +57,8 @@ export default function TradePage() {
     positionsCount: positions.length,
   });
 
-  const [volume, setVolume] = useState(0.1);
-  const [leverage, setLeverage] = useState<10 | 20 | 50 | 100>(10);
+  const [volume, setVolume] = useState<number | ''>('');
+  const [leverage, setLeverage] = useState<number>(10);
   const [timeframe, setTimeframe] = useState<Timeframe>('1H');
   const [tradeMode, setTradeMode] = useState<'instant' | 'pending'>('instant');
   const [useStopLoss, setUseStopLoss] = useState(false);
@@ -184,6 +184,19 @@ export default function TradePage() {
     const symbolData = symbols.find(s => s.symbol === currentSymbol);
     if (!symbolData) return;
 
+    // 验证手数
+    const volumeNum = typeof volume === 'string' || isNaN(volume) ? 0 : volume;
+    if (volumeNum < 0.01) {
+      alert(t('invalidVolume'));
+      return;
+    }
+
+    // 验证倍数
+    if (leverage < 10 || leverage > 500) {
+      alert(t('invalidLeverage'));
+      return;
+    }
+
     // 挂单交易：使用挂单价格；市价交易：使用当前价格
     const orderPrice = tradeMode === 'pending' ? pendingPrice : symbolData.price;
     const orderType = tradeMode === 'pending' ? 'limit' : 'market';
@@ -194,7 +207,7 @@ export default function TradePage() {
       return;
     }
 
-    const orderAmount = orderPrice * volume;
+    const orderAmount = orderPrice * volumeNum;
     const margin = orderAmount / leverage;
 
     if (freeMargin < margin) {
@@ -228,7 +241,7 @@ export default function TradePage() {
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">{t('volume')}：</span>
-            <span className="font-semibold">{volume}</span>
+            <span className="font-semibold">{volumeNum}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">{t('leverage')}：</span>
@@ -244,7 +257,7 @@ export default function TradePage() {
         console.log('[TradePage] handleSubmit called:', {
           currentSymbol,
           side,
-          volume,
+          volume: volumeNum,
           orderPrice,
           orderType,
           leverage,
@@ -255,7 +268,7 @@ export default function TradePage() {
         openPosition({
           symbol: currentSymbol,
           side,
-          volume,
+          volume: volumeNum,
           price: orderPrice,
           orderType,
           leverage,
@@ -277,7 +290,7 @@ export default function TradePage() {
   const timeframes: Timeframe[] = ['1M', '5M', '15M', '1H', '1D'];
 
   const requiredMargin = currentSymbolData
-    ? (currentSymbolData.price * volume) / leverage
+    ? (currentSymbolData.price * (typeof volume === 'string' || isNaN(volume) ? 0 : volume)) / leverage
     : 0;
 
   const estimatedFee = 1; // 固定手续费
@@ -430,30 +443,37 @@ export default function TradePage() {
 
           {/* 参数设置区 - 左右分栏布局 */}
           <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
-            {/* 倍数 */}
+            {/* 倍数 - 支持手动输入10-500倍 */}
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <span className="text-base font-bold text-gray-900">{t('leverage')}</span>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setLeverage(prev => prev === 10 ? 10 : prev === 20 ? 10 : prev === 50 ? 20 : 50)}
-                  className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded hover:bg-gray-200 active:scale-95 transition-all"
-                >
-                  -
-                </button>
-                <div className="relative">
-                  <button className="flex items-center gap-1 px-4 py-2 bg-gray-100 rounded font-bold text-base min-w-[80px]">
-                    {leverage}x
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                </div>
-                <button
-                  onClick={() => setLeverage(prev => prev === 10 ? 20 : prev === 20 ? 50 : prev === 50 ? 100 : 100)}
-                  className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded hover:bg-gray-200 active:scale-95 transition-all"
-                >
-                  +
-                </button>
+                <input
+                  type="number"
+                  min="10"
+                  max="500"
+                  step="1"
+                  value={leverage}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (!isNaN(value)) {
+                      // 限制在10-500范围内
+                      const clampedValue = Math.min(500, Math.max(10, value));
+                      setLeverage(clampedValue);
+                    }
+                  }}
+                  onBlur={(e) => {
+                    // 失去焦点时确保值在有效范围内
+                    const value = parseInt(e.target.value);
+                    if (isNaN(value) || value < 10) {
+                      setLeverage(10);
+                    } else if (value > 500) {
+                      setLeverage(500);
+                    }
+                  }}
+                  placeholder="10-500"
+                  className="w-24 text-right font-bold bg-gray-100 rounded px-3 py-2 text-base text-gray-900"
+                />
+                <span className="text-base font-bold text-gray-900">x</span>
               </div>
             </div>
 
@@ -563,12 +583,15 @@ export default function TradePage() {
               </div>
             </div>
 
-            {/* 买入数量 */}
+            {/* 买入数量 - 支持完全清空重新输入 */}
             <div className="flex items-center justify-between py-3">
               <span className="text-base font-bold text-gray-900">{t('volume')}</span>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setVolume(Math.max(0.01, volume - 0.01))}
+                  onClick={() => {
+                    const newValue = volume === '' || isNaN(volume) ? 0.01 : Math.max(0.01, volume - 0.01);
+                    setVolume(newValue);
+                  }}
                   className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded hover:bg-gray-200 active:scale-95 transition-all"
                 >
                   -
@@ -577,13 +600,35 @@ export default function TradePage() {
                   type="number"
                   step="0.01"
                   min="0.01"
-                  value={volume}
-                  onChange={(e) => setVolume(Math.max(0.01, parseFloat(e.target.value) || 0.01))}
+                  placeholder="0.01"
+                  value={volume === '' ? '' : volume}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // 允许空输入，用户可以完全删除后重新输入
+                    if (value === '') {
+                      setVolume('');
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue) && numValue >= 0.01) {
+                        setVolume(numValue);
+                      }
+                    }
+                  }}
+                  onBlur={(e) => {
+                    // 失去焦点时，如果为空或小于0.01，设置为0.01
+                    const value = parseFloat(e.target.value);
+                    if (isNaN(value) || value < 0.01) {
+                      setVolume(0.01);
+                    }
+                  }}
                   className="w-20 text-right font-bold bg-gray-100 rounded px-3 py-2 text-base text-lg"
                   style={{ fontSize: '16px' }}
                 />
                 <button
-                  onClick={() => setVolume(volume + 0.01)}
+                  onClick={() => {
+                    const newValue = volume === '' || isNaN(volume) ? 0.01 : volume + 0.01;
+                    setVolume(newValue);
+                  }}
                   className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded hover:bg-gray-200 active:scale-95 transition-all"
                 >
                   +
