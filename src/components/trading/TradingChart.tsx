@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, IChartApi, MouseEventParams, Time } from 'lightweight-charts';
 import { CandlestickSeries, LineSeries } from 'lightweight-charts';
 import { useTranslations } from 'next-intl';
+import { getPriceFromBinance } from '@/lib/market-data-source';
 
 interface TradingChartProps {
   symbol?: string;
@@ -39,6 +40,31 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const t = useTranslations('chart');
   const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>('1M');
+  const [currentPrice, setCurrentPrice] = useState<number>(0);
+
+  // 获取基准价格
+  function getBasePrice(symbol: string): number {
+    const basePrices: { [key: string]: number } = {
+      'EURUSD': 1.0856,
+      'GBPUSD': 1.2654,
+      'USDJPY': 149.82,
+      'XAUUSD': 2850,
+      'XAGUSD': 32.5,
+      'BTCUSD': 98500,
+      'ETHUSD': 3250,
+      'LTCUSD': 95,
+      'SOLUSD': 145,
+      'XRPUSD': 2.15,
+      'DOGEUSD': 0.18,
+      'NGAS': 3.15,
+      'UKOIL': 82.5,
+      'USOIL': 80.25,
+      'US500': 5250,
+      'ND25': 18500,
+      'AUS200': 8125,
+    };
+    return basePrices[symbol] || 100;
+  }
 
   useEffect(() => {
     if (!chartRef.current) return;
@@ -123,7 +149,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     const ma10Data: { time: Time; value: number }[] = [];
     const ma20Data: { time: Time; value: number }[] = [];
 
-    let basePrice = 43200;
+    let basePrice = getBasePrice(symbol);
     const prices: number[] = [];
 
     for (let i = 200; i >= 0; i--) {
@@ -132,7 +158,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       const close = open + (Math.random() - 0.5) * 500;
       const high = Math.max(open, close) + Math.random() * 200;
       const low = Math.min(open, close) - Math.random() * 200;
-      const volume = Math.floor(Math.random() * 1000000);
 
       klineData.push({
         time: (time.getTime() / 1000) as Time,
@@ -140,7 +165,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         high: Math.round(high),
         low: Math.round(low),
         close: Math.round(close),
-        volume,
       });
 
       prices.push(close);
@@ -167,6 +191,9 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     ma5Series.setData(ma5Data);
     ma10Series.setData(ma10Data);
     ma20Series.setData(ma20Data);
+
+    // 初始化当前价格
+    setCurrentPrice(basePrice);
 
     // 创建自定义tooltip
     const tooltipDiv = document.createElement('div');
@@ -256,10 +283,27 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
     window.addEventListener('resize', handleResize);
 
-    // 实时更新K线（模拟）
+    // ✅ 实时更新K线 - 使用真实数据
     let price = basePrice;
-    const updateInterval = setInterval(() => {
-      price += (Math.random() - 0.5) * 200;
+    const updateInterval = setInterval(async () => {
+      try {
+        // 尝试从 Binance 获取真实价格
+        const realPrice = await getPriceFromBinance(symbol);
+        
+        if (realPrice !== null) {
+          price = realPrice;
+          console.log(`[TradingChart] Real price update for ${symbol}: ${price}`);
+        } else {
+          // 如果获取失败，使用模拟价格
+          price += (Math.random() - 0.5) * 200;
+          console.log(`[TradingChart] Using mock price for ${symbol}: ${price}`);
+        }
+      } catch (error) {
+        // 如果出错，使用模拟价格
+        price += (Math.random() - 0.5) * 200;
+        console.warn(`[TradingChart] Error fetching price for ${symbol}:`, error);
+      }
+
       const newClose = price;
       const newOpen = price - 50;
       const newHigh = price + 80;
@@ -298,8 +342,11 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         ma20Series.update({ time: Math.floor(Date.now() / 1000) as Time, value: Math.round(ma20) });
       }
 
+      // 更新当前价格状态
+      setCurrentPrice(newClose);
+
       chart.timeScale().scrollToRealTime();
-    }, 1000);
+    }, 1000); // 每秒更新一次
 
     console.log('[TradingChart] Chart initialized successfully');
 
@@ -335,13 +382,21 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         ))}
       </div>
 
+      {/* 当前价格显示 */}
+      <div className="absolute top-2 right-2 z-10 bg-[#1a1a1a] rounded-lg px-3 py-1 flex items-center gap-2">
+        <span className="text-gray-400 text-xs">{symbol}</span>
+        <span className="text-white text-sm font-mono">
+          {currentPrice > 0 ? currentPrice.toFixed(2) : 'Loading...'}
+        </span>
+      </div>
+
       <div
         ref={chartRef}
         className="w-full bg-[#0a0a0a] rounded-lg overflow-hidden"
         style={{ height: `${height}px` }}
       />
       {/* MA 均线图例 */}
-      <div className="absolute top-2 right-2 flex gap-4 text-xs">
+      <div className="absolute top-10 right-2 flex gap-4 text-xs">
         <div className="flex items-center gap-1">
           <div className="w-3 h-1 bg-[#f7931a]"></div>
           <span className="text-gray-400">MA5</span>
