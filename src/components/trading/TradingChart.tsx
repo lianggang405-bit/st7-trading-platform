@@ -64,11 +64,17 @@ async function getRealPriceFromAPI(symbol: string): Promise<number | null> {
 export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: TradingChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<IChartApi | null>(null);
+  const candlestickSeriesRef = useRef<any>(null);
+  const ma5SeriesRef = useRef<any>(null);
+  const ma10SeriesRef = useRef<any>(null);
+  const ma20SeriesRef = useRef<any>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const isDisposedRef = useRef<boolean>(false); // 追踪图表是否已销毁
+  const intervalRef = useRef<NodeJS.Timeout | null>(null); // 保存 interval 引用
   const t = useTranslations('chart');
   const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>('1M');
   const [currentPrice, setCurrentPrice] = useState<number>(0);
+  const pricesRef = useRef<number[]>([]); // 使用 ref 保存价格数组
 
   // 获取基准价格
   function getBasePrice(symbol: string): number {
@@ -95,6 +101,26 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   }
 
   useEffect(() => {
+    // 清理之前的图表
+    if (chartInstanceRef.current) {
+      console.log('[TradingChart] Cleaning up previous chart...');
+      isDisposedRef.current = true;
+      
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      
+      try {
+        chartInstanceRef.current.remove();
+        console.log('[TradingChart] Previous chart removed successfully');
+      } catch (error) {
+        console.warn('[TradingChart] Error removing previous chart:', error);
+      }
+      
+      chartInstanceRef.current = null;
+    }
+
     if (!chartRef.current) return;
 
     isDisposedRef.current = false; // 重置销毁标记
@@ -151,6 +177,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       wickUpColor: '#00ff9c',  // 上涨影线颜色
       wickDownColor: '#ff4976',// 下跌影线颜色
     });
+    candlestickSeriesRef.current = candlestickSeries;
 
     // 添加MA5均线
     const ma5Series = chart.addSeries(LineSeries, {
@@ -158,6 +185,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       lineWidth: 1,
       title: 'MA5',
     });
+    ma5SeriesRef.current = ma5Series;
 
     // 添加MA10均线
     const ma10Series = chart.addSeries(LineSeries, {
@@ -165,6 +193,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       lineWidth: 1,
       title: 'MA10',
     });
+    ma10SeriesRef.current = ma10Series;
 
     // 添加MA20均线
     const ma20Series = chart.addSeries(LineSeries, {
@@ -172,6 +201,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       lineWidth: 1,
       title: 'MA20',
     });
+    ma20SeriesRef.current = ma20Series;
 
     // 生成初始K线数据（模拟历史数据）
     const now = new Date();
@@ -182,6 +212,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
     let basePrice = getBasePrice(symbol);
     const prices: number[] = [];
+    pricesRef.current = prices;
 
     for (let i = 200; i >= 0; i--) {
       const time = new Date(now.getTime() - i * interval); // 使用选中的时间间隔
@@ -225,6 +256,15 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
     // 初始化当前价格
     setCurrentPrice(basePrice);
+
+    // 清理旧的 tooltip
+    if (tooltipRef.current && tooltipRef.current.parentNode) {
+      try {
+        tooltipRef.current.parentNode.removeChild(tooltipRef.current);
+      } catch (error) {
+        console.warn('[TradingChart] Error removing old tooltip:', error);
+      }
+    }
 
     // 创建自定义tooltip
     const tooltipDiv = document.createElement('div');
@@ -306,9 +346,13 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     // 响应式调整大小
     const handleResize = () => {
       if (chartRef.current && chart && !isDisposedRef.current) {
-        chart.applyOptions({
-          width: chartRef.current.clientWidth,
-        });
+        try {
+          chart.applyOptions({
+            width: chartRef.current.clientWidth,
+          });
+        } catch (error) {
+          console.warn('[TradingChart] Error resizing chart:', error);
+        }
       }
     };
 
@@ -316,9 +360,9 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
     // ✅ 实时更新K线 - 通过后端 API 获取真实数据（避免 CORS）
     let price = basePrice;
-    const updateInterval = setInterval(async () => {
+    intervalRef.current = setInterval(async () => {
       // 检查图表是否已销毁
-      if (isDisposedRef.current) {
+      if (isDisposedRef.current || !chartInstanceRef.current) {
         console.log('[TradingChart] Chart is disposed, skipping update');
         return;
       }
@@ -342,7 +386,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       }
 
       // 再次检查图表是否已销毁（API 调用可能耗时）
-      if (isDisposedRef.current) {
+      if (isDisposedRef.current || !chartInstanceRef.current) {
         console.log('[TradingChart] Chart is disposed after API call, skipping update');
         return;
       }
@@ -362,28 +406,30 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
       try {
         // 更新K线
-        candlestickSeries.update(newCandle);
+        if (candlestickSeriesRef.current) {
+          candlestickSeriesRef.current.update(newCandle);
+        }
 
         // 更新价格数组并计算MA
-        prices.push(newClose);
-        if (prices.length > 200) prices.shift();
+        pricesRef.current.push(newClose);
+        if (pricesRef.current.length > 200) pricesRef.current.shift();
 
         // 更新MA5
-        if (prices.length >= 5) {
-          const ma5 = prices.slice(-5).reduce((a, b) => a + b, 0) / 5;
-          ma5Series.update({ time: Math.floor(Date.now() / 1000) as Time, value: Math.round(ma5) });
+        if (pricesRef.current.length >= 5 && ma5SeriesRef.current) {
+          const ma5 = pricesRef.current.slice(-5).reduce((a, b) => a + b, 0) / 5;
+          ma5SeriesRef.current.update({ time: Math.floor(Date.now() / 1000) as Time, value: Math.round(ma5) });
         }
 
         // 更新MA10
-        if (prices.length >= 10) {
-          const ma10 = prices.slice(-10).reduce((a, b) => a + b, 0) / 10;
-          ma10Series.update({ time: Math.floor(Date.now() / 1000) as Time, value: Math.round(ma10) });
+        if (pricesRef.current.length >= 10 && ma10SeriesRef.current) {
+          const ma10 = pricesRef.current.slice(-10).reduce((a, b) => a + b, 0) / 10;
+          ma10SeriesRef.current.update({ time: Math.floor(Date.now() / 1000) as Time, value: Math.round(ma10) });
         }
 
         // 更新MA20
-        if (prices.length >= 20) {
-          const ma20 = prices.slice(-20).reduce((a, b) => a + b, 0) / 20;
-          ma20Series.update({ time: Math.floor(Date.now() / 1000) as Time, value: Math.round(ma20) });
+        if (pricesRef.current.length >= 20 && ma20SeriesRef.current) {
+          const ma20 = pricesRef.current.slice(-20).reduce((a, b) => a + b, 0) / 20;
+          ma20SeriesRef.current.update({ time: Math.floor(Date.now() / 1000) as Time, value: Math.round(ma20) });
         }
 
         // 更新当前价格状态
@@ -401,26 +447,24 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     return () => {
       console.log('[TradingChart] Cleaning up chart...');
       isDisposedRef.current = true; // 标记为已销毁
+      
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      
       window.removeEventListener('resize', handleResize);
-      clearInterval(updateInterval);
       
       if (chart) {
         try {
           chart.unsubscribeCrosshairMove(handleCrosshairMove);
-          chart.remove();
-          console.log('[TradingChart] Chart removed successfully');
         } catch (error) {
-          console.warn('[TradingChart] Error removing chart:', error);
+          console.warn('[TradingChart] Error unsubscribing from crosshair move:', error);
         }
       }
       
-      if (tooltipDiv && tooltipDiv.parentNode) {
-        try {
-          tooltipDiv.parentNode.removeChild(tooltipDiv);
-        } catch (error) {
-          console.warn('[TradingChart] Error removing tooltip:', error);
-        }
-      }
+      // 不要在这里移除图表，因为可能在重新创建
+      // 图表会在下一次 useEffect 开始时被移除
     };
   }, [symbol, height, t, selectedTimeframe]);
 
