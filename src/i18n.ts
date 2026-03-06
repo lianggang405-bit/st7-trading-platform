@@ -79,12 +79,13 @@ export default getRequestConfig(async ({ requestLocale }) => {
     locale = defaultLocale;
   }
 
-  console.log('[i18n.ts] ===== Debug Info =====');
-  console.log('[i18n.ts] Final locale:', locale);
-  console.log('[i18n.ts] Using messages from messagesMap for locale:', locale);
+  console.log('[i18n.ts] ===== 语言切换调试 =====');
+  console.log('[i18n.ts] 请求的语言参数:', locale);
+  console.log('[i18n.ts] 从 messagesMap 获取的 messages key:', locale);
   
   const messages = messagesMap[locale as Locale];
-  console.log('[i18n.ts] Messages login value:', messages?.common?.login);
+  
+  console.log('[i18n.ts] messages 内容 (login):', messages?.common?.login);
   console.log('[i18n.ts] =======================');
 
   return {
