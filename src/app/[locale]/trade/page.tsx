@@ -58,7 +58,7 @@ export default function TradePage() {
   });
 
   const [volume, setVolume] = useState<number | ''>('');
-  const [leverage, setLeverage] = useState<number>(10);
+  const [leverage, setLeverage] = useState<number | ''>(10);
   const [timeframe, setTimeframe] = useState<Timeframe>('1H');
   const [tradeMode, setTradeMode] = useState<'instant' | 'pending'>('instant');
   const [useStopLoss, setUseStopLoss] = useState(false);
@@ -192,7 +192,8 @@ export default function TradePage() {
     }
 
     // 验证倍数
-    if (leverage < 10 || leverage > 500) {
+    const leverageNum = typeof leverage === 'string' || isNaN(leverage) ? 0 : leverage;
+    if (leverageNum < 10 || leverageNum > 500) {
       alert(t('invalidLeverage'));
       return;
     }
@@ -208,7 +209,7 @@ export default function TradePage() {
     }
 
     const orderAmount = orderPrice * volumeNum;
-    const margin = orderAmount / leverage;
+    const margin = orderAmount / leverageNum;
 
     if (freeMargin < margin) {
       alert(t('insufficientMargin'));
@@ -245,7 +246,7 @@ export default function TradePage() {
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">{t('leverage')}：</span>
-            <span className="font-semibold">{leverage}x</span>
+            <span className="font-semibold">{leverageNum}x</span>
           </div>
           <div className="flex justify-between border-t pt-2 mt-2">
             <span className="text-gray-500">Margin：</span>
@@ -260,7 +261,7 @@ export default function TradePage() {
           volume: volumeNum,
           orderPrice,
           orderType,
-          leverage,
+          leverage: leverageNum,
           margin,
           freeMargin,
         });
@@ -271,7 +272,7 @@ export default function TradePage() {
           volume: volumeNum,
           price: orderPrice,
           orderType,
-          leverage,
+          leverage: leverageNum,
         }).then((result) => {
           console.log('[TradePage] openPosition result:', result);
         });
@@ -290,7 +291,7 @@ export default function TradePage() {
   const timeframes: Timeframe[] = ['1M', '5M', '15M', '1H', '1D'];
 
   const requiredMargin = currentSymbolData
-    ? (currentSymbolData.price * (typeof volume === 'string' || isNaN(volume) ? 0 : volume)) / leverage
+    ? (currentSymbolData.price * (typeof volume === 'string' || isNaN(volume) ? 0 : volume)) / (typeof leverage === 'string' || isNaN(leverage) ? 10 : leverage)
     : 0;
 
   const estimatedFee = 1; // 固定手续费
@@ -443,7 +444,7 @@ export default function TradePage() {
 
           {/* 参数设置区 - 左右分栏布局 */}
           <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
-            {/* 倍数 - 支持手动输入10-500倍 */}
+            {/* 倍数 - 支持手动输入10-500倍，允许清空 */}
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <span className="text-base font-bold text-gray-900">{t('leverage')}</span>
               <div className="flex items-center gap-2">
@@ -452,13 +453,19 @@ export default function TradePage() {
                   min="10"
                   max="500"
                   step="1"
-                  value={leverage}
+                  placeholder="10-500"
+                  value={leverage === '' ? '' : leverage}
                   onChange={(e) => {
-                    const value = parseInt(e.target.value);
-                    if (!isNaN(value)) {
-                      // 限制在10-500范围内
-                      const clampedValue = Math.min(500, Math.max(10, value));
-                      setLeverage(clampedValue);
+                    const value = e.target.value;
+                    // 允许清空输入框
+                    if (value === '') {
+                      setLeverage('');
+                    } else {
+                      const numValue = parseInt(value);
+                      if (!isNaN(numValue)) {
+                        // 允许用户自由输入，不做限制（让用户看清输入的内容）
+                        setLeverage(numValue);
+                      }
                     }
                   }}
                   onBlur={(e) => {
@@ -470,10 +477,10 @@ export default function TradePage() {
                       setLeverage(500);
                     }
                   }}
-                  placeholder="10-500"
-                  className="w-24 text-right font-bold bg-gray-100 rounded px-3 py-2 text-base text-gray-900"
+                  className="w-20 text-right font-bold bg-gray-100 rounded px-3 py-2 text-lg text-gray-900"
+                  style={{ fontSize: '18px', fontWeight: 'bold' }}
                 />
-                <span className="text-base font-bold text-gray-900">x</span>
+                <span className="text-lg font-bold text-gray-900">x</span>
               </div>
             </div>
 
@@ -621,8 +628,8 @@ export default function TradePage() {
                       setVolume(0.01);
                     }
                   }}
-                  className="w-20 text-right font-bold bg-gray-100 rounded px-3 py-2 text-base text-lg"
-                  style={{ fontSize: '16px' }}
+                  className="w-20 text-right font-bold bg-gray-100 rounded px-3 py-2 text-lg text-gray-900"
+                  style={{ fontSize: '18px', fontWeight: 'bold' }}
                 />
                 <button
                   onClick={() => {
