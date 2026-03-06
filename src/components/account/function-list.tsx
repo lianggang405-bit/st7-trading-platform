@@ -22,9 +22,27 @@ export function FunctionList() {
   const { logout } = useAuthStore();
 
   const handleLogout = async () => {
-    if (confirm(t('profile.confirmLogout'))) {
+    try {
+      console.log('[FunctionList] Logout button clicked');
+
+      // 显示确认对话框
+      if (!confirm(t('profile.confirmLogout'))) {
+        console.log('[FunctionList] Logout cancelled by user');
+        return;
+      }
+
+      console.log('[FunctionList] Starting logout process...');
+
+      // 执行登出
       await logout();
+
+      console.log('[FunctionList] Logout completed, redirecting to login...');
+
       // 登出后跳转到登录页面
+      router.push(`/${locale}/login`);
+    } catch (error) {
+      console.error('[FunctionList] Logout failed:', error);
+      // 即使登出失败，也尝试跳转到登录页面
       router.push(`/${locale}/login`);
     }
   };

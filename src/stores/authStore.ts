@@ -119,24 +119,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   // 登出
   logout: async () => {
+    console.log('[AuthStore] Starting logout process...');
+
     try {
-      // 调用 API 登出
+      // 调用 API 登出（清除本地存储）
       await authApi.logout();
+      console.log('[AuthStore] API logout completed');
     } catch (error) {
       console.warn('[AuthStore] Logout API failed:', error);
     }
 
     // 清除 localStorage 中的认证信息
     if (typeof window !== 'undefined') {
+      console.log('[AuthStore] Clearing localStorage...');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
 
       // 清除 cookie
+      console.log('[AuthStore] Clearing cookies...');
       document.cookie = 'token=; path=/; max-age=0; SameSite=lax';
     }
 
     // 重置所有业务 Store
     // 必须在清除登录态前重置，防止组件渲染时访问空数据
+    console.log('[AuthStore] Resetting all stores...');
     useAssetStore.getState().init();
     usePositionStore.getState().clearPositions();
     useStakingStore.getState().reset();
