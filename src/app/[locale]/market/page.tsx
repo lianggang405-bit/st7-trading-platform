@@ -17,11 +17,16 @@ export default function MarketPage() {
   const symbols = marketState?.symbols ?? [];
   const tick = marketState?.tick;
   const setSymbols = marketState?.setSymbols;
-  const { isHydrated } = useAuthStore();
+  const { isHydrated, isLogin } = useAuthStore();
   const [categoryFilter, setCategoryFilter] = useState('Forex');
   const [filteredSymbols, setFilteredSymbols] = useState<MarketSymbol[]>([]);
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
+
+  // 调试日志
+  useEffect(() => {
+    console.log('[MarketPage] isHydrated:', isHydrated, 'isLogin:', isLogin, 'loaded:', loaded);
+  }, [isHydrated, isLogin, loaded]);
 
   // 从数据库加载数据
   useEffect(() => {
@@ -124,7 +129,7 @@ export default function MarketPage() {
   };
 
   return (
-    <PageShell loading={!isHydrated}>
+    <PageShell loading={false}>
       <AuthGuard>
         <div className="min-h-screen bg-gray-50 pb-20">
           {/* 顶部导航栏 */}

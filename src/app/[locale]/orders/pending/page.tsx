@@ -93,7 +93,7 @@ export default function PendingOrdersPage() {
   };
 
   return (
-    <PageShell loading={!isHydrated}>
+    <PageShell loading={false}>
       {isHydrated && (
         <AuthGuard>
           <div className="min-h-screen bg-gray-50 pb-20">

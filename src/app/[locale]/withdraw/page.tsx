@@ -288,7 +288,7 @@ export default function WithdrawPage() {
   };
 
   return (
-    <PageShell loading={!isHydrated}>
+    <PageShell loading={false}>
       <AuthGuard>
         <div className="min-h-screen bg-white">
           {/* 顶部导航 */}

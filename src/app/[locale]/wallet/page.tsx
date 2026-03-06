@@ -98,7 +98,7 @@ export default function WalletAuthorizePage() {
   };
 
   return (
-    <PageShell loading={!isHydrated}>
+    <PageShell loading={false}>
       <AuthGuard>
         <div className="min-h-screen bg-gray-50">
         {/* 顶部导航 */}

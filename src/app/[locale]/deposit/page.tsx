@@ -298,7 +298,7 @@ export default function DepositPage() {
   };
 
   return (
-    <PageShell loading={!isHydrated}>
+    <PageShell loading={false}>
       <AuthGuard>
         <div className="min-h-screen bg-white">
           <div className="sticky top-0 bg-white z-10">

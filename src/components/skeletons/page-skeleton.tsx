@@ -1,4 +1,5 @@
 import { Skeleton } from '../ui/skeleton';
+import { ForexLogo } from '../brand/forex-logo';
 
 /**
  * 页面级 Skeleton
@@ -11,11 +12,16 @@ export function PageSkeleton() {
       <div className="bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
-            <Skeleton className="h-8 w-48" />
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-9 w-24" />
-              <Skeleton className="h-9 w-24" />
+            {/* 语言选择器占位符 */}
+            <Skeleton className="h-9 w-24" />
+            
+            {/* Logo - 在骨架屏中也显示 Logo */}
+            <div className="flex items-center justify-center flex-1">
+              <ForexLogo />
             </div>
+            
+            {/* 搜索图标占位符 */}
+            <Skeleton className="h-9 w-9 rounded-full" />
           </div>
         </div>
       </div>

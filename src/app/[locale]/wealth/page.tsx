@@ -137,7 +137,7 @@ export default function WealthPage() {
   };
 
   return (
-    <PageShell loading={!isHydrated}>
+    <PageShell loading={false}>
       <AuthGuard>
         <div className="min-h-screen bg-gray-50 pb-20">
           {/* 顶部总览卡片 */}

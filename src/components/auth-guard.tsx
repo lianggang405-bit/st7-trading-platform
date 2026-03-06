@@ -25,8 +25,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [isHydrated, isLogin, router, pathname, locale]);
 
-  // 🚫 hydrate 之前，什么都不渲染（交给 PageShell）
-  if (!isHydrated) return null;
+  // 🚫 hydrate 之前，直接渲染内容（让用户至少能看到 UI）
+  // 这样服务器端渲染时，用户可以看到页面内容（包括 logo）
+  if (!isHydrated) return <>{children}</>;
 
   // ❌ hydrate 完但没登录 → 不渲染页面（由 useEffect 处理重定向）
   if (!isLogin) return null;
