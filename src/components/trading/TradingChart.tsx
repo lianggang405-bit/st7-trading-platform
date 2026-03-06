@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, IChartApi, MouseEventParams, Time } from 'lightweight-charts';
-import { CandlestickSeries, LineSeries } from 'lightweight-charts';
+import { CandlestickSeries, HistogramSeries, LineSeries } from 'lightweight-charts';
 import { useTranslations } from 'next-intl';
 
 interface TradingChartProps {
@@ -44,7 +44,6 @@ async function getRealPriceFromAPI(symbol: string): Promise<number | null> {
     });
 
     if (!response.ok) {
-      console.warn(`[TradingChart] API request failed for ${symbol}:`, response.status);
       return null;
     }
 
@@ -56,7 +55,6 @@ async function getRealPriceFromAPI(symbol: string): Promise<number | null> {
     
     return null;
   } catch (error) {
-    console.warn(`[TradingChart] Error fetching price for ${symbol}:`, error);
     return null;
   }
 }
@@ -65,18 +63,19 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<any>(null);
+  const volumeSeriesRef = useRef<any>(null);
   const ma5SeriesRef = useRef<any>(null);
   const ma10SeriesRef = useRef<any>(null);
   const ma20SeriesRef = useRef<any>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
-  const isDisposedRef = useRef<boolean>(false); // 追踪图表是否已销毁
-  const intervalRef = useRef<NodeJS.Timeout | null>(null); // 保存 interval 引用
+  const isDisposedRef = useRef<boolean>(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const t = useTranslations('chart');
   const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>('1M');
   const [currentPrice, setCurrentPrice] = useState<number>(0);
-  const pricesRef = useRef<number[]>([]); // 使用 ref 保存价格数组
+  const pricesRef = useRef<number[]>([]);
+  const lastCandleRef = useRef<any>(null); // 保存最后一根 K 线
 
-  // 获取基准价格
   function getBasePrice(symbol: string): number {
     const basePrices: { [key: string]: number } = {
       'EURUSD': 1.0856,
@@ -101,9 +100,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   }
 
   useEffect(() => {
-    // 清理之前的图表
     if (chartInstanceRef.current) {
-      console.log('[TradingChart] Cleaning up previous chart...');
       isDisposedRef.current = true;
       
       if (intervalRef.current) {
@@ -113,24 +110,17 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       
       try {
         chartInstanceRef.current.remove();
-        console.log('[TradingChart] Previous chart removed successfully');
-      } catch (error) {
-        console.warn('[TradingChart] Error removing previous chart:', error);
-      }
+      } catch (error) {}
       
       chartInstanceRef.current = null;
     }
 
     if (!chartRef.current) return;
 
-    isDisposedRef.current = false; // 重置销毁标记
-    console.log('[TradingChart] Initializing chart for symbol:', symbol, 'timeframe:', selectedTimeframe);
-
-    // 获取当前时间周期的间隔
+    isDisposedRef.current = false;
     const timeframeConfig = TIMEFRAMES.find(tf => tf.value === selectedTimeframe) || TIMEFRAMES[0];
     const interval = timeframeConfig.interval;
 
-    // 创建图表实例
     const chart = createChart(chartRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: '#0a0a0a' },
@@ -143,7 +133,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       width: chartRef.current.clientWidth,
       height: height,
       crosshair: {
-        mode: 1, // 十字线模式
+        mode: 1,
         vertLine: {
           color: '#758696',
           width: 1,
@@ -167,45 +157,50 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       },
     });
 
-    chartInstanceRef.current = chart; // 保存图表引用
+    chartInstanceRef.current = chart;
 
-    // 添加K线系列
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#00ff9c',      // 上涨颜色：绿色
-      downColor: '#ff4976',    // 下跌颜色：红色
+      upColor: '#00ff9c',
+      downColor: '#ff4976',
       borderVisible: false,
-      wickUpColor: '#00ff9c',  // 上涨影线颜色
-      wickDownColor: '#ff4976',// 下跌影线颜色
+      wickUpColor: '#00ff9c',
+      wickDownColor: '#ff4976',
     });
     candlestickSeriesRef.current = candlestickSeries;
 
-    // 添加MA5均线
+    const volumeSeries = chart.addSeries(HistogramSeries, {
+      color: '#26a69a',
+      priceFormat: {
+        type: 'volume',
+      },
+      priceScaleId: '',
+    });
+    volumeSeriesRef.current = volumeSeries;
+
     const ma5Series = chart.addSeries(LineSeries, {
-      color: '#f7931a', // 橙色
+      color: '#f7931a',
       lineWidth: 1,
       title: 'MA5',
     });
     ma5SeriesRef.current = ma5Series;
 
-    // 添加MA10均线
     const ma10Series = chart.addSeries(LineSeries, {
-      color: '#4caf50', // 绿色
+      color: '#4caf50',
       lineWidth: 1,
       title: 'MA10',
     });
     ma10SeriesRef.current = ma10Series;
 
-    // 添加MA20均线
     const ma20Series = chart.addSeries(LineSeries, {
-      color: '#2196f3', // 蓝色
+      color: '#2196f3',
       lineWidth: 1,
       title: 'MA20',
     });
     ma20SeriesRef.current = ma20Series;
 
-    // 生成初始K线数据（模拟历史数据）
     const now = new Date();
     const klineData: KlineData[] = [];
+    const volumeData: { time: Time; value: number; color: string }[] = [];
     const ma5Data: { time: Time; value: number }[] = [];
     const ma10Data: { time: Time; value: number }[] = [];
     const ma20Data: { time: Time; value: number }[] = [];
@@ -215,11 +210,14 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     pricesRef.current = prices;
 
     for (let i = 200; i >= 0; i--) {
-      const time = new Date(now.getTime() - i * interval); // 使用选中的时间间隔
+      const time = new Date(now.getTime() - i * interval);
       const open = basePrice + (Math.random() - 0.5) * 1000;
       const close = open + (Math.random() - 0.5) * 500;
       const high = Math.max(open, close) + Math.random() * 200;
       const low = Math.min(open, close) - Math.random() * 200;
+      const volume = Math.floor(Math.random() * 1000000);
+
+      const isUp = close >= open;
 
       klineData.push({
         time: (time.getTime() / 1000) as Time,
@@ -227,12 +225,18 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         high: Math.round(high),
         low: Math.round(low),
         close: Math.round(close),
+        volume,
+      });
+
+      volumeData.push({
+        time: (time.getTime() / 1000) as Time,
+        value: volume,
+        color: isUp ? 'rgba(0, 255, 156, 0.5)' : 'rgba(255, 73, 118, 0.5)',
       });
 
       prices.push(close);
       basePrice = close;
 
-      // 计算MA均线
       if (prices.length >= 5) {
         const ma5 = prices.slice(-5).reduce((a, b) => a + b, 0) / 5;
         ma5Data.push({ time: (time.getTime() / 1000) as Time, value: Math.round(ma5) });
@@ -250,23 +254,28 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     }
 
     candlestickSeries.setData(klineData);
+    volumeSeries.setData(volumeData);
     ma5Series.setData(ma5Data);
     ma10Series.setData(ma10Data);
     ma20Series.setData(ma20Data);
 
-    // 初始化当前价格
     setCurrentPrice(basePrice);
 
-    // 清理旧的 tooltip
+    // 保存最后一根 K 线
+    lastCandleRef.current = {
+      time: Math.floor(Date.now() / 1000) as Time,
+      open: Math.round(klineData[klineData.length - 1].open),
+      high: Math.round(klineData[klineData.length - 1].high),
+      low: Math.round(klineData[klineData.length - 1].low),
+      close: Math.round(klineData[klineData.length - 1].close),
+    };
+
     if (tooltipRef.current && tooltipRef.current.parentNode) {
       try {
         tooltipRef.current.parentNode.removeChild(tooltipRef.current);
-      } catch (error) {
-        console.warn('[TradingChart] Error removing old tooltip:', error);
-      }
+      } catch (error) {}
     }
 
-    // 创建自定义tooltip
     const tooltipDiv = document.createElement('div');
     tooltipDiv.style.position = 'absolute';
     tooltipDiv.style.zIndex = '1000';
@@ -280,7 +289,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     chartRef.current.appendChild(tooltipDiv);
     tooltipRef.current = tooltipDiv;
 
-    // 十字线移动事件
     const handleCrosshairMove = (param: MouseEventParams) => {
       if (!param.time || !tooltipDiv) {
         tooltipDiv.style.display = 'none';
@@ -343,110 +351,111 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
     chart.subscribeCrosshairMove(handleCrosshairMove);
 
-    // 响应式调整大小
     const handleResize = () => {
       if (chartRef.current && chart && !isDisposedRef.current) {
         try {
           chart.applyOptions({
             width: chartRef.current.clientWidth,
           });
-        } catch (error) {
-          console.warn('[TradingChart] Error resizing chart:', error);
-        }
+        } catch (error) {}
       }
     };
 
     window.addEventListener('resize', handleResize);
 
-    // ✅ 实时更新K线 - 通过后端 API 获取真实数据（避免 CORS）
+    // ✅ 优化实时更新：降低更新频率到 3 秒，价格变化更平滑
     let price = basePrice;
     intervalRef.current = setInterval(async () => {
-      // 检查图表是否已销毁
       if (isDisposedRef.current || !chartInstanceRef.current) {
-        console.log('[TradingChart] Chart is disposed, skipping update');
         return;
       }
 
       try {
-        // 通过后端 API 获取真实价格（避免 CORS 问题）
         const realPrice = await getRealPriceFromAPI(symbol);
         
-        if (realPrice !== null) {
-          price = realPrice;
-          console.log(`[TradingChart] Real price update for ${symbol}: ${price}`);
+        if (realPrice !== null && realPrice > 0) {
+          // 平滑过渡：新价格 = 旧价格 * 0.7 + 新价格 * 0.3
+          price = price * 0.7 + realPrice * 0.3;
         } else {
-          // 如果获取失败，使用模拟价格
-          price += (Math.random() - 0.5) * 200;
-          console.log(`[TradingChart] Using mock price for ${symbol}: ${price}`);
+          // 模拟价格变化：减小波动幅度
+          const change = (Math.random() - 0.5) * 50; // 从 200 降低到 50
+          price += change;
         }
       } catch (error) {
-        // 如果出错，使用模拟价格
-        price += (Math.random() - 0.5) * 200;
-        console.warn(`[TradingChart] Error fetching price for ${symbol}:`, error);
+        // 模拟价格变化：减小波动幅度
+        const change = (Math.random() - 0.5) * 50;
+        price += change;
       }
 
-      // 再次检查图表是否已销毁（API 调用可能耗时）
       if (isDisposedRef.current || !chartInstanceRef.current) {
-        console.log('[TradingChart] Chart is disposed after API call, skipping update');
         return;
       }
 
-      const newClose = price;
-      const newOpen = price - 50;
-      const newHigh = price + 80;
-      const newLow = price - 120;
+      // 更新最后一根 K 线
+      if (lastCandleRef.current) {
+        const lastCandle = lastCandleRef.current;
+        
+        // 更新收盘价
+        const newClose = price;
+        
+        // 更新最高价和最低价
+        const newHigh = Math.max(lastCandle.high, newClose);
+        const newLow = Math.min(lastCandle.low, newClose);
 
-      const newCandle = {
-        time: Math.floor(Date.now() / 1000) as Time,
-        open: Math.round(newOpen),
-        high: Math.round(newHigh),
-        low: Math.round(newLow),
-        close: Math.round(newClose),
-      };
+        const updatedCandle = {
+          time: lastCandle.time,
+          open: lastCandle.open,
+          high: Math.round(newHigh),
+          low: Math.round(newLow),
+          close: Math.round(newClose),
+        };
 
-      try {
-        // 更新K线
-        if (candlestickSeriesRef.current) {
-          candlestickSeriesRef.current.update(newCandle);
-        }
+        try {
+          if (candlestickSeriesRef.current) {
+            candlestickSeriesRef.current.update(updatedCandle);
+          }
 
-        // 更新价格数组并计算MA
-        pricesRef.current.push(newClose);
-        if (pricesRef.current.length > 200) pricesRef.current.shift();
+          // 更新成交量
+          if (volumeSeriesRef.current) {
+            const isUp = newClose >= lastCandle.open;
+            const volume = Math.floor(Math.random() * 1000000);
+            volumeSeriesRef.current.update({
+              time: lastCandle.time,
+              value: volume,
+              color: isUp ? 'rgba(0, 255, 156, 0.5)' : 'rgba(255, 73, 118, 0.5)',
+            });
+          }
 
-        // 更新MA5
-        if (pricesRef.current.length >= 5 && ma5SeriesRef.current) {
-          const ma5 = pricesRef.current.slice(-5).reduce((a, b) => a + b, 0) / 5;
-          ma5SeriesRef.current.update({ time: Math.floor(Date.now() / 1000) as Time, value: Math.round(ma5) });
-        }
+          pricesRef.current.push(newClose);
+          if (pricesRef.current.length > 200) pricesRef.current.shift();
 
-        // 更新MA10
-        if (pricesRef.current.length >= 10 && ma10SeriesRef.current) {
-          const ma10 = pricesRef.current.slice(-10).reduce((a, b) => a + b, 0) / 10;
-          ma10SeriesRef.current.update({ time: Math.floor(Date.now() / 1000) as Time, value: Math.round(ma10) });
-        }
+          if (pricesRef.current.length >= 5 && ma5SeriesRef.current) {
+            const ma5 = pricesRef.current.slice(-5).reduce((a, b) => a + b, 0) / 5;
+            ma5SeriesRef.current.update({ time: lastCandle.time, value: Math.round(ma5) });
+          }
 
-        // 更新MA20
-        if (pricesRef.current.length >= 20 && ma20SeriesRef.current) {
-          const ma20 = pricesRef.current.slice(-20).reduce((a, b) => a + b, 0) / 20;
-          ma20SeriesRef.current.update({ time: Math.floor(Date.now() / 1000) as Time, value: Math.round(ma20) });
-        }
+          if (pricesRef.current.length >= 10 && ma10SeriesRef.current) {
+            const ma10 = pricesRef.current.slice(-10).reduce((a, b) => a + b, 0) / 10;
+            ma10SeriesRef.current.update({ time: lastCandle.time, value: Math.round(ma10) });
+          }
 
-        // 更新当前价格状态
-        setCurrentPrice(newClose);
+          if (pricesRef.current.length >= 20 && ma20SeriesRef.current) {
+            const ma20 = pricesRef.current.slice(-20).reduce((a, b) => a + b, 0) / 20;
+            ma20SeriesRef.current.update({ time: lastCandle.time, value: Math.round(ma20) });
+          }
 
-        chart.timeScale().scrollToRealTime();
-      } catch (error) {
-        console.warn('[TradingChart] Error updating chart:', error);
+          setCurrentPrice(newClose);
+
+          chart.timeScale().scrollToRealTime();
+        } catch (error) {}
+
+        // 更新引用
+        lastCandleRef.current = updatedCandle;
       }
-    }, 1000); // 每秒更新一次
+    }, 3000); // ✅ 从 1 秒改为 3 秒，减少频繁更新
 
-    console.log('[TradingChart] Chart initialized successfully');
-
-    // 清理函数
     return () => {
-      console.log('[TradingChart] Cleaning up chart...');
-      isDisposedRef.current = true; // 标记为已销毁
+      isDisposedRef.current = true;
       
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -458,19 +467,13 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       if (chart) {
         try {
           chart.unsubscribeCrosshairMove(handleCrosshairMove);
-        } catch (error) {
-          console.warn('[TradingChart] Error unsubscribing from crosshair move:', error);
-        }
+        } catch (error) {}
       }
-      
-      // 不要在这里移除图表，因为可能在重新创建
-      // 图表会在下一次 useEffect 开始时被移除
     };
   }, [symbol, height, t, selectedTimeframe]);
 
   return (
     <div className="relative">
-      {/* 时间周期选择器 */}
       <div className="absolute top-2 left-2 z-10 flex gap-1 bg-[#1a1a1a] rounded-lg p-1">
         {TIMEFRAMES.map((tf) => (
           <button
@@ -487,7 +490,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         ))}
       </div>
 
-      {/* 当前价格显示 */}
       <div className="absolute top-2 right-2 z-10 bg-[#1a1a1a] rounded-lg px-3 py-1 flex items-center gap-2">
         <span className="text-gray-400 text-xs">{symbol}</span>
         <span className="text-white text-sm font-mono">
@@ -500,7 +502,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         className="w-full bg-[#0a0a0a] rounded-lg overflow-hidden"
         style={{ height: `${height}px` }}
       />
-      {/* MA 均线图例 */}
+      
       <div className="absolute top-10 right-2 flex gap-4 text-xs">
         <div className="flex items-center gap-1">
           <div className="w-3 h-1 bg-[#f7931a]"></div>
