@@ -57,7 +57,7 @@ export default function TradePage() {
     positionsCount: positions.length,
   });
 
-  const [volume, setVolume] = useState(0.1);
+  const [volume, setVolume] = useState("0.1"); // 改为 string 类型，避免输入时自动补零
   const [leverage, setLeverage] = useState<100 | 200 | 300 | 400 | 500>(100);
   const [timeframe, setTimeframe] = useState<Timeframe>('1H');
   const [tradeMode, setTradeMode] = useState<'instant' | 'pending'>('instant');
@@ -220,7 +220,7 @@ export default function TradePage() {
       return;
     }
 
-    const orderAmount = orderPrice * volume;
+    const orderAmount = orderPrice * parseFloat(volume);
     const margin = orderAmount / leverage;
 
     if (freeMargin < margin) {
@@ -281,7 +281,7 @@ export default function TradePage() {
         openPosition({
           symbol: currentSymbol,
           side,
-          volume,
+          volume: parseFloat(volume),
           price: orderPrice,
           orderType,
           leverage,
@@ -303,7 +303,7 @@ export default function TradePage() {
   const timeframes: Timeframe[] = ['1M', '5M', '15M', '1H', '1D'];
 
   const requiredMargin = currentSymbolData
-    ? (currentSymbolData.price * volume) / leverage
+    ? (currentSymbolData.price * parseFloat(volume)) / leverage
     : 0;
 
   const estimatedFee = 1; // 固定手续费
@@ -587,22 +587,29 @@ export default function TradePage() {
               <span className="text-base font-bold text-gray-900">{t('volume')}</span>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setVolume(Math.max(0, volume - 0.1))}
+                  onClick={() => setVolume((Math.max(0, parseFloat(volume) - 0.1)).toString())}
                   className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded hover:bg-gray-200 active:scale-95 transition-all"
                 >
                   -
                 </button>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   step="0.1"
                   min="0"
                   value={volume}
-                  onChange={(e) => setVolume(Math.max(0, parseFloat(e.target.value) || 0))}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // 只允许输入数字和小数点，且最多一个小数点
+                    if (/^\d*\.?\d*$/.test(value)) {
+                      setVolume(value);
+                    }
+                  }}
                   className="w-20 text-right font-bold bg-gray-100 rounded px-3 py-2 text-base text-lg"
                   style={{ fontSize: '16px' }}
                 />
                 <button
-                  onClick={() => setVolume(volume + 0.1)}
+                  onClick={() => setVolume((parseFloat(volume) + 0.1).toString())}
                   className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded hover:bg-gray-200 active:scale-95 transition-all"
                 >
                   +
