@@ -10,7 +10,7 @@ import {
 } from 'lightweight-charts'
 
 import { useMarketStore } from '@/stores/marketStore'
-import { FIXED_KLINE_HISTORY, adjustHistoryToPrice } from '@/lib/kline-history'
+import { getKlinesWithCache, fetchBinanceKlines } from '@/lib/binance-klines'
 
 interface TradingChartProps {
   symbol?: string
@@ -53,6 +53,7 @@ export default function TradingChart({
   const { symbols } = useMarketStore()
 
   const [timeframe, setTimeframe] = useState<Timeframe>('1M')
+  const [isLoading, setIsLoading] = useState<boolean>(true)
 
   const currentSymbol = symbols.find(s => s.symbol === symbol)
   const currentPrice = currentSymbol?.price || 0
@@ -65,10 +66,29 @@ export default function TradingChart({
     return TIMEFRAMES.find(t => t.value === timeframe)?.interval || 60
   }
 
-  // ✅ 使用固定的历史数据（不再随机生成）
-  const getHistory = (price: number) => {
-    // 根据当前价格调整历史数据，使其价格水平匹配
-    return adjustHistoryToPrice(FIXED_KLINE_HISTORY, price)
+  // ✅ 从Binance API获取真实历史数据
+  const loadHistory = async () => {
+    setIsLoading(true)
+    try {
+      const history = await getKlinesWithCache(symbol, timeframe, 80)
+      
+      // 转换为图表格式
+      const klineData: KlineData[] = history.map(k => ({
+        time: k.time as Time,
+        open: Math.round(k.open),
+        high: Math.round(k.high),
+        low: Math.round(k.low),
+        close: Math.round(k.close),
+      }))
+
+      return klineData
+    } catch (error) {
+      console.error('[TradingChart] 获取历史数据失败:', error)
+      // 如果API失败，返回空数组
+      return []
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -118,16 +138,19 @@ export default function TradingChart({
     chartInstance.current = chart
     seriesRef.current = series
 
-    // ✅ 使用固定的历史数据
-    const history = getHistory(currentPrice)
+    // ✅ 从Binance API加载真实历史数据
+    const initializeChart = async () => {
+      const history = await loadHistory()
+      
+      if (history.length > 0) {
+        series.setData(history)
+        lastCandleRef.current = history[history.length - 1]
+        lastPriceRef.current = currentPrice
+        chart.timeScale().fitContent()
+      }
+    }
 
-    series.setData(history)
-
-    lastCandleRef.current = history[history.length - 1]
-
-    lastPriceRef.current = currentPrice
-
-    chart.timeScale().fitContent()
+    initializeChart()
 
     intervalRef.current = setInterval(() => {
 
@@ -233,6 +256,13 @@ export default function TradingChart({
         ))}
 
       </div>
+
+      {/* 加载指示器 */}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a]/80 z-20">
+          <div className="text-gray-400 text-sm">加载历史数据...</div>
+        </div>
+      )}
 
       <div
         ref={chartRef}
