@@ -37,6 +37,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<any>(null);
+  const priceLineRef = useRef<any>(null); // ✅ 最新价格线引用
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const t = useTranslations('chart');
@@ -44,6 +45,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const lastPriceRef = useRef<number>(0);
   const klineDataRef = useRef<KlineData[]>([]);
+  const currentSymbolPriceRef = useRef<number>(0); // ✅ 用于存储最新的实时价格
   const { symbols } = useMarketStore();
 
   // ✅ 获取当前交易对的实时价格
@@ -73,12 +75,15 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     return basePrices[symbol] || 100;
   }
 
-  // ✅ 监听当前交易对价格变化，同步更新 K 线
+  // ✅ 监听当前交易对价格变化，更新 ref
   useEffect(() => {
-    if (currentSymbolPrice > 0 && lastPriceRef.current === 0) {
+    if (currentSymbolPrice > 0) {
+      currentSymbolPriceRef.current = currentSymbolPrice;
       // 第一次加载时，设置初始价格
-      lastPriceRef.current = currentSymbolPrice;
-      setCurrentPrice(currentSymbolPrice);
+      if (lastPriceRef.current === 0) {
+        lastPriceRef.current = currentSymbolPrice;
+        setCurrentPrice(currentSymbolPrice);
+      }
     }
   }, [currentSymbolPrice]);
 
@@ -120,6 +125,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         borderColor: '#333',
         timeVisible: true,
         secondsVisible: false,
+        rightBarStaysOnScroll: true, // ✅ 确保画面一直贴右边
       },
     });
 
@@ -164,6 +170,17 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     klineDataRef.current = klineData;
     lastPriceRef.current = basePrice;
     setCurrentPrice(basePrice);
+
+    // ✅ 创建最新价格线（那条虚线）
+    const priceLine = candlestickSeries.createPriceLine({
+      price: basePrice,
+      color: '#26a69a', // 绿色
+      lineWidth: 1,
+      lineStyle: 2, // 2 = 虚线
+      axisLabelVisible: true,
+      title: '', // 可以设置 'Price' 或 'Last'
+    });
+    priceLineRef.current = priceLine;
 
     // 十字线悬浮提示
     const handleCrosshairMove = (param: MouseEventParams) => {
@@ -217,8 +234,8 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         return;
       }
 
-      // ✅ 使用 marketStore 中的价格（与交易对价格数据源统一）
-      const newPrice = currentSymbolPrice > 0 ? currentSymbolPrice : lastPriceRef.current;
+      // ✅ 使用 ref 获取最新的实时价格（避免闭包问题）
+      const newPrice = currentSymbolPriceRef.current > 0 ? currentSymbolPriceRef.current : lastPriceRef.current;
 
       // 如果价格没有变化，跳过更新
       if (newPrice === lastPriceRef.current) {
@@ -261,6 +278,19 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         klineDataRef.current[klineDataRef.current.length - 1] = updatedCandle;
       }
 
+      // ✅ 更新最新价格线（虚线）
+      if (priceLineRef.current) {
+        priceLineRef.current.applyOptions({
+          price: newPrice,
+          color: newPrice >= lastCandle.open ? '#26a69a' : '#ef5350', // 涨绿跌红
+        });
+      }
+
+      // ✅ 强制滚动到最新时间（确保K线向右移动）
+      if (chartInstanceRef.current) {
+        chartInstanceRef.current.timeScale().scrollToRealTime();
+      }
+
       lastPriceRef.current = newPrice;
     }, 1000);
 
@@ -280,16 +310,22 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      
+
       window.removeEventListener('resize', handleResize);
-      
+
+      // ✅ 移除价格线
+      if (priceLineRef.current && candlestickSeriesRef.current) {
+        candlestickSeriesRef.current.removePriceLine(priceLineRef.current);
+        priceLineRef.current = null;
+      }
+
       if (chart) {
         try {
           chart.unsubscribeCrosshairMove(handleCrosshairMove);
         } catch (error) {}
       }
     };
-  }, [symbol, height, t, selectedTimeframe]);
+  }, [symbol, height, t, selectedTimeframe]); // ✅ 添加 currentSymbolPrice 依赖
 
   return (
     <div className="relative">
