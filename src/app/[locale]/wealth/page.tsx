@@ -419,105 +419,110 @@ export default function WealthPage() {
                 onClick={() => setIsModalOpen(false)}
               />
               {/* 弹窗内容 */}
-              <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-20 p-6 animate-slide-up">
-                <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
-                <h2 className="text-lg font-bold text-gray-900 mb-4">
-                  {action === 'deposit' ? t('modalTitle') : t('modalUnstakeTitle')} {selectedAssetData.symbol}
-                </h2>
+              <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-20 max-h-[85vh] overflow-hidden flex flex-col animate-slide-up">
+                <div className="p-6 overflow-y-auto flex-1">
+                  <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
+                  <h2 className="text-lg font-bold text-gray-900 mb-4">
+                    {action === 'deposit' ? t('modalTitle') : t('modalUnstakeTitle')} {selectedAssetData.symbol}
+                  </h2>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t('amountLabel')} ({selectedAssetData.symbol})
-                  </label>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder={t('amountPlaceholder')}
-                    className="w-full px-4 py-3 bg-gray-100 rounded-xl text-lg font-semibold"
-                    step="0.0001"
-                    min={selectedAssetData.minAmount}
-                    max={action === 'deposit' ? selectedAssetData.maxAmount : selectedAssetData.stakingAmount}
-                  />
-                  <div className="flex justify-between mt-2 text-xs text-gray-500">
-                    <span>{t('minAmount')}: {selectedAssetData.minAmount}</span>
-                    <span>{t('maxAmount')}: {action === 'deposit' ? selectedAssetData.maxAmount : selectedAssetData.stakingAmount}</span>
-                  </div>
-                </div>
-
-                {/* 质押期限选择（仅质押时显示） */}
-                {action === 'deposit' && (
                   <div className="mb-4">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      {t('stakingPeriod')}
+                      {t('amountLabel')} ({selectedAssetData.symbol})
                     </label>
-                    <div className="grid grid-cols-5 gap-2">
-                      {PERIOD_OPTIONS.map((option) => {
-                        const actualApr = selectedAssetData.getApr(option.value);
-                        return (
-                          <button
-                            key={option.value}
-                            onClick={() => setSelectedPeriod(option.value)}
-                            className={`flex flex-col items-center p-3 rounded-xl transition-colors ${
-                              selectedPeriod === option.value
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                          >
-                            <span className="text-xs font-bold mb-1">{option.label}</span>
-                            <span className={`text-xs ${selectedPeriod === option.value ? 'text-blue-100' : 'text-gray-500'}`}>
-                              +{((option.bonus - 1) * 100).toFixed(0)}%
-                            </span>
-                          </button>
-                        );
-                      })}
+                    <input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder={t('amountPlaceholder')}
+                      className="w-full px-4 py-3 bg-gray-100 rounded-xl text-lg font-semibold"
+                      step="0.0001"
+                      min={selectedAssetData.minAmount}
+                      max={action === 'deposit' ? selectedAssetData.maxAmount : selectedAssetData.stakingAmount}
+                    />
+                    <div className="flex justify-between mt-2 text-xs text-gray-500">
+                      <span>{t('minAmount')}: {selectedAssetData.minAmount}</span>
+                      <span>{t('maxAmount')}: {action === 'deposit' ? selectedAssetData.maxAmount : selectedAssetData.stakingAmount}</span>
                     </div>
                   </div>
-                )}
 
-                {/* 收益信息 */}
-                <div className="bg-gray-50 rounded-xl p-4 mb-4">
-                  {action === 'deposit' ? (
-                    <>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-500">{t('baseAprLabel')}</span>
-                        <span className="font-bold text-gray-600">{selectedAssetData.baseApr}%</span>
+                  {/* 质押期限选择（仅质押时显示） */}
+                  {action === 'deposit' && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        {t('stakingPeriod')}
+                      </label>
+                      <div className="grid grid-cols-5 gap-2">
+                        {PERIOD_OPTIONS.map((option) => {
+                          const actualApr = selectedAssetData.getApr(option.value);
+                          return (
+                            <button
+                              key={option.value}
+                              onClick={() => setSelectedPeriod(option.value)}
+                              className={`flex flex-col items-center p-3 rounded-xl transition-colors ${
+                                selectedPeriod === option.value
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              <span className="text-xs font-bold mb-1">{option.label}</span>
+                              <span className={`text-xs ${selectedPeriod === option.value ? 'text-blue-100' : 'text-gray-500'}`}>
+                                +{((option.bonus - 1) * 100).toFixed(0)}%
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-500">{t('actualAprLabel')}</span>
-                        <span className="font-bold text-green-600">{selectedAssetData.getApr(selectedPeriod).toFixed(2)}%</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">{t('estimatedDailyReward')}</span>
-                        <span className="font-bold text-gray-900">
-                          {parseFloat(amount) * (selectedAssetData.getApr(selectedPeriod) / 100) / 365} USDT
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">{t('unstakeAmount')}</span>
-                      <span className="font-bold text-gray-900">
-                        {parseFloat(amount) || 0} {selectedAssetData.symbol}
-                      </span>
                     </div>
                   )}
+
+                  {/* 收益信息 */}
+                  <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                    {action === 'deposit' ? (
+                      <>
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-gray-500">{t('baseAprLabel')}</span>
+                          <span className="font-bold text-gray-600">{selectedAssetData.baseApr}%</span>
+                        </div>
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-gray-500">{t('actualAprLabel')}</span>
+                          <span className="font-bold text-green-600">{selectedAssetData.getApr(selectedPeriod).toFixed(2)}%</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">{t('estimatedDailyReward')}</span>
+                          <span className="font-bold text-gray-900">
+                            {parseFloat(amount) * (selectedAssetData.getApr(selectedPeriod) / 100) / 365} USDT
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">{t('unstakeAmount')}</span>
+                        <span className="font-bold text-gray-900">
+                          {parseFloat(amount) || 0} {selectedAssetData.symbol}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setIsModalOpen(false)}
-                    className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200"
-                  >
-                    {t('cancelBtn')}
-                  </button>
-                  <button
-                    onClick={handleConfirm}
-                    disabled={!amount || parseFloat(amount) <= 0}
-                    className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
-                  >
-                    {t('confirmBtn')}
-                  </button>
+                {/* 固定在底部的按钮区域 */}
+                <div className="p-6 pt-0 border-t border-gray-100 bg-white">
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setIsModalOpen(false)}
+                      className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200"
+                    >
+                      {t('cancelBtn')}
+                    </button>
+                    <button
+                      onClick={handleConfirm}
+                      disabled={!amount || parseFloat(amount) <= 0}
+                      className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+                    >
+                      {t('confirmBtn')}
+                    </button>
+                  </div>
                 </div>
               </div>
             </>
