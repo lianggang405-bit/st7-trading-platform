@@ -50,7 +50,7 @@ export default function TradingChart({
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const { symbols } = useMarketStore()
+  const { symbols, setSymbols } = useMarketStore()
 
   const [timeframe, setTimeframe] = useState<Timeframe>('1M')
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -80,6 +80,25 @@ export default function TradingChart({
         low: Math.round(k.low),
         close: Math.round(k.close),
       }))
+
+      // ✅ 同步最新价格到 marketStore
+      if (klineData.length > 0) {
+        const latestPrice = klineData[klineData.length - 1].close
+        console.log(`[TradingChart] 从K线数据同步价格: ${symbol} = ${latestPrice}`)
+        
+        // 更新 marketStore 中的价格
+        const updatedSymbols = symbols.map((s) => {
+          if (s.symbol === symbol) {
+            return {
+              ...s,
+              price: latestPrice,
+            }
+          }
+          return s
+        })
+        
+        setSymbols(updatedSymbols)
+      }
 
       return klineData
     } catch (error) {
