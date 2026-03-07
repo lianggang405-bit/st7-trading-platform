@@ -98,6 +98,10 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       height: height,
       rightPriceScale: {
         borderColor: '#333',
+        scaleMargins: {
+          top: 0.25, // 顶部保留25%空白，减少价格轴跳动
+          bottom: 0.25, // 底部保留25%空白，减少价格轴跳动
+        },
       },
       timeScale: {
         borderColor: '#333',
@@ -254,6 +258,14 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       // 如果没有外部价格，使用模拟价格
       if (newPrice === lastPriceRef.current && currentSymbolPrice === 0) {
         newPrice = lastPriceRef.current + (Math.random() - 0.5) * 150;
+      }
+
+      // ✅ 价格变化阈值检测：只有价格变化超过当前价格的0.1%才更新，减少跳动
+      const priceChangeThreshold = currentSymbolPrice * 0.001; // 0.1%
+      const priceDiff = Math.abs(newPrice - lastPriceRef.current);
+      
+      if (priceDiff < priceChangeThreshold) {
+        return; // 价格变化太小，跳过更新
       }
 
       // 更新状态
