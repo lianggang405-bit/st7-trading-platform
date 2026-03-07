@@ -4,14 +4,74 @@
 
 /* 手机端整体优化 */
 @media (max-width: 768px) {
-  /* ✅ 所有文字增大（清晰易读） */
+  /* ✅ 所有文字适中（舒适易读） */
   .mobile-compact-page {
-    font-size: 18px;
+    font-size: 14px;
   }
 
-  /* ✅ 适中的内边距（保证舒适度） */
+  /* ✅ 适中的内边距（紧凑舒适） */
   .mobile-compact-page > div {
-    padding: 10px !important;
+    padding: 8px !important;
+  }
+
+  .mobile-compact-page .px-4 {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .mobile-compact-page .py-3 {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .mobile-compact-page .py-4 {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+
+  /* ✅ 适中的间距（紧凑舒适） */
+  .mobile-compact-page .gap-2 {
+    gap: 6px !important;
+  }
+
+  .mobile-compact-page .gap-3 {
+    gap: 8px !important;
+  }
+
+  .mobile-compact-page .gap-4 {
+    gap: 10px !important;
+  }
+
+  /* ✅ 文字大小（适中） */
+  .mobile-compact-page .text-lg {
+    font-size: 1.125rem !important; /* 18px */
+  }
+
+  .mobile-compact-page .text-xl {
+    font-size: 1.25rem !important; /* 20px */
+  }
+
+  .mobile-compact-page .text-2xl {
+    font-size: 1.375rem !important; /* 22px */
+  }
+
+  .mobile-compact-page .text-sm {
+    font-size: 0.875rem !important; /* 14px */
+  }
+
+  .mobile-compact-page .text-base {
+    font-size: 1rem !important; /* 16px */
+  }
+
+  /* ✅ 按钮尺寸（方便点击） */
+  .mobile-compact-page button {
+    padding: 6px 10px !important;
+    min-height: 40px !important;
+  }
+
+  .mobile-compact-page .py-3 {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
   }
 
   .mobile-compact-page .px-4 {
@@ -19,74 +79,14 @@
     padding-right: 10px !important;
   }
 
-  .mobile-compact-page .py-3 {
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
-  }
-
-  .mobile-compact-page .py-4 {
-    padding-top: 12px !important;
-    padding-bottom: 12px !important;
-  }
-
-  /* ✅ 适中的间距（保证可读性） */
-  .mobile-compact-page .gap-2 {
-    gap: 8px !important;
-  }
-
-  .mobile-compact-page .gap-3 {
-    gap: 10px !important;
-  }
-
-  .mobile-compact-page .gap-4 {
-    gap: 12px !important;
-  }
-
-  /* ✅ 文字大小（清晰易读） */
-  .mobile-compact-page .text-lg {
-    font-size: 1.25rem !important; /* 20px */
-  }
-
-  .mobile-compact-page .text-xl {
-    font-size: 1.375rem !important; /* 22px */
-  }
-
-  .mobile-compact-page .text-2xl {
-    font-size: 1.5rem !important; /* 24px */
-  }
-
-  .mobile-compact-page .text-sm {
-    font-size: 1rem !important; /* 16px */
-  }
-
-  .mobile-compact-page .text-base {
-    font-size: 1.125rem !important; /* 18px */
-  }
-
-  /* ✅ 按钮尺寸（方便点击） */
-  .mobile-compact-page button {
-    padding: 8px 12px !important;
-    min-height: 44px !important; /* Apple 推荐 */
-  }
-
-  .mobile-compact-page .py-3 {
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
-  }
-
-  .mobile-compact-page .px-4 {
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-  }
-
   /* ✅ 底部间距（防止遮挡） */
   .mobile-compact-page .pb-24 {
-    padding-bottom: 80px !important;
+    padding-bottom: 70px !important;
   }
 
   /* ✅ K线图容器优化 */
   .mobile-compact-page .trading-chart-container {
-    font-size: 16px !important;
+    font-size: 14px !important;
   }
 
   /* ✅ 隐藏K线图水印（数据提供商图标） */
