@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { AuthGuard } from '../../../components/auth-guard';
 import { Price } from '../../../components/data';
@@ -35,6 +35,12 @@ export default function TradePage() {
   const { positions, openPosition, closePosition, updatePositions } = usePositionStore();
   const { freeMargin, onOpenPosition, equity, usedMargin, balance } = useAssetStore();
   const { marginLevel, warning, danger, updateRisk } = useRiskControlStore();
+
+  // 价格脉冲状态
+  const [pricePulse, setPricePulse] = useState<'up' | 'down' | null>(null);
+  const [symbolPulses, setSymbolPulses] = useState<Record<string, 'up' | 'down' | null>>({});
+  const prevPrice = useRef<number | null>(null);
+  const prevPrices = useRef<Record<string, number>>({});
 
   // 确认对话框状态
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -167,6 +173,75 @@ export default function TradePage() {
   useEffect(() => {
     updateRisk({ equity, usedMargin });
   }, [equity, usedMargin, updateRisk]);
+
+  // 监听价格变化，触发脉冲动画
+  useEffect(() => {
+    const newPulses: Record<string, 'up' | 'down' | null> = {};
+    let hasChange = false;
+
+    symbols.forEach((symbol) => {
+      if (symbol.price !== undefined) {
+        const prevSymbolPrice = prevPrices.current[symbol.symbol];
+
+        // 如果有前一次的价格，比较变化
+        if (prevSymbolPrice !== undefined) {
+          if (symbol.price > prevSymbolPrice) {
+            newPulses[symbol.symbol] = 'up';
+            hasChange = true;
+          } else if (symbol.price < prevSymbolPrice) {
+            newPulses[symbol.symbol] = 'down';
+            hasChange = true;
+          } else {
+            newPulses[symbol.symbol] = null;
+          }
+        } else {
+          newPulses[symbol.symbol] = null;
+        }
+
+        // 更新前一次的价格
+        prevPrices.current[symbol.symbol] = symbol.price;
+      }
+    });
+
+    // 更新所有交易对的脉冲状态
+    if (hasChange) {
+      setSymbolPulses(newPulses);
+
+      // 350ms 后重置脉冲状态
+      const timer = setTimeout(() => {
+        setSymbolPulses({});
+      }, 350);
+
+      return () => clearTimeout(timer);
+    }
+  }, [symbols]);
+
+  // 监听当前交易对价格变化，触发脉冲动画
+  useEffect(() => {
+    if (currentSymbol) {
+      const symbolData = symbols.find(s => s.symbol === currentSymbol);
+      if (symbolData && symbolData.price !== undefined) {
+        // 如果有前一次的价格，比较变化
+        if (prevPrice.current !== null) {
+          if (symbolData.price > prevPrice.current) {
+            setPricePulse('up');
+          } else if (symbolData.price < prevPrice.current) {
+            setPricePulse('down');
+          }
+        }
+
+        // 更新前一次的价格
+        prevPrice.current = symbolData.price;
+
+        // 350ms 后重置脉冲状态
+        const timer = setTimeout(() => {
+          setPricePulse(null);
+        }, 350);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [symbols, currentSymbol]);
 
   // ✅ 实时价格刷新：使用真实 API 数据
   useEffect(() => {
@@ -365,7 +440,12 @@ export default function TradePage() {
                         <div className={`text-sm mt-1 ${
                           currentSymbol === symbol.symbol ? 'text-gray-300' : 'text-gray-500'
                         }`}>
-                          <Price value={symbol.price} precision={getPricePrecision(symbol.price)} />
+                          <Price 
+                            value={symbol.price} 
+                            precision={getPricePrecision(symbol.price)} 
+                            pulse={symbolPulses[symbol.symbol] || null}
+                            change={symbol.change}
+                          />
                         </div>
                       </button>
                     ))}
@@ -378,7 +458,12 @@ export default function TradePage() {
             {currentSymbolData ? (
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold text-blue-600">
-                  <Price value={currentSymbolData.price} precision={getPricePrecision(currentSymbolData.price)} />
+                  <Price 
+                    value={currentSymbolData.price} 
+                    precision={getPricePrecision(currentSymbolData.price)} 
+                    pulse={pricePulse}
+                    change={currentSymbolData.change}
+                  />
                 </span>
                 <div className={`flex items-center gap-1 text-sm font-bold ${
                   currentSymbolData.change >= 0 ? 'text-blue-500' : 'text-red-500'
