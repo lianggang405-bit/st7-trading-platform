@@ -237,10 +237,6 @@ export default function TradingChart({
         secondsVisible: false,
       },
 
-      watermark: {
-        visible: false,  // ✅ 隐藏数据提供商图标
-      },
-
     })
 
     const series = chart.addSeries(CandlestickSeries, {
@@ -405,7 +401,6 @@ export default function TradingChart({
   }, [symbol, timeframe, height, currentPrice])
 
   return (
-
     <div className="relative">
 
       <div className="absolute top-2 left-2 z-10 flex gap-1">

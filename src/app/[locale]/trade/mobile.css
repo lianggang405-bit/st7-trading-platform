@@ -87,5 +87,23 @@
   .mobile-compact-page .trading-chart-container {
     font-size: 10px !important;
   }
+
+  /* ✅ 隐藏K线图水印（数据提供商图标） */
+  .mobile-compact-page .trading-chart-container .watermark,
+  .mobile-compact-page .trading-chart-container [class*="watermark"],
+  .trading-chart-container .watermark,
+  .trading-chart-container [class*="watermark"] {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+}
+
+/* ✅ 全局隐藏K线图水印（适配桌面端） */
+.trading-chart-container .watermark,
+.trading-chart-container [class*="watermark"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
