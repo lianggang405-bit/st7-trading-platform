@@ -10,6 +10,7 @@ import {
 } from 'lightweight-charts'
 
 import { useMarketStore } from '@/stores/marketStore'
+import { FIXED_KLINE_HISTORY, adjustHistoryToPrice } from '@/lib/kline-history'
 
 interface TradingChartProps {
   symbol?: string
@@ -64,43 +65,10 @@ export default function TradingChart({
     return TIMEFRAMES.find(t => t.value === timeframe)?.interval || 60
   }
 
-  const generateHistory = (price: number) => {
-
-    const interval = getInterval()
-
-    const candles: KlineData[] = []
-
-    const now = Math.floor(Date.now() / 1000)
-
-    let lastPrice = price
-
-    for (let i = 80; i > 0; i--) {
-
-      const time = now - i * interval
-
-      const open = lastPrice
-
-      const change = (Math.random() - 0.5) * price * 0.002
-
-      const close = open + change
-
-      const high = Math.max(open, close) + Math.random() * 20
-      const low = Math.min(open, close) - Math.random() * 20
-
-      const candle = {
-        time: time as Time,
-        open: Math.round(open),
-        high: Math.round(high),
-        low: Math.round(low),
-        close: Math.round(close)
-      }
-
-      candles.push(candle)
-
-      lastPrice = close
-    }
-
-    return candles
+  // ✅ 使用固定的历史数据（不再随机生成）
+  const getHistory = (price: number) => {
+    // 根据当前价格调整历史数据，使其价格水平匹配
+    return adjustHistoryToPrice(FIXED_KLINE_HISTORY, price)
   }
 
   useEffect(() => {
@@ -150,7 +118,8 @@ export default function TradingChart({
     chartInstance.current = chart
     seriesRef.current = series
 
-    const history = generateHistory(currentPrice)
+    // ✅ 使用固定的历史数据
+    const history = getHistory(currentPrice)
 
     series.setData(history)
 
