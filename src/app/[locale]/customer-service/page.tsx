@@ -30,7 +30,7 @@ export default function CustomerServicePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-lg font-semibold text-gray-900">客戶服務</h1>
+          <h1 className="text-lg font-semibold text-gray-900">聯繫客服</h1>
           <div className="w-8" />
         </div>
       </div>
