@@ -148,15 +148,9 @@ export async function GET(request: NextRequest) {
               price: adjustedPrice,
             };
           } else {
-            // 降级到随机生成
-            const fallbackSymbol = symbols[i];
-            const floatValue = await getBotFloatValue(fallbackSymbol);
-            const basePrice = getRandomPrice(getBasePrice(fallbackSymbol));
-            const adjustedPrice = applyBotAdjustment(basePrice, floatValue);
-            result[fallbackSymbol] = {
-              price: adjustedPrice,
-              change: getRandomChange(),
-            };
+            // ✅ 获取失败时，不返回该 symbol，让前端保持当前价格
+            // 不再使用随机生成
+            console.log(`[MarketData] Failed to fetch ticker for ${symbols[i]}, skipping...`);
           }
         }
       } else {
@@ -170,11 +164,9 @@ export async function GET(request: NextRequest) {
             const adjustedPrice = applyBotAdjustment(priceMap[symbol], floatValue);
             result[symbol] = { price: adjustedPrice };
           } else {
-            // 降级到随机生成
-            const floatValue = await getBotFloatValue(symbol);
-            const basePrice = getRandomPrice(getBasePrice(symbol));
-            const adjustedPrice = applyBotAdjustment(basePrice, floatValue);
-            result[symbol] = { price: adjustedPrice };
+            // ✅ 获取失败时，不返回该 symbol，让前端保持当前价格
+            // 不再使用随机生成
+            console.log(`[MarketData] Failed to fetch price for ${symbol}, skipping...`);
           }
         }
       }

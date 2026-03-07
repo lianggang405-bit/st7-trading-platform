@@ -16,46 +16,47 @@ import { TradingSymbol } from '../stores/marketStore';
  */
 
 // Mock 数据：所有交易对
+// ⚠️ 注意：初始价格设为 0，等待实时数据更新
 export const mockSymbols: TradingSymbol[] = [
   // Forex
-  { symbol: 'EURUSD', price: 1.0856, change: 0.25, category: 'forex' },
-  { symbol: 'GBPUSD', price: 1.2654, change: -0.18, category: 'forex' },
-  { symbol: 'USDJPY', price: 149.82, change: 0.42, category: 'forex' },
-  { symbol: 'USDCHF', price: 0.8842, change: -0.12, category: 'forex' },
-  { symbol: 'EURAUD', price: 1.6523, change: 0.15, category: 'forex' },
-  { symbol: 'EURGBP', price: 0.8574, change: -0.08, category: 'forex' },
-  { symbol: 'EURJPY', price: 162.45, change: 0.32, category: 'forex' },
-  { symbol: 'GBPAUD', price: 1.9234, change: -0.22, category: 'forex' },
-  { symbol: 'GBPNZD', price: 2.0856, change: 0.18, category: 'forex' },
-  { symbol: 'GBPJPY', price: 189.67, change: 0.25, category: 'forex' },
-  { symbol: 'AUDUSD', price: 0.6543, change: -0.15, category: 'forex' },
-  { symbol: 'AUDJPY', price: 98.12, change: 0.28, category: 'forex' },
-  { symbol: 'NZDUSD', price: 0.6089, change: -0.12, category: 'forex' },
-  { symbol: 'NZDJPY', price: 91.23, change: 0.35, category: 'forex' },
-  { symbol: 'CADJPY', price: 110.45, change: 0.22, category: 'forex' },
-  { symbol: 'CHFJPY', price: 169.54, change: -0.18, category: 'forex' },
-  
+  { symbol: 'EURUSD', price: 0, change: 0, category: 'forex' },
+  { symbol: 'GBPUSD', price: 0, change: 0, category: 'forex' },
+  { symbol: 'USDJPY', price: 0, change: 0, category: 'forex' },
+  { symbol: 'USDCHF', price: 0, change: 0, category: 'forex' },
+  { symbol: 'EURAUD', price: 0, change: 0, category: 'forex' },
+  { symbol: 'EURGBP', price: 0, change: 0, category: 'forex' },
+  { symbol: 'EURJPY', price: 0, change: 0, category: 'forex' },
+  { symbol: 'GBPAUD', price: 0, change: 0, category: 'forex' },
+  { symbol: 'GBPNZD', price: 0, change: 0, category: 'forex' },
+  { symbol: 'GBPJPY', price: 0, change: 0, category: 'forex' },
+  { symbol: 'AUDUSD', price: 0, change: 0, category: 'forex' },
+  { symbol: 'AUDJPY', price: 0, change: 0, category: 'forex' },
+  { symbol: 'NZDUSD', price: 0, change: 0, category: 'forex' },
+  { symbol: 'NZDJPY', price: 0, change: 0, category: 'forex' },
+  { symbol: 'CADJPY', price: 0, change: 0, category: 'forex' },
+  { symbol: 'CHFJPY', price: 0, change: 0, category: 'forex' },
+
   // Gold
-  { symbol: 'XAUUSD', price: 2850.00, change: 0.45, category: 'gold' },
-  { symbol: 'XAGUSD', price: 32.50, change: -0.25, category: 'gold' },
-  
+  { symbol: 'XAUUSD', price: 0, change: 0, category: 'gold' },
+  { symbol: 'XAGUSD', price: 0, change: 0, category: 'gold' },
+
   // Crypto
-  { symbol: 'BTCUSD', price: 98500.00, change: 1.25, category: 'crypto' },
-  { symbol: 'ETHUSD', price: 3250.00, change: 0.85, category: 'crypto' },
-  { symbol: 'LTCUSD', price: 95.00, change: -0.45, category: 'crypto' },
-  { symbol: 'SOLUSD', price: 145.00, change: 2.15, category: 'crypto' },
-  { symbol: 'XRPUSD', price: 2.15, change: -0.65, category: 'crypto' },
-  { symbol: 'DOGEUSD', price: 0.18, change: 1.15, category: 'crypto' },
-  
+  { symbol: 'BTCUSD', price: 0, change: 0, category: 'crypto' },
+  { symbol: 'ETHUSD', price: 0, change: 0, category: 'crypto' },
+  { symbol: 'LTCUSD', price: 0, change: 0, category: 'crypto' },
+  { symbol: 'SOLUSD', price: 0, change: 0, category: 'crypto' },
+  { symbol: 'XRPUSD', price: 0, change: 0, category: 'crypto' },
+  { symbol: 'DOGEUSD', price: 0, change: 0, category: 'crypto' },
+
   // Energy (CFD)
-  { symbol: 'NGAS', price: 3.15, change: -1.85, category: 'forex' },
-  { symbol: 'UKOIL', price: 82.50, change: 0.65, category: 'forex' },
-  { symbol: 'USOIL', price: 80.25, change: 0.45, category: 'forex' },
-  
+  { symbol: 'NGAS', price: 0, change: 0, category: 'forex' },
+  { symbol: 'UKOIL', price: 0, change: 0, category: 'forex' },
+  { symbol: 'USOIL', price: 0, change: 0, category: 'forex' },
+
   // Indices (CFD)
-  { symbol: 'US500', price: 5250.00, change: 0.35, category: 'forex' },
-  { symbol: 'ND25', price: 18500.00, change: 0.45, category: 'forex' },
-  { symbol: 'AUS200', price: 8125.00, change: -0.15, category: 'forex' },
+  { symbol: 'US500', price: 0, change: 0, category: 'forex' },
+  { symbol: 'ND25', price: 0, change: 0, category: 'forex' },
+  { symbol: 'AUS200', price: 0, change: 0, category: 'forex' },
 ];
 
 // 热门交易（前 4 个）

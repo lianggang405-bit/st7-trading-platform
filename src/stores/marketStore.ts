@@ -30,22 +30,15 @@ export const useMarketStore = create<MarketState>((set, get) => ({
     }),
 
   tick: () => {
+    // ✅ 不再模拟价格变化，保持最后获取的价格
+    // 如果获取不到实时价格，价格将保持不变，直到重新获取到新数据
     set((state) => ({
-      symbols: state.symbols.map((symbol) => {
-        // 模拟价格变化：随机波动 -0.1% 到 +0.1%
-        const priceChange = symbol.price * (Math.random() * 0.002 - 0.001);
-        const newPrice = symbol.price + priceChange;
-        
-        // 更新涨跌幅（基于初始价格，简化处理）
-        const changeChange = Math.random() * 0.02 - 0.01;
-        const newChange = Math.max(-99.99, Math.min(99.99, symbol.change + changeChange));
-
-        return {
-          ...symbol,
-          price: parseFloat(newPrice.toFixed(4)),
-          change: parseFloat(newChange.toFixed(2)),
-        };
-      }),
+      symbols: state.symbols.map((symbol) => ({
+        ...symbol,
+        // 价格不变，保留最后获取的真实价格
+        price: symbol.price,
+        change: symbol.change,
+      })),
     }));
   },
 }));

@@ -193,8 +193,8 @@ export default function TradePage() {
         }
       } catch (error) {
         console.error('[TradePage] Failed to fetch real-time prices:', error);
-        // 如果 API 调用失败，降级到模拟价格
-        tick();
+        // ✅ API 调用失败时，不调用 tick()，保持当前价格不变
+        // 价格将保持最后一次成功获取的值，直到重新获取到新数据
       }
     }, 1000); // 每秒更新一次
 
