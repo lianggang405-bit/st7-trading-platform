@@ -126,6 +126,12 @@
       "closeFailed": "Failed to close position"
     }
   },
+  "chart": {
+    "open": "Open",
+    "high": "High",
+    "low": "Low",
+    "close": "Close"
+  },
   "trade": {
     "instantOrder": "Instant Order",
     "pendingTrade": "Pending Order",

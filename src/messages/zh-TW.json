@@ -126,6 +126,12 @@
       "closeFailed": "平仓失敗"
     }
   },
+  "chart": {
+    "open": "開盤價",
+    "high": "最高價",
+    "low": "最低價",
+    "close": "收盤價"
+  },
   "trade": {
     "instantOrder": "下單交易",
     "pendingTrade": "掛單交易",
