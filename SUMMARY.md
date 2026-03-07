@@ -2,7 +2,10 @@
 
 ## 用户需求与目标
 - 当前目标: 优化 K 线图表显示，修复实时更新错误，大幅增加K线波动幅度
-- **最新需求**: 修复手数输入框自动补零问题
+- **最新需求**: 添加K线图图表标签国际化支持
+  - 将K线图tooltip中的标签（開盤價、最高價、最低價、收盤價）转换为相应语言
+  - 根据用户选择的语言显示对应的标签文本
+- **之前需求**: 修复手数输入框自动补零问题
   - 用户输入 20 时变成 020，无法正常输入
   - 原因是使用 number 类型的 state，在 onChange 时使用 parseFloat || 0 导致自动补零
   - 解决方案：将 volume 状态改为 string 类型，只在计算时转换为数字
@@ -103,6 +106,13 @@
     - **解决方案**: 
       - 在更新 K 线时，将 `time` 字段显式转换为 `Time` 类型
       - 使用 `lastCandle.time as Time` 确保类型兼容
+  - **国际化支持 - 图表标签 (最新)**:
+    - **需求**: K线图tooltip中的标签需要根据用户选择的语言显示
+    - **解决方案**: 
+      - 在 `src/messages/zh-TW.json` 中添加 chart 翻译
+      - 在 `src/messages/en.json` 中添加 chart 翻译
+      - TradingChart 组件已经使用 `useTranslations('chart')`，无需修改
+      - 支持的翻译key：open（開盤價/Open）、high（最高價/High）、low（最低價/Low）、close（收盤價/Close）
 
 ## 数据流统一说明
 
