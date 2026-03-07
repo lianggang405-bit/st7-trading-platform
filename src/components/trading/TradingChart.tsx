@@ -37,15 +37,14 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<any>(null);
-  const priceLineRef = useRef<any>(null); // ✅ 最新价格线引用
+  const priceLineRef = useRef<any>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const t = useTranslations('chart');
   const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>('1M');
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const lastPriceRef = useRef<number>(0);
-  const klineDataRef = useRef<KlineData[]>([]);
-  const currentSymbolPriceRef = useRef<number>(0); // ✅ 用于存储最新的实时价格
+  const lastCandleRef = useRef<KlineData | null>(null); // ✅ 存储最后一根K线
   const { symbols } = useMarketStore();
 
   // ✅ 获取当前交易对的实时价格
@@ -75,23 +74,14 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     return basePrices[symbol] || 100;
   }
 
-  // ✅ 监听当前交易对价格变化，更新 ref
-  useEffect(() => {
-    if (currentSymbolPrice > 0) {
-      currentSymbolPriceRef.current = currentSymbolPrice;
-      // 第一次加载时，设置初始价格
-      if (lastPriceRef.current === 0) {
-        lastPriceRef.current = currentSymbolPrice;
-        setCurrentPrice(currentSymbolPrice);
-      }
-    }
-  }, [currentSymbolPrice]);
-
+  // ✅ 初始化图表
   useEffect(() => {
     if (!chartRef.current) return;
+
     const timeframeConfig = TIMEFRAMES.find(tf => tf.value === selectedTimeframe) || TIMEFRAMES[0];
     const interval = timeframeConfig.interval;
 
+    // 创建图表
     const chart = createChart(chartRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: '#0a0a0a' },
@@ -103,6 +93,15 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       },
       width: chartRef.current.clientWidth,
       height: height,
+      rightPriceScale: {
+        borderColor: '#333',
+      },
+      timeScale: {
+        borderColor: '#333',
+        timeVisible: true,
+        secondsVisible: false,
+        rightBarStaysOnScroll: true,
+      },
       crosshair: {
         mode: 1,
         vertLine: {
@@ -118,23 +117,15 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
           labelBackgroundColor: '#758696',
         },
       },
-      rightPriceScale: {
-        borderColor: '#333',
-      },
-      timeScale: {
-        borderColor: '#333',
-        timeVisible: true,
-        secondsVisible: false,
-        rightBarStaysOnScroll: true, // ✅ 确保画面一直贴右边
-      },
     });
 
+    // 添加K线系列
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#26a69a',
-      downColor: '#ef5350',
+      upColor: '#00ff9c',
+      downColor: '#ff4976',
       borderVisible: false,
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
+      wickUpColor: '#00ff9c',
+      wickDownColor: '#ff4976',
     });
 
     chartInstanceRef.current = chart;
@@ -145,12 +136,11 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     let basePrice = getBasePrice(symbol);
 
     for (let i = 200; i >= 0; i--) {
-      const currentTimestamp = Math.floor(Date.now() / 1000);
-      const timeSec = currentTimestamp - i * interval;
-      const open = basePrice + (Math.random() - 0.5) * 100;
-      const close = open + (Math.random() - 0.5) * 50;
-      const high = Math.max(open, close) + Math.random() * 20;
-      const low = Math.min(open, close) - Math.random() * 20;
+      const timeSec = Math.floor(Date.now() / 1000) - i * interval;
+      const open = basePrice;
+      const close = open + (Math.random() - 0.5) * 200;
+      const high = Math.max(open, close) + Math.random() * 100;
+      const low = Math.min(open, close) - Math.random() * 100;
 
       klineData.push({
         time: timeSec as Time,
@@ -163,22 +153,23 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       basePrice = close;
     }
 
+    // 设置初始数据
     candlestickSeries.setData(klineData);
     chart.timeScale().fitContent();
     chart.timeScale().scrollToPosition(5, false);
 
-    klineDataRef.current = klineData;
+    // 存储最后一根K线和初始价格
+    lastCandleRef.current = klineData[klineData.length - 1];
     lastPriceRef.current = basePrice;
     setCurrentPrice(basePrice);
 
-    // ✅ 创建最新价格线（那条虚线）
+    // ✅ 创建最新价格线（虚线）
     const priceLine = candlestickSeries.createPriceLine({
       price: basePrice,
-      color: '#26a69a', // 绿色
+      color: '#888',
       lineWidth: 1,
       lineStyle: 2, // 2 = 虚线
       axisLabelVisible: true,
-      title: '', // 可以设置 'Price' 或 'Last'
     });
     priceLineRef.current = priceLine;
 
@@ -198,16 +189,14 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       tooltipRef.current.style.left = param.point.x + 10 + 'px';
       tooltipRef.current.style.top = param.point.y + 'px';
 
-      // @ts-ignore
-      const timeValue = typeof data.time === 'number' ? data.time * 1000 : data.time;
-      // @ts-ignore
+      const timeValue = typeof data.time === 'number' ? data.time * 1000 : (typeof data.time === 'string' ? new Date(data.time).getTime() : 0);
       const formattedTime = new Date(timeValue).toLocaleString();
       tooltipRef.current.innerHTML = `
         <div style="color: #999; font-size: 12px; margin-bottom: 4px;">${formattedTime}</div>
         <div style="color: #666; font-size: 12px;">${t('open')}: ${data.open}</div>
         <div style="color: #666; font-size: 12px;">${t('high')}: ${data.high}</div>
         <div style="color: #666; font-size: 12px;">${t('low')}: ${data.low}</div>
-        <div style="color: ${data.close >= data.open ? '#26a69a' : '#ef5350'}; font-size: 12px; font-weight: bold;">${t('close')}: ${data.close}</div>
+        <div style="color: ${data.close >= data.open ? '#00ff9c' : '#ff4976'}; font-size: 12px; font-weight: bold;">${t('close')}: ${data.close}</div>
       `;
     };
 
@@ -228,28 +217,29 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     tooltipRef.current = tooltipDiv;
     chartRef.current.appendChild(tooltipDiv);
 
-    // ✅ 实时更新：使用 marketStore 中的实时价格（与交易对价格统一）
+    // ✅ 实时更新 - 按照稳定版的逻辑
     intervalRef.current = setInterval(() => {
-      if (!chartInstanceRef.current || !candlestickSeriesRef.current) {
+      if (!chartInstanceRef.current || !candlestickSeriesRef.current || !priceLineRef.current) {
         return;
       }
 
-      // ✅ 使用 ref 获取最新的实时价格（避免闭包问题）
-      const newPrice = currentSymbolPriceRef.current > 0 ? currentSymbolPriceRef.current : lastPriceRef.current;
+      // 获取最新价格（优先使用外部真实价格，否则模拟）
+      let newPrice = currentSymbolPrice > 0 ? currentSymbolPrice : lastPriceRef.current;
 
-      // 如果价格没有变化，跳过更新
-      if (newPrice === lastPriceRef.current) {
-        return;
+      // 如果没有外部价格，使用模拟价格
+      if (newPrice === lastPriceRef.current && currentSymbolPrice === 0) {
+        newPrice = lastPriceRef.current + (Math.random() - 0.5) * 150;
       }
 
-      // 更新当前价格
+      // 更新状态
       setCurrentPrice(newPrice);
+
+      const lastCandle = lastCandleRef.current;
+      if (!lastCandle) return;
 
       // 对齐到周期边界
       const currentTime = Math.floor(Date.now() / 1000);
       const timeSec = Math.floor(currentTime / interval) * interval;
-
-      const lastCandle = klineDataRef.current[klineDataRef.current.length - 1];
 
       if (timeSec !== lastCandle.time) {
         // 创建新 K 线
@@ -262,8 +252,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         };
 
         candlestickSeriesRef.current.update(newCandle);
-        klineDataRef.current.push(newCandle);
-        if (klineDataRef.current.length > 300) klineDataRef.current.shift();
+        lastCandleRef.current = newCandle;
       } else {
         // 更新当前 K 线
         const updatedCandle = {
@@ -275,24 +264,20 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         };
 
         candlestickSeriesRef.current.update(updatedCandle);
-        klineDataRef.current[klineDataRef.current.length - 1] = updatedCandle;
+        lastCandleRef.current = updatedCandle;
       }
 
-      // ✅ 更新最新价格线（虚线）
-      if (priceLineRef.current) {
-        priceLineRef.current.applyOptions({
-          price: newPrice,
-          color: newPrice >= lastCandle.open ? '#26a69a' : '#ef5350', // 涨绿跌红
-        });
-      }
+      // ✅ 更新价格虚线
+      priceLineRef.current.applyOptions({
+        price: newPrice,
+        color: newPrice >= lastCandle.open ? '#00ff9c' : '#ff4976', // 涨绿跌红
+      });
 
-      // ✅ 强制滚动到最新时间（确保K线向右移动）
-      if (chartInstanceRef.current) {
-        chartInstanceRef.current.timeScale().scrollToRealTime();
-      }
+      // ✅ 强制滚动到最新时间
+      chartInstanceRef.current.timeScale().scrollToRealTime();
 
       lastPriceRef.current = newPrice;
-    }, 1000);
+    }, 1000); // 1秒更新一次
 
     // 响应式调整大小
     const handleResize = () => {
@@ -305,6 +290,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
     window.addEventListener('resize', handleResize);
 
+    // 清理函数
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -313,7 +299,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
       window.removeEventListener('resize', handleResize);
 
-      // ✅ 移除价格线
+      // 移除价格线
       if (priceLineRef.current && candlestickSeriesRef.current) {
         candlestickSeriesRef.current.removePriceLine(priceLineRef.current);
         priceLineRef.current = null;
@@ -322,10 +308,11 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       if (chart) {
         try {
           chart.unsubscribeCrosshairMove(handleCrosshairMove);
+          chart.remove();
         } catch (error) {}
       }
     };
-  }, [symbol, height, t, selectedTimeframe]); // ✅ 添加 currentSymbolPrice 依赖
+  }, [symbol, height, selectedTimeframe, t, currentSymbolPrice]); // 添加 currentSymbolPrice 依赖
 
   return (
     <div className="relative">
@@ -337,15 +324,14 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
             className={`px-3 py-1 text-xs rounded transition-colors ${
               selectedTimeframe === tf.value
                 ? 'bg-[#2d2d2d] text-white'
-                : 'text-gray-400 hover:text-white hover:bg-[#2d2d2d]'
+                : 'text-gray-400 hover:text-white'
             }`}
           >
             {tf.label}
           </button>
         ))}
       </div>
-
-      <div ref={chartRef} style={{ height }} />
+      <div ref={chartRef} style={{ width: '100%', height: `${height}px` }} />
     </div>
   );
 }
