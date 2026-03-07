@@ -121,13 +121,13 @@ export default function TradingChart({
       height: height,
 
       layout: {
-        background: { type: ColorType.Solid, color: '#0a0a0a' },
-        textColor: '#DDD'
+        background: { type: ColorType.Solid, color: '#fafafa' },
+        textColor: '#666'
       },
 
       grid: {
-        vertLines: { color: '#1f1f1f' },
-        horzLines: { color: '#1f1f1f' }
+        vertLines: { color: '#e5e5e5' },
+        horzLines: { color: '#e5e5e5' }
       },
 
       rightPriceScale: {
@@ -265,8 +265,8 @@ export default function TradingChart({
             onClick={() => setTimeframe(tf.value as Timeframe)}
             className={`px-3 py-1 text-xs rounded ${
               timeframe === tf.value
-                ? 'bg-[#2d2d2d] text-white'
-                : 'text-gray-400'
+                ? 'bg-blue-500 text-white'
+                : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
             {tf.value}
@@ -278,8 +278,8 @@ export default function TradingChart({
 
       {/* 加载指示器 */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a]/80 z-20">
-          <div className="text-gray-400 text-sm">加载历史数据...</div>
+        <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-20">
+          <div className="text-gray-600 text-sm">加载历史数据...</div>
         </div>
       )}
 
