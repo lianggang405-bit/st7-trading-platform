@@ -159,8 +159,14 @@ export default function TradingChart({
 
     // ✅ 从Binance API加载真实历史数据
     const initializeChart = async () => {
+      // 检查组件是否仍然挂载
+      if (!chartRef.current || !chartInstance.current) return
+
       const history = await loadHistory()
-      
+
+      // 再次检查组件是否仍然挂载（避免在组件卸载后更新）
+      if (!chartInstance.current || !seriesRef.current) return
+
       if (history.length > 0) {
         series.setData(history)
         lastCandleRef.current = history[history.length - 1]
@@ -176,6 +182,9 @@ export default function TradingChart({
       const price = priceRef.current
 
       if (!price) return
+
+      // 检查图表是否仍然存在
+      if (!chartInstance.current || !seriesRef.current) return
 
       const interval = getInterval()
 
@@ -233,20 +242,34 @@ export default function TradingChart({
 
       if (!chartInstance.current || !chartRef.current) return
 
-      chartInstance.current.applyOptions({
-        width: chartRef.current.clientWidth
-      })
+      try {
+        chartInstance.current.applyOptions({
+          width: chartRef.current.clientWidth
+        })
+      } catch (error) {
+        console.warn('[TradingChart] Resize error:', error)
+      }
     }
 
     window.addEventListener('resize', handleResize)
 
     return () => {
 
-      if (intervalRef.current) clearInterval(intervalRef.current)
+      // 清除定时器
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
 
+      // 移除事件监听
       window.removeEventListener('resize', handleResize)
 
-      chart.remove()
+      // 销毁图表实例
+      if (chartInstance.current) {
+        chart.remove()
+        chartInstance.current = null
+      }
+      seriesRef.current = null
 
     }
 
