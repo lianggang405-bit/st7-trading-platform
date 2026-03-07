@@ -45,11 +45,21 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const lastPriceRef = useRef<number>(0);
   const lastCandleRef = useRef<KlineData | null>(null);
+  const minPriceRef = useRef<number>(Infinity);
+  const maxPriceRef = useRef<number>(-Infinity);
   const { symbols } = useMarketStore();
 
   // ✅ 获取当前交易对的实时价格
   const currentSymbolData = symbols.find(s => s.symbol === symbol);
   const currentSymbolPrice = currentSymbolData?.price || 0;
+
+  // ✅ 计算价格范围（根据价格大小动态调整）
+  const getPriceRange = (price: number): number => {
+    if (price > 50000) return 5000; // BTC等高价币
+    if (price > 5000) return 500; // ETH等中价币
+    if (price > 100) return 50; // 其他
+    return 10; // 低价币
+  };
 
   function getBasePrice(symbol: string): number {
     const basePrices: { [key: string]: number } = {
@@ -102,6 +112,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
           top: 0.25, // 顶部保留25%空白，减少价格轴跳动
           bottom: 0.25, // 底部保留25%空白，减少价格轴跳动
         },
+        autoScale: false, // ✅ 禁用自动缩放，固定价格轴
       },
       timeScale: {
         borderColor: '#333',
@@ -124,6 +135,9 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
           labelBackgroundColor: '#758696',
         },
       },
+      localization: {
+        priceFormatter: (price: number) => price.toFixed(0), // ✅ 价格格式化为整数
+      },
     });
 
     // 添加K线系列
@@ -133,6 +147,11 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       borderVisible: false,
       wickUpColor: '#00ff9c',
       wickDownColor: '#ff4976',
+      priceFormat: {
+        type: 'price',
+        precision: 0, // ✅ 价格精度为0（整数）
+        minMove: 1, // ✅ 最小移动单位为1
+      },
     });
 
     chartInstanceRef.current = chart;
@@ -171,6 +190,15 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     lastCandleRef.current = klineData[klineData.length - 1];
     lastPriceRef.current = basePrice;
     setCurrentPrice(basePrice);
+
+    // ✅ 初始化价格范围（固定价格轴，避免跳动）
+    const priceRange = getPriceRange(basePrice);
+    minPriceRef.current = basePrice - priceRange;
+    maxPriceRef.current = basePrice + priceRange;
+    chart.priceScale('right').setVisibleRange({
+      from: minPriceRef.current,
+      to: maxPriceRef.current,
+    });
 
     // ✅ 创建最新价格线（虚线）
     const priceLine = candlestickSeries.createPriceLine({
@@ -312,6 +340,17 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
         price: newPrice,
         color: newPrice >= lastCandle.open ? '#00ff9c' : '#ff4976', // 涨绿跌红
       });
+
+      // ✅ 价格范围检测：只有价格突破当前范围时才重新计算
+      if (newPrice > maxPriceRef.current || newPrice < minPriceRef.current) {
+        const priceRange = getPriceRange(newPrice);
+        minPriceRef.current = newPrice - priceRange;
+        maxPriceRef.current = newPrice + priceRange;
+        chartInstanceRef.current.priceScale('right').setVisibleRange({
+          from: minPriceRef.current,
+          to: maxPriceRef.current,
+        });
+      }
 
       // ✅ 强制滚动到最新时间
       chartInstanceRef.current.timeScale().scrollToRealTime();
