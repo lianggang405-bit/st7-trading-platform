@@ -14,13 +14,13 @@ interface MarketListProps {
 export function MarketList({ symbols, onSymbolClick }: MarketListProps) {
   return (
     <div className="bg-white">
-      {symbols.map((symbol) => (
+      {symbols.map((item) => (
         <MarketItem
-          key={symbol.symbol}
-          symbol={symbol.symbol}
-          price={symbol.price}
-          change={symbol.change}
-          onClick={() => onSymbolClick?.(symbol.symbol)}
+          key={item.symbol}
+          symbol={item.symbol}
+          price={item.price}
+          change={item.change}
+          onClick={() => onSymbolClick?.(item.symbol)}
         />
       ))}
     </div>

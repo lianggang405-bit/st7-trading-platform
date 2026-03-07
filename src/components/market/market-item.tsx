@@ -122,8 +122,18 @@ export function MarketItem({ symbol, price, change, onClick }: MarketItemProps) 
     }
   }, [isLoading]);
 
-  const getPricePrecision = (price: number) => {
-    return price >= 1000 ? 2 : 4;
+  const getPricePrecision = (symbol: string) => {
+    // JPY 对：3位小数
+    if (symbol.includes('JPY')) return 3;
+
+    // 贵金属和指数：2位小数
+    if (['XAU', 'XAG', 'US500', 'ND25', 'AUS200'].some(s => symbol.includes(s))) return 2;
+
+    // 加密货币：2位小数
+    if (['BTC', 'ETH', 'LTC', 'SOL', 'XRP', 'DOGE'].some(s => symbol.includes(s))) return 2;
+
+    // 其他外汇：5位小数
+    return 5;
   };
 
   return (
@@ -147,9 +157,12 @@ export function MarketItem({ symbol, price, change, onClick }: MarketItemProps) 
       <div className="flex-1 flex flex-col items-center justify-center min-w-[100px]">
         <div className="flex items-center">
           <Price
+            key={price}
             value={price}
-            precision={getPricePrecision(price)}
-            className="text-lg font-semibold text-gray-900"
+            precision={getPricePrecision(symbol)}
+            className={`text-lg font-semibold ${
+              change > 0 ? 'text-green-500' : change < 0 ? 'text-red-500' : 'text-gray-900'
+            }`}
           />
         </div>
         <div className="flex items-center gap-1 mt-1">
