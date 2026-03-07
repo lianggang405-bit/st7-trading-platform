@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { AuthGuard } from '../../../components/auth-guard';
-import { Price } from '../../../components/data';
+import { Price, Change } from '../../../components/data';
 import TradingChart from '../../../components/trading/TradingChart';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
@@ -414,7 +414,7 @@ export default function TradePage() {
                         }`}
                       >
                         <div className="font-bold text-lg">{formatSymbol(symbol.symbol)}</div>
-                        <div className={`text-sm mt-1 ${
+                        <div className={`flex items-center gap-2 mt-1 ${
                           currentSymbol === symbol.symbol ? 'text-gray-300' : 'text-gray-500'
                         }`}>
                           <Price 
@@ -423,6 +423,7 @@ export default function TradePage() {
                             pulse={symbolPulses[symbol.symbol] || null}
                             change={symbol.change}
                           />
+                          <Change value={symbol.change} showArrow />
                         </div>
                       </button>
                     ))}
@@ -442,23 +443,8 @@ export default function TradePage() {
                     change={currentSymbolData.change}
                   />
                 </span>
-                <div className={`flex items-center gap-1 text-sm font-bold ${
-                  currentSymbolData.change >= 0 ? 'text-blue-500' : 'text-red-500'
-                }`}>
-                  <span>
-                    {currentSymbolData.change >= 0 ? '+' : ''}{currentSymbolData.change.toFixed(2)}
-                  </span>
-                  <svg
-                    className={`w-3 h-3 ${currentSymbolData.change >= 0 ? '' : 'rotate-180'}`}
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                <div className="flex items-center gap-1 mt-1">
+                  <Change value={currentSymbolData.change} showArrow />
                 </div>
               </div>
             ) : (
