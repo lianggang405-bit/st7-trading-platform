@@ -11,11 +11,11 @@ import '../globals.css';
 export const metadata: Metadata = {
   metadataBase: new URL('https://forexpl.shop'),
   title: {
-    default: 'ST7全球交易平台-专业数字资产交易',
+    default: 'ST7全球交易平台-專業數字資產交易',
     template: '%s | ST7全球交易平台',
   },
-  description: '专业的全球数字资产交易平台，支持多语言、市价交易、挂单交易、持仓管理、风控系统。安全、稳定、高效。',
-  keywords: '交易平台, 数字货币, 加密货币, 交易, 投资理财, BTC, ETH, 比特币, 以太坊, 市价交易, 挂单交易, ST7, forexpl',
+  description: '專業的全球數字資產交易平台，支援多語言、市價交易、掛單交易、持倉管理、風控系統。安全、穩定、高效。',
+  keywords: '交易平台, 數字貨幣, 加密貨幣, 交易, 投資理財, BTC, ETH, 比特幣, 以太坊, 市價交易, 掛單交易, ST7, forexpl',
   authors: [{ name: 'ST7全球交易平台' }],
   creator: 'ST7全球交易平台',
   publisher: 'ST7全球交易平台',
@@ -32,10 +32,10 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    locale: 'zh_CN',
+    locale: 'zh_TW',
     url: 'https://forexpl.shop',
-    title: 'ST7全球交易平台-专业数字资产交易',
-    description: '专业的全球数字资产交易平台，支持多语言、市价交易、挂单交易、持仓管理、风控系统。安全、稳定、高效。',
+    title: 'ST7全球交易平台-專業數字資產交易',
+    description: '專業的全球數字資產交易平台，支援多語言、市價交易、掛單交易、持倉管理、風控系統。安全、穩定、高效。',
     siteName: 'ST7全球交易平台',
     images: [
       {
@@ -48,8 +48,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ST7全球交易平台-专业数字资产交易',
-    description: '专业的全球数字资产交易平台，支持多语言、市价交易、挂单交易、持仓管理、风控系统。',
+    title: 'ST7全球交易平台-專業數字資產交易',
+    description: '專業的全球數字資產交易平台，支援多語言、市價交易、掛單交易、持倉管理、風控系統。',
     images: ['/og-image.png'],
     creator: '@ST7Trading',
   },
