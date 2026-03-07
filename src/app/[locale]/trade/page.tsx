@@ -16,6 +16,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { mockSymbols } from '../../../lib/market-mock-data';
 import { formatSymbol } from '../../../lib/formatSymbol';
 import { getAllOrders, triggerPendingOrder } from '../../../api/trading';
+import './mobile.css';
 
 type Timeframe = '1M' | '5M' | '15M' | '1H' | '1D';
 
@@ -310,18 +311,18 @@ export default function TradePage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50 pb-24">
+      <div className="mobile-compact-page min-h-screen bg-gray-50 pb-24">
         {/* 顶部通栏 - 两行结构 */}
         <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
           {/* 第一行：交易对与价格信息栏 */}
-          <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center justify-between px-4 py-3 md:py-4">
             {/* 左侧：交易对选择 */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsSymbolDropdownOpen(!isSymbolDropdownOpen)}
                 className="flex items-center gap-1 active:scale-95 transition-transform"
               >
-                <span className="text-lg font-bold text-gray-900">
+                <span className="text-lg md:text-xl font-bold text-gray-900">
                   {formatSymbol(currentSymbol || 'BTC/USD')}
                 </span>
                 <svg

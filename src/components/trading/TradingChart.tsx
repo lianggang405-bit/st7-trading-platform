@@ -209,23 +209,37 @@ export default function TradingChart({
 
       layout: {
         background: { type: ColorType.Solid, color: '#fafafa' },
-        textColor: '#666'
+        textColor: '#666',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       },
 
       grid: {
-        vertLines: { color: '#e5e5e5' },
-        horzLines: { color: '#e5e5e5' }
+        vertLines: { color: '#e5e5e5', style: 0 },
+        horzLines: { color: '#e5e5e5', style: 0 }
       },
 
       rightPriceScale: {
         autoScale: true,
-        borderColor: '#333'
+        borderColor: 'transparent',
+        scaleMargins: {
+          top: 0.1,
+          bottom: 0.2,
+        },
+      },
+
+      leftPriceScale: {
+        visible: false,
       },
 
       timeScale: {
-        borderColor: '#333',
-        timeVisible: true
-      }
+        borderColor: 'transparent',
+        timeVisible: true,
+        secondsVisible: false,
+      },
+
+      watermark: {
+        visible: false,  // ✅ 隐藏数据提供商图标
+      },
 
     })
 
@@ -423,6 +437,7 @@ export default function TradingChart({
 
       <div
         ref={chartRef}
+        className="trading-chart-container"
         style={{
           width: '100%',
           height: `${actualHeight}px`

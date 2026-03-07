@@ -1,0 +1,91 @@
+/**
+ * 手机端样式优化
+ */
+
+/* 手机端整体优化 */
+@media (max-width: 768px) {
+  /* ✅ 所有文字变小一号 */
+  .mobile-compact-page {
+    font-size: 14px;
+  }
+
+  /* ✅ 减少内边距 */
+  .mobile-compact-page > div {
+    padding: 8px !important;
+  }
+
+  .mobile-compact-page .px-4 {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .mobile-compact-page .py-3 {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .mobile-compact-page .py-4 {
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+  }
+
+  /* ✅ 减少间距 */
+  .mobile-compact-page .gap-2 {
+    gap: 8px !important;
+  }
+
+  .mobile-compact-page .gap-3 {
+    gap: 12px !important;
+  }
+
+  .mobile-compact-page .gap-4 {
+    gap: 16px !important;
+  }
+
+  /* ✅ 缩小文字 */
+  .mobile-compact-page .text-lg {
+    font-size: 1rem !important;
+  }
+
+  .mobile-compact-page .text-xl {
+    font-size: 1.125rem !important;
+  }
+
+  .mobile-compact-page .text-2xl {
+    font-size: 1.25rem !important;
+  }
+
+  .mobile-compact-page .text-sm {
+    font-size: 0.875rem !important;
+  }
+
+  .mobile-compact-page .text-base {
+    font-size: 0.9375rem !important;
+  }
+
+  /* ✅ 缩小按钮 */
+  .mobile-compact-page button {
+    padding: 8px 12px !important;
+  }
+
+  .mobile-compact-page .py-3 {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .mobile-compact-page .px-4 {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  /* ✅ 减少底部间距 */
+  .mobile-compact-page .pb-24 {
+    padding-bottom: 80px !important;
+  }
+
+  /* ✅ K线图容器优化 */
+  .mobile-compact-page .trading-chart-container {
+    font-size: 10px !important;
+  }
+}
+
