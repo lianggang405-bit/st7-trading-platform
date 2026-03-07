@@ -4,88 +4,89 @@
 
 /* 手机端整体优化 */
 @media (max-width: 768px) {
-  /* ✅ 所有文字增大两个字号 */
+  /* ✅ 所有文字增大（清晰易读） */
   .mobile-compact-page {
-    font-size: 16px;
+    font-size: 18px;
   }
 
-  /* ✅ 减少内边距（降低1/3） */
+  /* ✅ 适中的内边距（保证舒适度） */
   .mobile-compact-page > div {
-    padding: 5px !important;
+    padding: 10px !important;
   }
 
   .mobile-compact-page .px-4 {
-    padding-left: 5px !important;
-    padding-right: 5px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
   }
 
   .mobile-compact-page .py-3 {
-    padding-top: 5px !important;
-    padding-bottom: 5px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
   }
 
   .mobile-compact-page .py-4 {
-    padding-top: 8px !important;
-    padding-bottom: 8px !important;
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
   }
 
-  /* ✅ 减少间距（降低1/3） */
+  /* ✅ 适中的间距（保证可读性） */
   .mobile-compact-page .gap-2 {
-    gap: 5px !important;
-  }
-
-  .mobile-compact-page .gap-3 {
     gap: 8px !important;
   }
 
-  .mobile-compact-page .gap-4 {
+  .mobile-compact-page .gap-3 {
     gap: 10px !important;
   }
 
-  /* ✅ 增大文字（增大两个字号） */
+  .mobile-compact-page .gap-4 {
+    gap: 12px !important;
+  }
+
+  /* ✅ 文字大小（清晰易读） */
   .mobile-compact-page .text-lg {
-    font-size: 1.125rem !important; /* 0.875rem → 1.125rem */
+    font-size: 1.25rem !important; /* 20px */
   }
 
   .mobile-compact-page .text-xl {
-    font-size: 1.25rem !important; /* 1rem → 1.25rem */
+    font-size: 1.375rem !important; /* 22px */
   }
 
   .mobile-compact-page .text-2xl {
-    font-size: 1.375rem !important; /* 1.125rem → 1.375rem */
+    font-size: 1.5rem !important; /* 24px */
   }
 
   .mobile-compact-page .text-sm {
-    font-size: 1rem !important; /* 0.75rem → 1rem */
+    font-size: 1rem !important; /* 16px */
   }
 
   .mobile-compact-page .text-base {
-    font-size: 1.0625rem !important; /* 0.8125rem → 1.0625rem */
+    font-size: 1.125rem !important; /* 18px */
   }
 
-  /* ✅ 缩小按钮（降低1/3） */
+  /* ✅ 按钮尺寸（方便点击） */
   .mobile-compact-page button {
-    padding: 5px 8px !important;
+    padding: 8px 12px !important;
+    min-height: 44px !important; /* Apple 推荐 */
   }
 
   .mobile-compact-page .py-3 {
-    padding-top: 5px !important;
-    padding-bottom: 5px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
   }
 
   .mobile-compact-page .px-4 {
-    padding-left: 8px !important;
-    padding-right: 8px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
   }
 
-  /* ✅ 减少底部间距（降低1/3） */
+  /* ✅ 底部间距（防止遮挡） */
   .mobile-compact-page .pb-24 {
-    padding-bottom: 53px !important;
+    padding-bottom: 80px !important;
   }
 
   /* ✅ K线图容器优化 */
   .mobile-compact-page .trading-chart-container {
-    font-size: 14px !important; /* 10px → 14px */
+    font-size: 16px !important;
   }
 
   /* ✅ 隐藏K线图水印（数据提供商图标） */
