@@ -415,11 +415,11 @@ export default function WealthPage() {
             <>
               {/* 遮罩层 */}
               <div
-                className="fixed inset-0 bg-black/50 z-10"
+                className="fixed inset-0 bg-black/50 z-[60]"
                 onClick={() => setIsModalOpen(false)}
               />
               {/* 弹窗内容 */}
-              <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-20 max-h-[85vh] overflow-hidden flex flex-col animate-slide-up">
+              <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[70] max-h-[85vh] overflow-hidden flex flex-col animate-slide-up">
                 <div className="p-6 overflow-y-auto flex-1">
                   <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
                   <h2 className="text-lg font-bold text-gray-900 mb-4">
@@ -491,7 +491,7 @@ export default function WealthPage() {
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">{t('estimatedDailyReward')}</span>
                           <span className="font-bold text-gray-900">
-                            {parseFloat(amount) * (selectedAssetData.getApr(selectedPeriod) / 100) / 365} USDT
+                            {(parseFloat(amount) || 0) * (selectedAssetData.getApr(selectedPeriod) / 100) / 365} USDT
                           </span>
                         </div>
                       </>
