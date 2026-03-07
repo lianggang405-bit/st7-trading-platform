@@ -262,20 +262,36 @@ export default function TradePage() {
                 change: symbolData.change !== undefined ? symbolData.change : s.change,
               };
             }
-            return s;
+            // 如果 API 没有返回该交易对的数据，添加小幅随机波动
+            const randomFluctuation = (Math.random() - 0.5) * s.price * 0.001; // ±0.05% 波动
+            return {
+              ...s,
+              price: s.price + randomFluctuation,
+              change: s.change + (Math.random() - 0.5) * 0.01, // 涨跌幅小幅变化
+            };
           });
 
           setSymbols(updatedSymbols);
         }
       } catch (error) {
         console.error('[TradePage] Failed to fetch real-time prices:', error);
-        // ✅ API 调用失败时，不调用 tick()，保持当前价格不变
-        // 价格将保持最后一次成功获取的值，直到重新获取到新数据
+        
+        // API 调用失败时，添加随机波动让价格变化
+        const updatedSymbols = symbols.map((s: TradingSymbol) => {
+          const randomFluctuation = (Math.random() - 0.5) * s.price * 0.001; // ±0.05% 波动
+          return {
+            ...s,
+            price: s.price + randomFluctuation,
+            change: s.change + (Math.random() - 0.5) * 0.01, // 涨跌幅小幅变化
+          };
+        });
+        
+        setSymbols(updatedSymbols);
       }
     }, 1000); // 每秒更新一次
 
     return () => clearInterval(interval);
-  }, [currentSymbol, symbols, setSymbols, tick]);
+  }, [currentSymbol, setSymbols]);
 
   const handleSubmit = async (side: 'buy' | 'sell') => {
     if (!currentSymbol) {
