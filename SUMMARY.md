@@ -78,6 +78,21 @@
     - 通过 `currentSymbolData.price` 获取与交易对相同的实时价格
     - 添加价格变化检测，避免不必要的更新
     - 确保 K 线图和交易对价格完全同步
+  - **TradingChart.tsx 添加最新价格线 (最新)**:
+    - **需求**: K线图需要显示跟着价格跳动的虚线（最新价格线）
+    - **解决方案**: 
+      - 使用 `createPriceLine()` 创建价格线
+      - 设置 `lineStyle: 2`（虚线样式）
+      - 价格线颜色根据涨跌变化（绿色涨，红色跌）
+      - 每次价格更新时更新价格线位置
+      - 在组件卸载时移除价格线
+  - **TradingChart.tsx 优化K线图实时更新 (最新)**:
+    - **问题**: K线图不向右移动，看起来不动
+    - **解决方案**: 
+      - 添加 `rightBarStaysOnScroll: true` 配置，确保图表贴右边
+      - 每次价格更新时调用 `scrollToRealTime()` 强制滚动
+      - 使用 ref 存储最新价格，避免闭包问题
+      - 确保更新当前K线和新增K线时都会滚动
   - **TradingChart.tsx 修复 v5 API**:
     - 修复 `chart.addCandlestickSeries is not a function` 错误
     - 更新为 lightweight-charts v5 的正确 API
