@@ -59,11 +59,27 @@ export default function TradingChart({
   const currentSymbol = symbols.find(s => s.symbol === symbol)
   const currentPrice = currentSymbol?.price || 0
 
+  // ✅ 监听交易对变化，清除缓存并重置状态
+  useEffect(() => {
+    console.log(`[TradingChart] 交易对切换到: ${symbol}`)
+    setIsLoading(true)
+    lastCandleRef.current = null
+    lastPriceRef.current = 0
+  }, [symbol])
+
   useEffect(() => {
     priceRef.current = currentPrice
   }, [currentPrice])
 
   // ✅ 响应式高度：手机端缩小一半
+  // ✅ 监听交易对变化，清除缓存并重置状态
+  useEffect(() => {
+    console.log(`[TradingChart] 交易对切换到: ${symbol}`)
+    setIsLoading(true)
+    lastCandleRef.current = null
+    lastPriceRef.current = 0
+  }, [symbol])
+
   useEffect(() => {
     const updateHeight = () => {
       if (window.innerWidth < 768) {
@@ -87,15 +103,21 @@ export default function TradingChart({
 
   // ✅ 生成模拟历史数据（当 API 失败时使用）
   const generateMockHistory = (basePrice: number, count: number = 80): KlineData[] => {
+    if (!basePrice || basePrice <= 0) {
+      basePrice = 100 // 默认价格
+    }
+
     const now = Math.floor(Date.now() / 1000)
     const interval = getInterval()
 
     const history: KlineData[] = []
     let price = basePrice
 
+    console.log(`[TradingChart] 生成模拟历史数据: symbol=${symbol}, basePrice=${basePrice}, count=${count}`)
+
     for (let i = count; i > 0; i--) {
       const time = now - (i * interval)
-      const volatility = price * 0.002 // 0.2% 波动
+      const volatility = price * 0.001 // 0.1% 波动（更真实）
 
       const open = price
       const change = (Math.random() - 0.5) * volatility
@@ -106,13 +128,14 @@ export default function TradingChart({
 
       history.push({
         time: time as Time,
-        open: Math.round(open),
-        high: Math.round(high),
-        low: Math.round(low),
-        close: Math.round(price),
+        open: Number(open.toFixed(2)),
+        high: Number(high.toFixed(2)),
+        low: Number(low.toFixed(2)),
+        close: Number(price.toFixed(2)),
       })
     }
 
+    console.log(`[TradingChart] 模拟数据生成完成: ${history.length} 条K线`)
     return history
   }
 
@@ -121,8 +144,10 @@ export default function TradingChart({
     mountedFlag: React.MutableRefObject<boolean>,
     chartRefLocal: React.MutableRefObject<IChartApi | null>,
     seriesLocal: any
-  ) => {
+  ): Promise<KlineData[]> => {
     setIsLoading(true)
+    console.log(`[TradingChart] 开始加载历史数据: symbol=${symbol}, timeframe=${timeframe}`)
+
     try {
       const history = await getKlinesWithCache(symbol, timeframe, 80)
 
@@ -132,13 +157,15 @@ export default function TradingChart({
         return []
       }
 
+      console.log(`[TradingChart] 从Binance API获取到 ${history.length} 条K线`)
+
       // 转换为图表格式
       const klineData: KlineData[] = history.map(k => ({
         time: k.time as Time,
-        open: Math.round(k.open),
-        high: Math.round(k.high),
-        low: Math.round(k.low),
-        close: Math.round(k.close),
+        open: Number(k.open.toFixed(2)),
+        high: Number(k.high.toFixed(2)),
+        low: Number(k.low.toFixed(2)),
+        close: Number(k.close.toFixed(2)),
       }))
 
       // ✅ 同步最新价格到 marketStore
@@ -163,8 +190,13 @@ export default function TradingChart({
       return klineData
     } catch (error) {
       console.warn('[TradingChart] Binance API 失败，使用模拟历史数据:', error)
+
       // ✅ 如果API失败，基于当前价格生成模拟历史数据
-      const basePrice = currentPrice || 100
+      let basePrice = currentPrice || getInitialPriceForSymbol(symbol)
+      if (!basePrice || basePrice <= 0) {
+        basePrice = 100 // 默认价格
+      }
+
       const mockHistory = generateMockHistory(basePrice, 80)
 
       // 同步最新价格到 marketStore
@@ -194,13 +226,73 @@ export default function TradingChart({
     }
   }
 
+  // ✅ 获取交易对初始价格（用于生成模拟数据）
+  const getInitialPriceForSymbol = (sym: string): number => {
+    const priceMap: Record<string, number> = {
+      // Crypto
+      'BTCUSD': 67890.50,
+      'ETHUSD': 3456.78,
+      'LTCUSD': 89.45,
+      'SOLUSD': 178.23,
+      'XRPUSD': 2.34,
+      'DOGEUSD': 0.45,
+      // Forex
+      'EURUSD': 1.08563,
+      'GBPUSD': 1.26345,
+      'USDJPY': 149.826,
+      'USDCHF': 0.88945,
+      'EURAUD': 1.65432,
+      'EURGBP': 0.85890,
+      'EURJPY': 162.567,
+      'GBPAUD': 1.92345,
+      'GBPNZD': 2.08765,
+      'GBPJPY': 189.234,
+      'AUDUSD': 0.65432,
+      'AUDJPY': 98.123,
+      'NZDUSD': 0.61234,
+      'NZDJPY': 91.765,
+      'CADJPY': 109.876,
+      'CHFJPY': 168.543,
+      // Gold
+      'XAUUSD': 2345.67,
+      'XAGUSD': 28.45,
+      // Energy
+      'NGAS': 2.345,
+      'UKOIL': 78.56,
+      'USOIL': 76.34,
+      // Indices
+      'US500': 5234.56,
+      'ND25': 18765.43,
+      'AUS200': 7890.12,
+    }
+    return priceMap[sym] || 100
+  }
+
+  // ✅ 监听交易对变化，清除缓存并重置状态
+  useEffect(() => {
+    console.log(`[TradingChart] 交易对切换到: ${symbol}`)
+    setIsLoading(true)
+    lastCandleRef.current = null
+    lastPriceRef.current = 0
+  }, [symbol])
+
   useEffect(() => {
 
     // ✅ 添加挂载标志
     const isMounted = { current: true }
 
     if (!chartRef.current) return
-    if (!currentPrice) return
+
+    // ✅ 使用默认价格，不依赖 currentPrice
+    let effectivePrice = currentPrice
+    if (!effectivePrice || effectivePrice <= 0) {
+      effectivePrice = getInitialPriceForSymbol(symbol)
+      console.log(`[TradingChart] 使用默认价格: ${symbol} = ${effectivePrice}`)
+    }
+
+    priceRef.current = effectivePrice
+
+    console.log(`[TradingChart] 初始化图表: symbol=${symbol}, price=${effectivePrice}`)
 
     const chart = createChart(chartRef.current, {
 
@@ -270,7 +362,7 @@ export default function TradingChart({
         try {
           series.setData(history)
           lastCandleRef.current = history[history.length - 1]
-          lastPriceRef.current = currentPrice
+          lastPriceRef.current = effectivePrice
           chart.timeScale().fitContent()
         } catch (error) {
           console.warn('[TradingChart] setData error:', error)
@@ -398,7 +490,7 @@ export default function TradingChart({
 
     }
 
-  }, [symbol, timeframe, height, currentPrice])
+  }, [symbol, timeframe, actualHeight, currentPrice, symbols, setSymbols])
 
   return (
     <div className="relative">
