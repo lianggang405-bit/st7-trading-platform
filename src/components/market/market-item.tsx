@@ -1,5 +1,5 @@
 import { Change, Price } from '../data';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { formatSymbol } from '../../lib/formatSymbol';
 
 // 迷你K线图组件
@@ -115,12 +115,33 @@ export function MarketItem({ symbol, price, change, onClick }: MarketItemProps) 
   const trend = change > 0 ? 'up' : change < 0 ? 'down' : 'up';
   const [isLoading, setIsLoading] = useState(Math.random() < 0.1); // 10% 概率显示加载
 
+  // 价格闪烁状态
+  const [flash, setFlash] = useState<'up' | 'down' | null>(null);
+  const prevPriceRef = useRef(price);
+
   useEffect(() => {
     if (isLoading) {
       const timer = setTimeout(() => setIsLoading(false), 2000);
       return () => clearTimeout(timer);
     }
   }, [isLoading]);
+
+  // 监听价格变化，触发闪烁动画
+  useEffect(() => {
+    if (price > prevPriceRef.current) {
+      setFlash('up');
+    } else if (price < prevPriceRef.current) {
+      setFlash('down');
+    }
+
+    prevPriceRef.current = price;
+
+    const timer = setTimeout(() => {
+      setFlash(null);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [price]);
 
   const getPricePrecision = (symbol: string) => {
     // JPY 对：3位小数
@@ -156,14 +177,23 @@ export function MarketItem({ symbol, price, change, onClick }: MarketItemProps) 
       {/* 中间：价格 + 涨跌幅（居中显示） */}
       <div className="flex-1 flex flex-col items-center justify-center min-w-[100px]">
         <div className="flex items-center">
-          <Price
-            key={price}
-            value={price}
-            precision={getPricePrecision(symbol)}
-            className={`text-lg font-semibold ${
-              change > 0 ? 'text-green-500' : change < 0 ? 'text-red-500' : 'text-gray-900'
+          <div
+            className={`rounded px-1 ${
+              flash === 'up'
+                ? 'flash-up'
+                : flash === 'down'
+                ? 'flash-down'
+                : ''
             }`}
-          />
+          >
+            <Price
+              value={price}
+              precision={getPricePrecision(symbol)}
+              className={`text-lg font-semibold ${
+                change > 0 ? 'text-green-500' : change < 0 ? 'text-red-500' : 'text-gray-900'
+              }`}
+            />
+          </div>
         </div>
         <div className="flex items-center gap-1 mt-1">
           <Change value={change} showArrow />
