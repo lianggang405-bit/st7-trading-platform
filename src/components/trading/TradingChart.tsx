@@ -61,29 +61,6 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     return 10; // 低价币
   };
 
-  function getBasePrice(symbol: string): number {
-    const basePrices: { [key: string]: number } = {
-      'EURUSD': 1.0856,
-      'GBPUSD': 1.2654,
-      'USDJPY': 149.82,
-      'XAUUSD': 2850,
-      'XAGUSD': 32.5,
-      'BTCUSD': 98500,
-      'ETHUSD': 3250,
-      'LTCUSD': 95,
-      'SOLUSD': 145,
-      'XRPUSD': 2.15,
-      'DOGEUSD': 0.18,
-      'NGAS': 3.15,
-      'UKOIL': 82.5,
-      'USOIL': 80.25,
-      'US500': 5250,
-      'ND25': 18500,
-      'AUS200': 8125,
-    };
-    return basePrices[symbol] || 100;
-  }
-
   // ✅ 初始化图表
   useEffect(() => {
     // ✅ 等待实时价格加载完成后再初始化K线，避免价格不一致
@@ -157,29 +134,22 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     chartInstanceRef.current = chart;
     candlestickSeriesRef.current = candlestickSeries;
 
-    // 生成初始 K 线数据
+    // ✅ 生成初始 K 线数据（只使用真实价格，禁用随机生成）
     const klineData: KlineData[] = [];
 
-    // ✅ 使用实时价格作为K线初始价格（确保与交易对价格一致）
-    let basePrice = currentSymbolPrice;
+    // ✅ 只生成当前时刻的一根K线，后续随着市场tick扩展
+    // 这样确保K线100%使用真实价格，不包含任何模拟数据
+    const currentTimeSec = Math.floor(Date.now() / 1000);
+    const initialCandle: KlineData = {
+      time: currentTimeSec as Time,
+      open: Math.round(currentSymbolPrice),
+      high: Math.round(currentSymbolPrice),
+      low: Math.round(currentSymbolPrice),
+      close: Math.round(currentSymbolPrice),
+    };
+    klineData.push(initialCandle);
 
-    for (let i = 200; i >= 0; i--) {
-      const timeSec = Math.floor(Date.now() / 1000) - i * interval;
-      const open = basePrice;
-      const close = open + (Math.random() - 0.5) * 200;
-      const high = Math.max(open, close) + Math.random() * 100;
-      const low = Math.min(open, close) - Math.random() * 100;
-
-      klineData.push({
-        time: timeSec as Time,
-        open: Math.round(open),
-        high: Math.round(high),
-        low: Math.round(low),
-        close: Math.round(close),
-      });
-
-      basePrice = close;
-    }
+    console.log(`[K线初始化] 交易对=${symbol}, 初始价格=${currentSymbolPrice}, 来源=marketStore, 时间=${new Date(currentTimeSec * 1000).toLocaleString()}`);
 
     // 设置初始数据
     candlestickSeries.setData(klineData);
@@ -187,14 +157,14 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     chart.timeScale().scrollToPosition(5, false);
 
     // 存储最后一根K线和初始价格
-    lastCandleRef.current = klineData[klineData.length - 1];
-    lastPriceRef.current = basePrice;
-    setCurrentPrice(basePrice);
+    lastCandleRef.current = klineData[0];
+    lastPriceRef.current = currentSymbolPrice;
+    setCurrentPrice(currentSymbolPrice);
 
     // ✅ 初始化价格范围（固定价格轴，避免跳动）
-    const priceRange = getPriceRange(basePrice);
-    minPriceRef.current = basePrice - priceRange;
-    maxPriceRef.current = basePrice + priceRange;
+    const priceRange = getPriceRange(currentSymbolPrice);
+    minPriceRef.current = currentSymbolPrice - priceRange;
+    maxPriceRef.current = currentSymbolPrice + priceRange;
     chart.priceScale('right').setVisibleRange({
       from: minPriceRef.current,
       to: maxPriceRef.current,
@@ -202,7 +172,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
     // ✅ 创建最新价格线（虚线）
     const priceLine = candlestickSeries.createPriceLine({
-      price: basePrice,
+      price: currentSymbolPrice,
       color: '#888',
       lineWidth: 1,
       lineStyle: 2, // 2 = 虚线
@@ -274,18 +244,18 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
     tooltipRef.current = tooltipDiv;
     chartRef.current.appendChild(tooltipDiv);
 
-    // ✅ 实时更新 - 按照稳定版的逻辑
+    // ✅ 实时更新 - 只使用 marketStore 的真实价格，完全禁用模拟
     intervalRef.current = setInterval(() => {
       if (!chartInstanceRef.current || !candlestickSeriesRef.current || !priceLineRef.current) {
         return;
       }
 
-      // 获取最新价格（优先使用外部真实价格，否则模拟）
-      let newPrice = currentSymbolPrice > 0 ? currentSymbolPrice : lastPriceRef.current;
+      // ✅ 只从 marketStore 获取价格，不使用任何模拟数据
+      const newPrice = currentSymbolPrice;
 
-      // 如果没有外部价格，使用模拟价格
-      if (newPrice === lastPriceRef.current && currentSymbolPrice === 0) {
-        newPrice = lastPriceRef.current + (Math.random() - 0.5) * 150;
+      // ✅ 如果没有价格数据，跳过更新（不再生成模拟价格）
+      if (newPrice === 0) {
+        return;
       }
 
       // ✅ 价格变化阈值检测：只有价格变化超过当前价格的0.1%才更新，减少跳动
@@ -295,6 +265,8 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       if (priceDiff < priceChangeThreshold) {
         return; // 价格变化太小，跳过更新
       }
+
+      console.log(`[K线更新] 交易对=${symbol}, 价格=${newPrice}, 来源=marketStore.symbols, 变化=${priceDiff.toFixed(2)}`);
 
       // 更新状态
       setCurrentPrice(newPrice);
