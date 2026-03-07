@@ -243,55 +243,16 @@ export default function TradePage() {
     }
   }, [symbols, currentSymbol]);
 
-  // ✅ 实时价格刷新：使用真实 API 数据
+  // ✅ 实时价格刷新：调用 marketStore 的 tick 方法更新所有交易对价格
   useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        // 调用市场数据 API 获取实时价格
-        const response = await fetch(`/api/market/data?symbols=${currentSymbol || 'BTCUSD'}&useRealData=true`);
-        const result = await response.json();
+    if (!tick) return;
 
-        if (result.success && result.data) {
-          // 更新对应交易对的价格
-          const updatedSymbols = symbols.map((s: TradingSymbol) => {
-            const symbolData = result.data[s.symbol];
-            if (symbolData && symbolData.price) {
-              return {
-                ...s,
-                price: symbolData.price,
-                change: symbolData.change !== undefined ? symbolData.change : s.change,
-              };
-            }
-            // 如果 API 没有返回该交易对的数据，添加小幅随机波动
-            const randomFluctuation = (Math.random() - 0.5) * s.price * 0.001; // ±0.05% 波动
-            return {
-              ...s,
-              price: s.price + randomFluctuation,
-              change: s.change + (Math.random() - 0.5) * 0.01, // 涨跌幅小幅变化
-            };
-          });
-
-          setSymbols(updatedSymbols);
-        }
-      } catch (error) {
-        console.error('[TradePage] Failed to fetch real-time prices:', error);
-        
-        // API 调用失败时，添加随机波动让价格变化
-        const updatedSymbols = symbols.map((s: TradingSymbol) => {
-          const randomFluctuation = (Math.random() - 0.5) * s.price * 0.001; // ±0.05% 波动
-          return {
-            ...s,
-            price: s.price + randomFluctuation,
-            change: s.change + (Math.random() - 0.5) * 0.01, // 涨跌幅小幅变化
-          };
-        });
-        
-        setSymbols(updatedSymbols);
-      }
-    }, 1000); // 每秒更新一次
+    const interval = setInterval(() => {
+      tick();
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [currentSymbol, setSymbols]);
+  }, [tick]);
 
   const handleSubmit = async (side: 'buy' | 'sell') => {
     if (!currentSymbol) {
