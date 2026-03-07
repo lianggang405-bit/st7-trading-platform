@@ -44,7 +44,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
   const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>('1M');
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const lastPriceRef = useRef<number>(0);
-  const lastCandleRef = useRef<KlineData | null>(null); // ✅ 存储最后一根K线
+  const lastCandleRef = useRef<KlineData | null>(null);
   const { symbols } = useMarketStore();
 
   // ✅ 获取当前交易对的实时价格
@@ -76,7 +76,10 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
   // ✅ 初始化图表
   useEffect(() => {
-    if (!chartRef.current) return;
+    // ✅ 等待实时价格加载完成后再初始化K线，避免价格不一致
+    if (!chartRef.current || currentSymbolPrice === 0) {
+      return;
+    }
 
     const timeframeConfig = TIMEFRAMES.find(tf => tf.value === selectedTimeframe) || TIMEFRAMES[0];
     const interval = timeframeConfig.interval;
@@ -133,7 +136,9 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
 
     // 生成初始 K 线数据
     const klineData: KlineData[] = [];
-    let basePrice = getBasePrice(symbol);
+
+    // ✅ 使用实时价格作为K线初始价格（确保与交易对价格一致）
+    let basePrice = currentSymbolPrice;
 
     for (let i = 200; i >= 0; i--) {
       const timeSec = Math.floor(Date.now() / 1000) - i * interval;
