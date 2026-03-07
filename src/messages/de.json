@@ -88,6 +88,12 @@
     "marginCall": "Unzureichende Marge",
     "forceClose": "Zwangsschließung"
   },
+  "chart": {
+    "open": "Eröffnung",
+    "high": "Hoch",
+    "low": "Tief",
+    "close": "Schluss"
+  },
   "trade": {
     "instantOrder": "Sofortiger Auftrag",
     "pendingTrade": "Ausstehender Auftrag",

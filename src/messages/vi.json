@@ -88,6 +88,12 @@
     "marginCall": "Ký quỹ không đủ",
     "forceClose": "Buộc đóng vị thế"
   },
+  "chart": {
+    "open": "Mở",
+    "high": "Cao",
+    "low": "Thấp",
+    "close": "Đóng"
+  },
   "trade": {
     "instantOrder": "Giao dịch ngay",
     "pendingTrade": "Giao dịch chờ",

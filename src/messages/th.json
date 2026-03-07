@@ -88,6 +88,12 @@
     "marginCall": "มาร์จินไม่เพียงพอ",
     "forceClose": "บังคับปิดตำแหน่ง"
   },
+  "chart": {
+    "open": "เปิด",
+    "high": "สูง",
+    "low": "ต่ำ",
+    "close": "ปิด"
+  },
   "trade": {
     "instantOrder": "สั่งซื้อขายทันที",
     "pendingTrade": "คำสั่งที่รอดำเนินการ",
