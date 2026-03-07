@@ -246,7 +246,10 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       const currentTime = Math.floor(Date.now() / 1000);
       const timeSec = Math.floor(currentTime / interval) * interval;
 
-      if (timeSec !== lastCandle.time) {
+      // 确保 lastCandle.time 是数字类型
+      const lastCandleTime = typeof lastCandle.time === 'number' ? lastCandle.time : parseInt(String(lastCandle.time), 10);
+
+      if (timeSec > lastCandleTime) {
         // 创建新 K 线
         const newCandle = {
           time: timeSec as Time,
@@ -261,7 +264,7 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       } else {
         // 更新当前 K 线
         const updatedCandle = {
-          time: lastCandle.time as Time,
+          time: lastCandleTime as Time,
           open: lastCandle.open,
           high: Math.round(Math.max(lastCandle.high, newPrice)),
           low: Math.round(Math.min(lastCandle.low, newPrice)),
