@@ -67,11 +67,21 @@ export default function TradingChart({
   }
 
   // ✅ 从Binance API获取真实历史数据
-  const loadHistory = async () => {
+  const loadHistory = async (
+    mountedFlag: React.MutableRefObject<boolean>,
+    chartRefLocal: React.MutableRefObject<IChartApi | null>,
+    seriesLocal: any
+  ) => {
     setIsLoading(true)
     try {
       const history = await getKlinesWithCache(symbol, timeframe, 80)
-      
+
+      // ✅ 检查组件是否仍然挂载
+      if (!mountedFlag.current || !chartRefLocal.current) {
+        console.log('[TradingChart] 组件已卸载，取消数据加载')
+        return []
+      }
+
       // 转换为图表格式
       const klineData: KlineData[] = history.map(k => ({
         time: k.time as Time,
@@ -82,10 +92,10 @@ export default function TradingChart({
       }))
 
       // ✅ 同步最新价格到 marketStore
-      if (klineData.length > 0) {
+      if (klineData.length > 0 && mountedFlag.current) {
         const latestPrice = klineData[klineData.length - 1].close
         console.log(`[TradingChart] 从K线数据同步价格: ${symbol} = ${latestPrice}`)
-        
+
         // 更新 marketStore 中的价格
         const updatedSymbols = symbols.map((s) => {
           if (s.symbol === symbol) {
@@ -96,7 +106,7 @@ export default function TradingChart({
           }
           return s
         })
-        
+
         setSymbols(updatedSymbols)
       }
 
@@ -106,11 +116,17 @@ export default function TradingChart({
       // 如果API失败，返回空数组
       return []
     } finally {
-      setIsLoading(false)
+      // ✅ 只在组件仍然挂载时更新状态
+      if (mountedFlag.current) {
+        setIsLoading(false)
+      }
     }
   }
 
   useEffect(() => {
+
+    // ✅ 添加挂载标志
+    const isMounted = { current: true }
 
     if (!chartRef.current) return
     if (!currentPrice) return
@@ -159,19 +175,25 @@ export default function TradingChart({
 
     // ✅ 从Binance API加载真实历史数据
     const initializeChart = async () => {
-      // 检查组件是否仍然挂载
-      if (!chartRef.current || !chartInstance.current) return
+      if (!isMounted.current) return
 
-      const history = await loadHistory()
+      const history = await loadHistory(isMounted, chartInstance, series)
 
-      // 再次检查组件是否仍然挂载（避免在组件卸载后更新）
-      if (!chartInstance.current || !seriesRef.current) return
+      // ✅ 检查组件是否仍然挂载
+      if (!isMounted.current || !chartInstance.current || !seriesRef.current) {
+        console.log('[TradingChart] 组件已卸载，取消图表初始化')
+        return
+      }
 
       if (history.length > 0) {
-        series.setData(history)
-        lastCandleRef.current = history[history.length - 1]
-        lastPriceRef.current = currentPrice
-        chart.timeScale().fitContent()
+        try {
+          series.setData(history)
+          lastCandleRef.current = history[history.length - 1]
+          lastPriceRef.current = currentPrice
+          chart.timeScale().fitContent()
+        } catch (error) {
+          console.warn('[TradingChart] setData error:', error)
+        }
       }
     }
 
@@ -183,8 +205,8 @@ export default function TradingChart({
 
       if (!price) return
 
-      // 检查图表是否仍然存在
-      if (!chartInstance.current || !seriesRef.current) return
+      // ✅ 检查组件是否仍然挂载
+      if (!isMounted.current || !chartInstance.current || !seriesRef.current) return
 
       const interval = getInterval()
 
@@ -212,7 +234,12 @@ export default function TradingChart({
           close: price
         }
 
-        series.update(newCandle)
+        try {
+          series.update(newCandle)
+        } catch (error) {
+          console.warn('[TradingChart] update new candle error:', error)
+          return
+        }
 
         lastCandleRef.current = newCandle
 
@@ -227,14 +254,23 @@ export default function TradingChart({
           close: price
         }
 
-        series.update(updated)
+        try {
+          series.update(updated)
+        } catch (error) {
+          console.warn('[TradingChart] update candle error:', error)
+          return
+        }
 
         lastCandleRef.current = updated
       }
 
       lastPriceRef.current = price
 
-      chart.timeScale().scrollToRealTime()
+      try {
+        chart.timeScale().scrollToRealTime()
+      } catch (error) {
+        console.warn('[TradingChart] scrollToRealTime error:', error)
+      }
 
     }, 1000)
 
@@ -255,6 +291,9 @@ export default function TradingChart({
 
     return () => {
 
+      // ✅ 标记组件已卸载
+      isMounted.current = false
+
       // 清除定时器
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
@@ -266,7 +305,11 @@ export default function TradingChart({
 
       // 销毁图表实例
       if (chartInstance.current) {
-        chart.remove()
+        try {
+          chart.remove()
+        } catch (error) {
+          console.warn('[TradingChart] chart.remove error:', error)
+        }
         chartInstance.current = null
       }
       seriesRef.current = null
