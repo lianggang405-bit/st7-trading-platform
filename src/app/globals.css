@@ -199,45 +199,43 @@ body {
   display: none;
 }
 
-/* 价格闪烁动画 - 呼吸灯效果 */
-@keyframes priceFlashUp {
+/* 价格脉冲动画 - 只有数字动，背景不动 */
+@keyframes pricePulseUp {
   0% {
-    background-color: rgba(34, 197, 94, 0.35);
+    transform: scale(1);
+    color: #16a34a;
   }
-  100% {
-    background-color: transparent;
-  }
-}
-
-@keyframes priceFlashDown {
-  0% {
-    background-color: rgba(239, 68, 68, 0.35);
-  }
-  100% {
-    background-color: transparent;
-  }
-}
-
-/* 数字跳动效果 */
-@keyframes pricePop {
-  0% {
-    transform: scale(1.05);
+  40% {
+    transform: scale(1.08);
+    color: #22c55e;
   }
   100% {
     transform: scale(1);
+    color: #16a34a;
   }
 }
 
-.flash-up {
-  animation: priceFlashUp 0.6s ease-out;
+@keyframes pricePulseDown {
+  0% {
+    transform: scale(1);
+    color: #dc2626;
+  }
+  40% {
+    transform: scale(1.08);
+    color: #ef4444;
+  }
+  100% {
+    transform: scale(1);
+    color: #dc2626;
+  }
 }
 
-.flash-down {
-  animation: priceFlashDown 0.6s ease-out;
+.price-up {
+  animation: pricePulseUp 0.35s ease;
 }
 
-.price-pop {
-  animation: pricePop 0.2s ease;
+.price-down {
+  animation: pricePulseDown 0.35s ease;
 }
 
 /* 自定义滚动条样式 */

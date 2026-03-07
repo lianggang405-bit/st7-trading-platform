@@ -13,10 +13,14 @@ export function Price({
   value,
   precision = 4,
   className = '',
+  pulse = null,
+  change = 0,
 }: {
   value: number | string;
   precision?: number;
   className?: string;
+  pulse?: 'up' | 'down' | null;
+  change?: number;
 }) {
   // 处理 string 类型
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
@@ -26,8 +30,14 @@ export function Price({
     return <span className={`tabular-nums text-gray-400 ${className}`}>--</span>;
   }
 
+  // 确定颜色（基于涨跌）
+  const textColor = change > 0 ? '#16a34a' : change < 0 ? '#dc2626' : '#111827';
+
   return (
-    <span className={`tabular-nums ${className}`}>
+    <span
+      className={`font-semibold transition tabular-nums ${pulse === 'up' ? 'price-up' : ''} ${pulse === 'down' ? 'price-down' : ''}`}
+      style={{ color: textColor }}
+    >
       {numValue.toFixed(precision)}
     </span>
   );
