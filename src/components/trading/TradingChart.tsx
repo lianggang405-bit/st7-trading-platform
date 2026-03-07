@@ -190,18 +190,38 @@ export default function TradingChart({ symbol = 'BTCUSD', height = 500 }: Tradin
       const data = param.seriesData.get(candlestickSeries) as KlineData;
       if (!data) return;
 
+      // 获取图表尺寸
+      const chartWidth = chartRef.current!.clientWidth;
+      const chartHeight = chartRef.current!.clientHeight;
+
+      // 智能定位：避免tooltip超出边界
+      let offsetX = 15;
+      let offsetY = 15;
+
+      // 如果鼠标在右侧，tooltip显示在左侧
+      if (param.point.x > chartWidth - 200) {
+        offsetX = -220; // 向左偏移
+      }
+
+      // 如果鼠标在下方，tooltip显示在上方
+      if (param.point.y < 150) {
+        offsetY = 15; // 向下显示
+      } else if (param.point.y > chartHeight - 150) {
+        offsetY = -130; // 向上偏移
+      }
+
       tooltipRef.current.style.display = 'block';
-      tooltipRef.current.style.left = param.point.x + 10 + 'px';
-      tooltipRef.current.style.top = param.point.y + 'px';
+      tooltipRef.current.style.left = param.point.x + offsetX + 'px';
+      tooltipRef.current.style.top = param.point.y + offsetY + 'px';
 
       const timeValue = typeof data.time === 'number' ? data.time * 1000 : (typeof data.time === 'string' ? new Date(data.time).getTime() : 0);
       const formattedTime = new Date(timeValue).toLocaleString();
       tooltipRef.current.innerHTML = `
-        <div style="color: #999; font-size: 12px; margin-bottom: 4px;">${formattedTime}</div>
-        <div style="color: #666; font-size: 12px;">${t('open')}: ${data.open}</div>
-        <div style="color: #666; font-size: 12px;">${t('high')}: ${data.high}</div>
-        <div style="color: #666; font-size: 12px;">${t('low')}: ${data.low}</div>
-        <div style="color: ${data.close >= data.open ? '#00ff9c' : '#ff4976'}; font-size: 12px; font-weight: bold;">${t('close')}: ${data.close}</div>
+        <div style="color: #999; font-size: 12px; margin-bottom: 6px; border-bottom: 1px solid #333; padding-bottom: 4px;">${formattedTime}</div>
+        <div style="color: ${data.close >= data.open ? '#00ff9c' : '#ff4976'}; font-size: 14px; font-weight: bold; margin-bottom: 4px;">${t('close')}: ${data.close}</div>
+        <div style="color: #999; font-size: 12px;">${t('open')}: ${data.open}</div>
+        <div style="color: #999; font-size: 12px;">${t('high')}: ${data.high}</div>
+        <div style="color: #999; font-size: 12px;">${t('low')}: ${data.low}</div>
       `;
     };
 
