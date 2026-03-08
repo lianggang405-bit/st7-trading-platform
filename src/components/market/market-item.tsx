@@ -59,7 +59,7 @@ export function MiniChart({ trend, isLoading }: MiniChartProps) {
   );
 }
 
-// 获取品种国旗
+// 获取品种图标（使用 emoji 或特殊符号）
 export function getSymbolFlags(symbol: string): string[] {
   const flagMap: Record<string, string[]> = {
     // 外汇
@@ -67,21 +67,30 @@ export function getSymbolFlags(symbol: string): string[] {
     'GBPUSD': ['🇬🇧', '🇺🇸'],
     'USDJPY': ['🇺🇸', '🇯🇵'],
     'USDCHF': ['🇺🇸', '🇨🇭'],
+    'USDCAD': ['🇺🇸', '🇨🇦'],
     'EURAUD': ['🇪🇺', '🇦🇺'],
     'EURGBP': ['🇪🇺', '🇬🇧'],
     'EURJPY': ['🇪🇺', '🇯🇵'],
+    'EURCHF': ['🇪🇺', '🇨🇭'],
     'GBPAUD': ['🇬🇧', '🇦🇺'],
     'GBPNZD': ['🇬🇧', '🇳🇿'],
     'GBPJPY': ['🇬🇧', '🇯🇵'],
+    'GBPCHF': ['🇬🇧', '🇨🇭'],
     'AUDUSD': ['🇦🇺', '🇺🇸'],
     'AUDJPY': ['🇦🇺', '🇯🇵'],
+    'AUDNZD': ['🇦🇺', '🇳🇿'],
+    'AUDCHF': ['🇦🇺', '🇨🇭'],
+    'AUDCAD': ['🇦🇺', '🇨🇦'],
     'NZDUSD': ['🇳🇿', '🇺🇸'],
     'NZDJPY': ['🇳🇿', '🇯🇵'],
+    'NZDCHF': ['🇳🇿', '🇨🇭'],
+    'NZDCAD': ['🇳🇿', '🇨🇦'],
     'CADJPY': ['🇨🇦', '🇯🇵'],
+    'CADCHF': ['🇨🇦', '🇨🇭'],
     'CHFJPY': ['🇨🇭', '🇯🇵'],
     // 贵金属
-    'XAUUSD': [], // 黄金
-    'XAGUSD': [], // 白银
+    'XAUUSD': ['🥇'], // 黄金
+    'XAGUSD': ['🥈'], // 白银
     // 加密货币
     'BTCUSD': ['₿'], // 比特币
     'ETHUSD': ['Ξ'], // 以太坊
@@ -89,6 +98,22 @@ export function getSymbolFlags(symbol: string): string[] {
     'SOLUSD': ['◎'], // Solana
     'XRPUSD': ['✕'], // Ripple
     'DOGEUSD': ['🐕'], // Dogecoin
+    'ADAUSD': ['₳'], // Cardano
+    'DOTUSD': ['●'], // Polkadot
+    'BNBUSD': ['◆'], // BNB
+    'LINKUSD': ['🔗'], // Chainlink
+    'AVAXUSD': ['🔺'], // Avalanche
+    'MATICUSD': ['💜'], // Polygon
+    'ATOMUSD': ['⚛'], // Cosmos
+    'UNIUSD': ['🦄'], // Uniswap
+    'XLMUSD': ['✴'], // Stellar
+    'ALGOUSD': ['🅰️'], // Algorand
+    'VETUSD': ['🔹'], // VeChain
+    'NEARUSD': ['💎'], // NEAR Protocol
+    'FILUSD': ['💾'], // Filecoin
+    'SANDUSD': ['🏝️'], // The Sandbox
+    'MANAUSD': ['🎮'], // Decentraland
+    'AXSUSD': ['🎯'], // Axie Infinity
     // 能源
     'NGAS': ['🔥'], // 天然气
     'UKOIL': ['🛢️'], // 英国原油
@@ -96,10 +121,45 @@ export function getSymbolFlags(symbol: string): string[] {
     // 指数
     'US500': ['📊'], // 标普500
     'ND25': ['📈'], // 纳斯达克25
+    'ND100': ['🚀'], // 纳斯达克100
     'AUS200': ['📉'], // 澳洲200
+    'UK100': ['🏛️'], // 英国富时100
+    'GER40': ['🇩🇪'], // 德国DAX
+    'FRA40': ['🇫🇷'], // 法国CAC40
+    'EU50': ['🇪🇺'], // 欧洲斯托克50
+    'JPN225': ['🇯🇵'], // 日经225
+    'CHN50': ['🇨🇳'], // 中国A50
+    'HK50': ['🇭🇰'], // 恒生指数
   };
 
-  return flagMap[symbol] || [];
+  // 如果有预定义的图标，直接返回
+  if (flagMap[symbol]) {
+    return flagMap[symbol];
+  }
+
+  // 根据交易对类型返回通用图标
+  // 贵金属
+  if (symbol.startsWith('XA') || symbol.startsWith('XG')) {
+    return ['🥇'];
+  }
+
+  // 加密货币
+  if (['BTC', 'ETH', 'LTC', 'SOL', 'XRP', 'DOGE', 'ADA', 'DOT', 'BNB', 'LINK', 'AVAX', 'MATIC', 'ATOM', 'UNI', 'XLM', 'ALGO', 'VET', 'NEAR', 'FIL', 'SAND', 'MANA', 'AXS', 'SHIB', 'AVAX', 'TRX', 'BCH'].some(c => symbol.includes(c))) {
+    return ['₿'];
+  }
+
+  // 能源
+  if (['NGAS', 'UKOIL', 'USOIL', 'WTI', 'BRENT'].some(e => symbol.includes(e))) {
+    return ['🔥'];
+  }
+
+  // 指数
+  if (['US', 'ND', 'AU', 'UK', 'GER', 'FRA', 'EU', 'JPN', 'CHN', 'HK', 'SG'].some(i => symbol.includes(i)) && /\d/.test(symbol)) {
+    return ['📊'];
+  }
+
+  // 外汇（默认）
+  return ['💱'];
 }
 
 // 单个行情项组件
