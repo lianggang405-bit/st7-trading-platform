@@ -26,8 +26,7 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-  const [shouldRedirect, setShouldRedirect] = useState(false);
+  const [checkedAuth, setCheckedAuth] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
   // 生成面包屑导航函数
@@ -207,10 +206,8 @@ export default function AdminLayout({
   };
 
   useEffect(() => {
-    console.log('[AdminLayout] Component mounted, checking auth...');
-    setIsMounted(true);
-
-    // 立即检查认证（不在 isMounted 后延迟）
+    console.log('[AdminLayout] Checking auth...');
+    // 检查认证
     const checkAuth = () => {
       if (typeof window === 'undefined') return;
 
@@ -219,24 +216,15 @@ export default function AdminLayout({
 
       if (!token && pathname !== '/admin/login') {
         console.log('[AdminLayout] No token, redirecting to login');
-        setShouldRedirect(true);
-        return;
+        router.push('/admin/login');
+      } else {
+        setIsAuthenticated(!!token);
       }
-
-      setIsAuthenticated(!!token);
     };
 
     checkAuth();
-  }, [pathname]); // 只依赖 pathname，不等待 isMounted
-
-  // 在独立的 useEffect 中处理重定向
-  useEffect(() => {
-    if (shouldRedirect) {
-      console.log('[AdminLayout] Redirecting to login page');
-      router.push('/admin/login');
-      setShouldRedirect(false);
-    }
-  }, [shouldRedirect, router]);
+    setCheckedAuth(true);
+  }, [pathname, router]);
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
@@ -252,13 +240,18 @@ export default function AdminLayout({
     return <>{children}</>;
   }
 
-  // 如果未认证且不是登录页面，显示加载状态而不是返回 null
-  if (!isAuthenticated && pathname !== '/admin/login') {
+  // 检查认证状态，避免闪屏和白屏
+  if (!checkedAuth) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-white">加载中...</div>
       </div>
     );
+  }
+
+  // 如果未认证且不是登录页面，不会走到这里（已经重定向到登录页）
+  if (!isAuthenticated && pathname !== '/admin/login') {
+    return null;
   }
 
   return (
@@ -284,12 +277,12 @@ export default function AdminLayout({
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-2 rounded-md hover:bg-slate-700 text-gray-400"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" suppressHydrationWarning />
           </button>
         </div>
 
         {/* Navigation - Scrollable area */}
-        <nav className="mt-6 px-2 lg:px-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar">
+        <nav className="mt-6 px-2 lg:px-3 space-y-1 flex-1 overflow-y-auto overscroll-contain">
           {navigation.map((item) => {
             const isActive = isMenuActive(item);
             const hasChildren = item.children && item.children.length > 0;
@@ -307,11 +300,12 @@ export default function AdminLayout({
                     }`}
                   >
                     <div className="flex items-center gap-2 lg:gap-3">
-                      <item.icon className={`w-4 h-4 lg:w-5 lg:h-5 ${isActive ? 'text-blue-400' : ''}`} />
+                      <item.icon className={`w-4 h-4 lg:w-5 lg:h-5 ${isActive ? 'text-blue-400' : ''}`} suppressHydrationWarning />
                       <span className="truncate">{item.name}</span>
                     </div>
                     <ChevronDown
                       className={`w-3 h-3 lg:w-4 lg:h-4 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                      suppressHydrationWarning
                     />
                   </button>
                 ) : (
@@ -324,7 +318,7 @@ export default function AdminLayout({
                         : 'text-gray-400 hover:bg-slate-700 hover:text-white'
                     }`}
                   >
-                    <item.icon className={`w-4 h-4 lg:w-5 lg:h-5 ${isActive ? 'text-blue-400' : ''} flex-shrink-0`} />
+                    <item.icon className={`w-4 h-4 lg:w-5 lg:h-5 ${isActive ? 'text-blue-400' : ''} flex-shrink-0`} suppressHydrationWarning />
                     <span className="truncate">{item.name}</span>
                   </Link>
                 )}
@@ -363,7 +357,7 @@ export default function AdminLayout({
             className="w-full justify-start text-gray-400 hover:text-white hover:bg-slate-700 text-xs lg:text-sm py-3 lg:py-2"
             onClick={handleLogout}
           >
-            <LogOut className="w-4 h-4 lg:w-5 lg:h-5 mr-2 lg:mr-3" />
+            <LogOut className="w-4 h-4 lg:w-5 lg:h-5 mr-2 lg:mr-3" suppressHydrationWarning />
             <span className="truncate">退出登录</span>
           </Button>
         </div>
@@ -377,7 +371,7 @@ export default function AdminLayout({
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden p-2 rounded-md hover:bg-slate-700 mr-2 lg:mr-4 text-gray-400"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-5 h-5" suppressHydrationWarning />
           </button>
 
           {/* Breadcrumb Navigation - Desktop Only */}
@@ -414,7 +408,7 @@ export default function AdminLayout({
         </header>
 
         {/* Page content - Scrollable */}
-        <main className="flex-1 overflow-y-auto p-3 lg:p-8 custom-scrollbar">
+        <main className="flex-1 overflow-y-auto p-3 lg:p-8 overscroll-contain">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

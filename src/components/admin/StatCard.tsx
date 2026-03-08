@@ -4,37 +4,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { LucideIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
-// 禁用 SSR 避免 Hydration mismatch
+// 只 dynamic Select（portal 组件），避免多次 chunk 加载和加载顺序不一致
 const Select = dynamic(
-  () => import('@/components/ui/select').then(mod => ({
-    default: mod.Select
-  })),
+  () => import('@/components/ui/select').then(mod => mod.Select),
   { ssr: false }
 );
-const SelectTrigger = dynamic(
-  () => import('@/components/ui/select').then(mod => ({
-    default: mod.SelectTrigger
-  })),
-  { ssr: false }
-);
-const SelectValue = dynamic(
-  () => import('@/components/ui/select').then(mod => ({
-    default: mod.SelectValue
-  })),
-  { ssr: false }
-);
-const SelectContent = dynamic(
-  () => import('@/components/ui/select').then(mod => ({
-    default: mod.SelectContent
-  })),
-  { ssr: false }
-);
-const SelectItem = dynamic(
-  () => import('@/components/ui/select').then(mod => ({
-    default: mod.SelectItem
-  })),
-  { ssr: false }
-);
+
+// 其他子组件正常 import，避免重复加载
+import {
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@/components/ui/select';
 
 interface StatCardProps {
   title: string;
@@ -73,7 +55,7 @@ export default function StatCard({
             <div className="text-sm text-gray-400">{title}</div>
           </div>
           <div className={`p-3 bg-slate-700/50 rounded-lg ${iconColor}`}>
-            <Icon className="w-6 h-6" />
+            <Icon className="w-6 h-6" suppressHydrationWarning />
           </div>
         </div>
       </CardContent>
