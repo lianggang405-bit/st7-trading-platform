@@ -65,7 +65,7 @@ export function MarketHeader({ activeCategory: externalActiveCategory, onCategor
           <button
             key={category.value}
             onClick={() => handleCategoryClick(category.value)}
-            className={`whitespace-nowrap rounded px-4 py-2 text-sm font-normal transition-all active:scale-95 w-[80px] ${
+            className={`whitespace-nowrap rounded px-4 py-2 text-xs font-bold transition-all active:scale-95 w-[100px] flex justify-center items-center ${
               externalActiveCategory === category.value
                 ? 'bg-blue-500 text-white'
                 : 'bg-transparent text-gray-600 hover:text-gray-800'
