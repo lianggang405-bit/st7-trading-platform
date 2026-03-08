@@ -81,6 +81,14 @@ export default function LoginPage() {
     router.push(`/${locale}/register`);
   };
 
+  // 语言切换函数
+  const switchLanguage = () => {
+    const currentIndex = locales.indexOf(locale as any);
+    const nextIndex = (currentIndex + 1) % locales.length;
+    const nextLocale = locales[nextIndex];
+    router.push(`/${nextLocale}/login`);
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 relative">
       {/* 左上角关闭按钮 */}
@@ -88,13 +96,17 @@ export default function LoginPage() {
         <div className="w-6 h-0.5 bg-gray-500 rounded"></div>
       </button>
 
-      {/* 右上角语言标识 - 台湾旗帜 */}
-      <div className="absolute top-4 right-4">
+      {/* 右上角语言切换 */}
+      <button
+        onClick={switchLanguage}
+        className="absolute top-4 right-4 cursor-pointer hover:opacity-80 transition-opacity"
+        title="切换语言"
+      >
         <div className="w-6 h-4 rounded bg-red-600 flex items-center justify-center overflow-hidden">
           <div className="absolute w-full h-0.5 bg-blue-600 top-1"></div>
           <div className="absolute w-1.5 h-1.5 bg-blue-600 rounded-full top-0.5 left-2"></div>
         </div>
-      </div>
+      </button>
 
       {/* Logo */}
       <div className="mb-8">
