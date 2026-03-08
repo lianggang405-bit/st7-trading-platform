@@ -1,5 +1,5 @@
 /**
- * 外汇、能源、指数K线数据获取
+ * 能源、指数K线数据获取
  * 数据源：OANDA API（需要 API Key）
  * 降级方案：使用模拟数据
  */
@@ -72,24 +72,6 @@ function getPricePrecision(symbol: string): number {
  */
 function getBasePrice(symbol: string): number {
   const priceMap: Record<string, number> = {
-    // 外汇
-    'EURUSD': 1.08,
-    'GBPUSD': 1.26,
-    'USDJPY': 149.5,
-    'USDCHF': 0.88,
-    'EURAUD': 1.65,
-    'EURGBP': 0.86,
-    'EURJPY': 161.5,
-    'GBPAUD': 1.92,
-    'GBPNZD': 2.13,
-    'GBPJPY': 188.5,
-    'AUDUSD': 0.65,
-    'AUDJPY': 97.5,
-    'NZDUSD': 0.60,
-    'NZDJPY': 90.0,
-    'CADJPY': 110.0,
-    'CHFJPY': 169.5,
-
     // 能源
     'UKOIL': 80.0,
     'USOIL': 75.0,
@@ -102,23 +84,6 @@ function getBasePrice(symbol: string): number {
   };
 
   return priceMap[symbol] || 100.0;
-}
-
-/**
- * 获取外汇K线数据
- */
-export async function getForexKlines(
-  symbol: string,
-  interval: string,
-  limit: number = 80
-): Promise<UnifiedKline[]> {
-  console.log(`[ForexKlines] 获取 ${symbol} K线数据`);
-
-  const basePrice = getBasePrice(symbol);
-  const mockData = generateMockKlines(symbol, basePrice, limit);
-
-  console.log(`[ForexKlines] 生成 ${mockData.length} 条模拟K线`);
-  return mockData;
 }
 
 /**

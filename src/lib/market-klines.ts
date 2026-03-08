@@ -11,7 +11,8 @@ import {
 } from './symbol-map';
 import { getBinanceKlines } from './binance-source';
 import { getGoldKlines } from './gold-klines';
-import { getForexKlines, getEnergyKlines, getCfdKlines } from './other-klines';
+import { getForexKlines } from './forex-klines';
+import { getEnergyKlines, getCfdKlines } from './other-klines';
 
 /**
  * 获取K线数据（行情聚合）
