@@ -50,13 +50,13 @@ export default function TradingChart({
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const { symbols, setSymbols } = useMarketStore()
+  const { symbols } = useMarketStore()
 
   const [timeframe, setTimeframe] = useState<Timeframe>('1M')
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [actualHeight, setActualHeight] = useState<number>(height)
 
-  const currentSymbol = symbols.find(s => s.symbol === symbol)
+  const currentSymbol = symbols?.find((s: any) => s.symbol === symbol)
   const currentPrice = currentSymbol?.price || 0
 
   // ✅ 监听交易对变化，清除缓存并重置状态
@@ -95,7 +95,7 @@ export default function TradingChart({
   }
 
   // ✅ 生成模拟历史数据（当 API 失败时使用）
-  const generateMockHistory = (basePrice: number, count: number = 80): KlineData[] => {
+  const generateMockHistory = (basePrice: number, count: number = 200): KlineData[] => {
     if (!basePrice || basePrice <= 0) {
       basePrice = 100 // 默认价格
     }
@@ -142,7 +142,7 @@ export default function TradingChart({
     console.log(`[TradingChart] 开始加载历史数据: symbol=${symbol}, timeframe=${timeframe}`)
 
     try {
-      const history = await getKlinesWithCache(symbol, timeframe, 80)
+      const history = await getKlinesWithCache(symbol, timeframe, 200)
 
       // ✅ 检查组件是否仍然挂载
       if (!mountedFlag.current || !chartRefLocal.current) {
@@ -161,25 +161,6 @@ export default function TradingChart({
         close: Number(k.close.toFixed(2)),
       }))
 
-      // ✅ 同步最新价格到 marketStore
-      if (klineData.length > 0 && mountedFlag.current) {
-        const latestPrice = klineData[klineData.length - 1].close
-        console.log(`[TradingChart] 从K线数据同步价格: ${symbol} = ${latestPrice}`)
-
-        // 更新 marketStore 中的价格
-        const updatedSymbols = symbols.map((s) => {
-          if (s.symbol === symbol) {
-            return {
-              ...s,
-              price: latestPrice,
-            }
-          }
-          return s
-        })
-
-        setSymbols(updatedSymbols)
-      }
-
       return klineData
     } catch (error) {
       console.warn('[TradingChart] Binance API 失败，使用模拟历史数据:', error)
@@ -190,25 +171,7 @@ export default function TradingChart({
         basePrice = 100 // 默认价格
       }
 
-      const mockHistory = generateMockHistory(basePrice, 80)
-
-      // 同步最新价格到 marketStore
-      if (mockHistory.length > 0 && mountedFlag.current) {
-        const latestPrice = mockHistory[mockHistory.length - 1].close
-        console.log(`[TradingChart] 从模拟数据同步价格: ${symbol} = ${latestPrice}`)
-
-        const updatedSymbols = symbols.map((s) => {
-          if (s.symbol === symbol) {
-            return {
-              ...s,
-              price: latestPrice,
-            }
-          }
-          return s
-        })
-
-        setSymbols(updatedSymbols)
-      }
+      const mockHistory = generateMockHistory(basePrice, 200)
 
       return mockHistory
     } finally {
@@ -475,7 +438,7 @@ export default function TradingChart({
 
     }
 
-  }, [symbol, timeframe, actualHeight, symbols, setSymbols])
+  }, [symbol, timeframe, actualHeight])
 
   return (
     <div className="relative">

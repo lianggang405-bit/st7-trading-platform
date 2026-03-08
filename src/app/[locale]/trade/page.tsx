@@ -55,15 +55,6 @@ export default function TradePage() {
     onConfirm: () => {},
   });
 
-  // 调试日志
-  console.log('[TradePage] Current asset state:', {
-    balance,
-    freeMargin,
-    usedMargin,
-    equity,
-    positionsCount: positions.length,
-  });
-
   const [volume, setVolume] = useState("0.1"); // 改为 string 类型，避免输入时自动补零
   const [leverage, setLeverage] = useState<100 | 200 | 300 | 400 | 500>(100);
   const [timeframe, setTimeframe] = useState<Timeframe>('1H');
