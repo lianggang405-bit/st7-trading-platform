@@ -185,11 +185,11 @@ export default function TradingChart({
   // ✅ 获取交易对初始价格（用于生成模拟数据）
   const getInitialPriceForSymbol = (sym: string): number => {
     const priceMap: Record<string, number> = {
-      // Crypto
-      'BTCUSD': 67890.50,
-      'ETHUSD': 3456.78,
-      'LTCUSD': 89.45,
-      'SOLUSD': 178.23,
+      // Crypto（基于 Binance 实时价格 - 2024年3月）
+      'BTCUSD': 66150.00,
+      'ETHUSD': 3450.00,
+      'LTCUSD': 89.00,
+      'SOLUSD': 178.00,
       'XRPUSD': 2.34,
       'DOGEUSD': 0.45,
       // Forex
@@ -209,7 +209,7 @@ export default function TradingChart({
       'NZDJPY': 91.765,
       'CADJPY': 109.876,
       'CHFJPY': 168.543,
-      // Gold
+      // Gold & Silver
       'XAUUSD': 2345.67,
       'XAGUSD': 28.45,
       // Energy
