@@ -5,29 +5,19 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuthStore } from '../../../stores/authStore';
 import { ForexLogo } from '../../../components/brand/forex-logo';
+import { LanguageSelector } from '../../../components/common/language-selector';
 import { locales } from '../../../config/locales';
-
-// 语言显示名称映射
-const languageNames: Record<string, string> = {
-  'zh-TW': '繁體中文',
-  'en': 'English',
-  'th': 'ไทย',
-  'vi': 'Tiếng Việt',
-  'ru': 'Русский',
-  'de': 'Deutsch',
-};
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const { login, register, hydrateFromCookie } = useAuthStore();
+  const { login, register } = useAuthStore();
   const t = useTranslations();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
 
   // 獲取当前语言
   const locale = pathname.split('/')[1];
@@ -92,12 +82,6 @@ export default function LoginPage() {
     router.push(`/${locale}/register`);
   };
 
-  // 语言选择函数
-  const selectLanguage = (selectedLocale: string) => {
-    setShowLanguageMenu(false);
-    router.push(`/${selectedLocale}/login`);
-  };
-
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
       {/* 左上角关闭按钮 */}
@@ -106,44 +90,8 @@ export default function LoginPage() {
       </button>
 
       {/* 右上角语言切换 */}
-      <div className="fixed top-4 right-4 relative z-30">
-        <button
-          onClick={() => setShowLanguageMenu(!showLanguageMenu)}
-          className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
-          title="切换语言"
-        >
-          <div className="w-6 h-4 rounded bg-red-600 flex items-center justify-center overflow-hidden">
-            <div className="absolute w-full h-0.5 bg-blue-600 top-1"></div>
-            <div className="absolute w-1.5 h-1.5 bg-blue-600 rounded-full top-0.5 left-2"></div>
-          </div>
-          <span className="text-xs text-gray-600">{languageNames[locale] || locale}</span>
-        </button>
-
-        {/* 语言选择菜单 */}
-        {showLanguageMenu && (
-          <>
-            {/* 半透明遮罩层 */}
-            <div
-              className="fixed inset-0 bg-transparent z-10"
-              onClick={() => setShowLanguageMenu(false)}
-            />
-            
-            {/* 下拉菜单 */}
-            <div className="absolute top-full right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 min-w-[120px]">
-              {locales.map((loc) => (
-                <button
-                  key={loc}
-                  onClick={() => selectLanguage(loc)}
-                  className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors ${
-                    locale === loc ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-                  }`}
-                >
-                  {languageNames[loc] || loc}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
+      <div className="fixed top-4 right-4 z-30">
+        <LanguageSelector />
       </div>
 
       {/* Logo */}
