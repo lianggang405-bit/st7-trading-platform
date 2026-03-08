@@ -1,13 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BINANCE_API_URL = 'https://api.binance.com';
+// 使用 Binance 公共数据 API（最稳定，不受限制）
+const BINANCE_API_URL = 'https://data-api.binance.vision';
 
 /**
  * 将交易对转换为Binance格式
  * BTCUSD -> BTCUSDT
+ * EURUSD -> EURUSDT（注意：Binance 没有外汇交易对，需要特殊处理）
  */
 function convertSymbol(symbol: string): string {
-  return symbol.replace('USD', 'USDT');
+  // 如果已经是 USDT 结尾，直接返回
+  if (symbol.includes('USDT')) {
+    return symbol;
+  }
+
+  // 外汇交易对：需要添加 USDT 结尾
+  // 例如：EURUSD -> EURUSDT（这是虚拟的交易对，Binance 实际上不支持）
+  // 加密货币：添加 USDT
+  // 贵金属/能源：添加 USDT
+
+  // Binance 支持的加密货币交易对
+  const cryptoSymbols = ['BTC', 'ETH', 'LTC', 'SOL', 'XRP', 'DOGE', 'BNB', 'ADA', 'DOT'];
+
+  // 检查是否是加密货币
+  if (cryptoSymbols.some(c => symbol.startsWith(c))) {
+    return symbol.replace('USD', 'USDT');
+  }
+
+  // 其他交易对（外汇、贵金属、能源），Binance 可能不支持
+  // 返回原交易对，让 API 返回错误，然后前端使用模拟数据
+  return symbol;
 }
 
 /**
@@ -15,7 +37,7 @@ function convertSymbol(symbol: string): string {
  * 从Binance API获取K线数据（通过后端代理，避免CORS问题）
  *
  * Query参数：
- * - symbol: 交易对（如 BTCUSD）
+ * - symbol: 交易对（如 BTCUSD, XAUUSD）
  * - interval: 时间周期（如 1M, 5M, 15M, 1H）
  * - limit: K线数量（默认80，最大1000）
  */
@@ -52,7 +74,7 @@ export async function GET(request: NextRequest) {
 
     // 调用Binance API，添加超时设置
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超时
 
     let response;
     try {
@@ -73,12 +95,12 @@ export async function GET(request: NextRequest) {
         if (fetchError.name === 'AbortError') {
           console.error('[Klines API] 请求超时');
           return NextResponse.json(
-            { error: 'Binance API 请求超时，请稍后重试' },
+            { error: 'Binance API 请求超时，请稍后重试', suggestion: '建议使用模拟数据' },
             { status: 504 }
           );
         }
 
-        // 网络连接错误（检查 message 和 cause）
+        // 网络连接错误
         const errorMsg = fetchError.message.toLowerCase();
         const causeMsg = (fetchError as any).cause?.message?.toLowerCase() || '';
 
@@ -90,7 +112,7 @@ export async function GET(request: NextRequest) {
           console.error('[Klines API] 网络连接失败:', fetchError.message);
           return NextResponse.json(
             {
-              error: '无法连接到 Binance API，可能是网络限制或服务不可用',
+              error: '无法连接到 Binance API，可能是网络限制',
               details: fetchError.message,
               suggestion: '建议使用模拟数据继续操作'
             },
@@ -114,6 +136,29 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
+
+      // 400 错误：通常是参数错误或交易对不存在
+      if (response.status === 400) {
+        console.error('[Klines API] Binance API 参数错误或交易对不存在:', errorText);
+
+        // 检查是否是无效的交易对
+        if (errorText.includes('Invalid symbol') || errorText.includes('illegal characters')) {
+          return NextResponse.json(
+            {
+              error: `交易对 ${symbol} 在 Binance 上不存在或不支持`,
+              details: errorText,
+              suggestion: 'Binance 仅支持加密货币交易对（如 BTCUSDT），外汇、贵金属等请使用模拟数据'
+            },
+            { status: 400 }
+          );
+        }
+
+        return NextResponse.json(
+          { error: `Binance API 参数错误`, details: errorText },
+          { status: 400 }
+        );
+      }
+
       console.error(`[Klines API] Binance API错误: ${response.status}`, errorText);
       return NextResponse.json(
         { error: `Binance API错误: ${response.status}`, details: errorText },
@@ -122,6 +167,15 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+
+    // 检查返回数据是否有效
+    if (!Array.isArray(data)) {
+      console.error('[Klines API] 返回数据格式错误:', data);
+      return NextResponse.json(
+        { error: 'Binance API 返回数据格式错误' },
+        { status: 500 }
+      );
+    }
 
     // 转换Binance格式为我们的格式
     const klines = data.map((k: any[]) => ({

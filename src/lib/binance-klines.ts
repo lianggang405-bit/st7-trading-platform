@@ -21,7 +21,7 @@ interface KlineResponse {
 
 /**
  * 从后端API获取历史K线数据
- * @param symbol 交易对（如 BTCUSD）
+ * @param symbol 交易对（如 BTCUSD, XAUUSD）
  * @param interval 时间周期（如 1M, 5M, 15M, 1H）
  * @param limit K线数量（默认80，最大1000）
  * @returns K线数据数组
@@ -41,11 +41,18 @@ export async function fetchBinanceKlines(
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
 
-      // 503 或 504 错误，说明 Binance API 不可用
+      // 503 或 504 错误，说明网络问题或 Binance API 不可用
       if (response.status === 503 || response.status === 504) {
-        const errorMsg = `Binance API ${response.status === 503 ? '不可用' : '超时'}: ${errorData.error || 'Unknown error'}`;
-        console.error(`[Klines] ${errorMsg}`);
+        const errorMsg = errorData.error || 'Unknown error';
+        console.error(`[Klines] Binance API ${response.status === 503 ? '不可用' : '超时'}:`, errorMsg);
         throw new Error(errorMsg);
+      }
+
+      // 400 错误，通常是交易对不存在或参数错误
+      if (response.status === 400) {
+        const errorMsg = errorData.error || 'Unknown error';
+        console.error(`[Klines] Binance API 参数错误:`, errorMsg);
+        throw new Error(`交易对 ${symbol} 不支持或参数错误: ${errorMsg}`);
       }
 
       throw new Error(`API error: ${response.status} - ${errorData.error || 'Unknown error'}`);
