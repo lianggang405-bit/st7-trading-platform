@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import StatCard from '@/components/admin/StatCard';
 import { Users, LogIn, Wallet as WalletIcon, ArrowDownCircle, ArrowUpCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { LucideIcon } from 'lucide-react';
 
 interface DashboardStats {
   newUsers: number;
@@ -12,6 +13,13 @@ interface DashboardStats {
   bankRechargeCurrency: number;
   extractCurrency: number;
   bankExtractCurrency: number;
+}
+
+interface StatCardConfig {
+  title: string;
+  value: number;
+  icon: LucideIcon;
+  iconColor: string;
 }
 
 export default function AdminDashboardPage() {
@@ -25,24 +33,79 @@ export default function AdminDashboardPage() {
   });
   const [loading, setLoading] = useState(false);
 
-  const fetchStats = async () => {
+  // 使用 useCallback 避免重新创建函数
+  const fetchStats = useCallback(async () => {
+    // 加锁，防止并发请求
+    if (loading) return;
+
     setLoading(true);
     try {
       const response = await fetch('/api/admin/dashboard/stats');
+
+      // 检查 HTTP 状态码
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
-      if (data.success) {
+
+      // 检查业务状态
+      if (data?.success && data?.stats) {
         setStats(data.stats);
+      } else {
+        console.error('API returned error:', data?.error || 'Unknown error');
       }
     } catch (error) {
       console.error('Failed to fetch stats:', error);
+      // 不抛出错误，避免页面崩溃
     } finally {
       setLoading(false);
     }
-  };
+  }, [loading]);
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [fetchStats]);
+
+  // 统一卡片配置，使用 map 渲染，React diff 更稳定
+  const statCards: StatCardConfig[] = [
+    {
+      title: '今日新增用户',
+      value: stats.newUsers ?? 0,
+      icon: Users,
+      iconColor: 'text-blue-500'
+    },
+    {
+      title: '今日登录用户',
+      value: stats.todayLogin ?? 0,
+      icon: LogIn,
+      iconColor: 'text-green-500'
+    },
+    {
+      title: '今日充值金额（非银行）',
+      value: stats.rechargeCurrency ?? 0,
+      icon: ArrowDownCircle,
+      iconColor: 'text-yellow-500'
+    },
+    {
+      title: '今日银行充值金额',
+      value: stats.bankRechargeCurrency ?? 0,
+      icon: WalletIcon,
+      iconColor: 'text-purple-500'
+    },
+    {
+      title: '今日提现金额（非银行）',
+      value: stats.extractCurrency ?? 0,
+      icon: ArrowUpCircle,
+      iconColor: 'text-red-500'
+    },
+    {
+      title: '今日银行提现金额',
+      value: stats.bankExtractCurrency ?? 0,
+      icon: WalletIcon,
+      iconColor: 'text-orange-500'
+    }
+  ];
 
   return (
     <div className="space-y-6">
@@ -57,49 +120,25 @@ export default function AdminDashboardPage() {
           disabled={loading}
           className="border-slate-600 hover:bg-slate-800"
         >
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''} will-change-transform`}
+            suppressHydrationWarning
+          />
           刷新数据
         </Button>
       </div>
 
       {/* 数据统计卡片 */}
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          title="今日新增用户"
-          value={stats.newUsers || '0 暂无数据'}
-          icon={Users}
-          iconColor="text-blue-500"
-        />
-        <StatCard
-          title="今日登录用户"
-          value={stats.todayLogin || '0 暂无数据'}
-          icon={LogIn}
-          iconColor="text-green-500"
-        />
-        <StatCard
-          title="今日充值金额（非银行）"
-          value={stats.rechargeCurrency || '0 暂无数据'}
-          icon={ArrowDownCircle}
-          iconColor="text-yellow-500"
-        />
-        <StatCard
-          title="今日银行充值金额"
-          value={stats.bankRechargeCurrency || '0 暂无数据'}
-          icon={WalletIcon}
-          iconColor="text-purple-500"
-        />
-        <StatCard
-          title="今日提现金额（非银行）"
-          value={stats.extractCurrency || '0 暂无数据'}
-          icon={ArrowUpCircle}
-          iconColor="text-red-500"
-        />
-        <StatCard
-          title="今日银行提现金额"
-          value={stats.bankExtractCurrency || '0 暂无数据'}
-          icon={WalletIcon}
-          iconColor="text-orange-500"
-        />
+        {statCards.map((card, index) => (
+          <StatCard
+            key={card.title}
+            title={card.title}
+            value={card.value}
+            icon={card.icon}
+            iconColor={card.iconColor}
+          />
+        ))}
       </div>
 
       {/* 底部信息 */}
