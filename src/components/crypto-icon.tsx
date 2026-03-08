@@ -57,8 +57,8 @@ export function CryptoIcon({ symbol, size = 24, className = '' }: CryptoIconProp
           <circle cx="16" cy="16" r="16" fill="url(#solana-gradient)"/>
           <defs>
             <linearGradient id="solana-gradient" x1="0" y1="0" x2="32" y2="32">
-              <stop offset="0%" stop-color="#9945FF"/>
-              <stop offset="100%" stop-color="#14F195"/>
+              <stop offset="0%" stopColor="#9945FF"/>
+              <stop offset="100%" stopColor="#14F195"/>
             </linearGradient>
           </defs>
           <path d="M20.667 10.667H24.667C25.2 10.667 25.333 10.933 25.067 11.2L19.733 16.533C19.467 16.8 19.067 16.933 18.667 16.933H14.667C14.133 16.933 14 16.667 14.267 16.4L19.6 11.067C19.867 10.8 20.267 10.667 20.667 10.667Z" fill="white"/>
