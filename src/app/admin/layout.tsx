@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Toaster } from '@/components/ui/sonner';
 import {
   LayoutDashboard,
   Users,
@@ -206,22 +207,18 @@ export default function AdminLayout({
   };
 
   useEffect(() => {
+    console.log('[AdminLayout] Component mounted, checking auth...');
     setIsMounted(true);
-  }, []);
 
-  useEffect(() => {
-    // 等待组件挂载后再检查认证
-    if (!isMounted) return;
-
-    // 检查是否已登录
+    // 立即检查认证（不在 isMounted 后延迟）
     const checkAuth = () => {
       if (typeof window === 'undefined') return;
 
-      // 从 localStorage 读取 token
       const token = localStorage.getItem('admin_token');
+      console.log('[AdminLayout] Token exists:', !!token, 'Path:', pathname);
 
       if (!token && pathname !== '/admin/login') {
-        // 标记需要重定向，不在 useEffect 中直接调用
+        console.log('[AdminLayout] No token, redirecting to login');
         setShouldRedirect(true);
         return;
       }
@@ -230,11 +227,12 @@ export default function AdminLayout({
     };
 
     checkAuth();
-  }, [router, pathname, isMounted]);
+  }, [pathname]); // 只依赖 pathname，不等待 isMounted
 
   // 在独立的 useEffect 中处理重定向
   useEffect(() => {
     if (shouldRedirect) {
+      console.log('[AdminLayout] Redirecting to login page');
       router.push('/admin/login');
       setShouldRedirect(false);
     }
@@ -249,14 +247,18 @@ export default function AdminLayout({
     router.push('/admin/login');
   };
 
-  // 等待挂载和认证检查完成
-  if (!isMounted) {
-    return null;
-  }
-
   // 登录页面直接返回 children
   if (pathname === '/admin/login') {
     return <>{children}</>;
+  }
+
+  // 如果未认证且不是登录页面，显示加载状态而不是返回 null
+  if (!isAuthenticated && pathname !== '/admin/login') {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-white">加载中...</div>
+      </div>
+    );
   }
 
   return (
@@ -418,6 +420,9 @@ export default function AdminLayout({
           </div>
         </main>
       </div>
+
+      {/* Toaster for notifications */}
+      <Toaster />
     </div>
   );
 }
