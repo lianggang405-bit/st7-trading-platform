@@ -1,13 +1,10 @@
 /**
- * Binance K线数据获取工具
- * 从Binance API获取真实的历史K线数据
+ * K线数据获取工具（通过后端API代理）
+ * 避免浏览器端CORS限制
  */
 
-// Binance API 基础URL
-const BINANCE_API_URL = 'https://api.binance.com';
-
 // K线数据接口
-interface BinanceKlineResponse {
+interface KlineResponse {
   time: number;
   open: number;
   high: number;
@@ -23,26 +20,7 @@ interface BinanceKlineResponse {
 }
 
 /**
- * 将Binance交易对转换为API格式
- * BTCUSD -> BTCUSDT
- */
-function convertSymbol(symbol: string): string {
-  return symbol.replace('USD', 'USDT');
-}
-
-/**
- * 将时间周期转换为Binance格式
- * 1M -> 1m
- * 5M -> 5m
- * 15M -> 15m
- * 1H -> 1h
- */
-function convertInterval(interval: string): string {
-  return interval.toLowerCase();
-}
-
-/**
- * 从Binance API获取历史K线数据
+ * 从后端API获取历史K线数据
  * @param symbol 交易对（如 BTCUSD）
  * @param interval 时间周期（如 1M, 5M, 15M, 1H）
  * @param limit K线数量（默认80，最大1000）
@@ -52,39 +30,45 @@ export async function fetchBinanceKlines(
   symbol: string,
   interval: string,
   limit: number = 80
-): Promise<BinanceKlineResponse[]> {
+): Promise<KlineResponse[]> {
   try {
-    const binanceSymbol = convertSymbol(symbol);
-    const binanceInterval = convertInterval(interval);
+    const url = `/api/klines?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&limit=${limit}`;
 
-    const url = `${BINANCE_API_URL}/api/v3/klines?symbol=${binanceSymbol}&interval=${binanceInterval}&limit=${limit}`;
+    console.log(`[Klines] 请求: ${url}`);
 
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`Binance API error: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+
+      // 503 或 504 错误，说明 Binance API 不可用
+      if (response.status === 503 || response.status === 504) {
+        const errorMsg = `Binance API ${response.status === 503 ? '不可用' : '超时'}: ${errorData.error || 'Unknown error'}`;
+        console.error(`[Klines] ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+
+      throw new Error(`API error: ${response.status} - ${errorData.error || 'Unknown error'}`);
     }
 
     const data = await response.json();
 
-    // 转换Binance格式为我们的格式
-    return data.map((k: any[]) => ({
-      time: k[0] / 1000, // 转换为秒
-      open: parseFloat(k[1]),
-      high: parseFloat(k[2]),
-      low: parseFloat(k[3]),
-      close: parseFloat(k[4]),
-      volume: parseFloat(k[5]),
-      closeTime: k[6] / 1000,
-      quoteVolume: parseFloat(k[7]),
-      trades: k[8],
-      takerBuyBase: parseFloat(k[9]),
-      takerBuyQuote: parseFloat(k[10]),
-      ignore: k[11],
-    }));
+    if (!data.success) {
+      throw new Error(`API error: ${data.error || 'Unknown error'}`);
+    }
+
+    console.log(`[Klines] 成功获取 ${data.klines.length} 条K线数据`);
+
+    return data.klines;
   } catch (error) {
-    console.error('[BinanceKlines] 获取K线数据失败:', error);
-    throw error;
+    console.error('[Klines] 获取K线数据失败:', error);
+
+    // 如果是网络错误或超时，重新抛出让调用者使用模拟数据
+    if (error instanceof Error) {
+      throw error;
+    }
+
+    throw new Error('获取K线数据失败');
   }
 }
 
@@ -94,7 +78,7 @@ export async function fetchBinanceKlines(
  */
 interface KlineCache {
   [key: string]: {
-    data: BinanceKlineResponse[];
+    data: KlineResponse[];
     timestamp: number;
   };
 }
@@ -113,13 +97,13 @@ export async function getKlinesWithCache(
   symbol: string,
   interval: string,
   limit: number = 80
-): Promise<BinanceKlineResponse[]> {
+): Promise<KlineResponse[]> {
   const cacheKey = `${symbol}_${interval}_${limit}`;
   const cached = klineCache[cacheKey];
 
   // 检查缓存是否有效
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    console.log('[BinanceKlines] 使用缓存数据');
+    console.log('[Klines] 使用缓存数据');
     return cached.data;
   }
 
@@ -146,7 +130,7 @@ export function clearKlineCache(symbol?: string, interval?: string) {
     Object.keys(klineCache).forEach(key => {
       delete klineCache[key];
     });
-    console.log('[BinanceKlines] 清除所有缓存');
+    console.log('[Klines] 清除所有缓存');
   } else {
     const prefix = `${symbol}_${interval || ''}`;
     Object.keys(klineCache).forEach(key => {
@@ -154,6 +138,6 @@ export function clearKlineCache(symbol?: string, interval?: string) {
         delete klineCache[key];
       }
     });
-    console.log(`[BinanceKlines] 清除缓存: ${prefix}`);
+    console.log(`[Klines] 清除缓存: ${prefix}`);
   }
 }
