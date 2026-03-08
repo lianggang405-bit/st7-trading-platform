@@ -1,6 +1,7 @@
 import { Change, Price } from '../data';
 import { useState, useEffect, useRef } from 'react';
 import { formatSymbol } from '../../lib/formatSymbol';
+import { CryptoIcon } from '../crypto-icon';
 
 // 迷你K线图组件
 interface MiniChartProps {
@@ -175,6 +176,12 @@ export function MarketItem({ symbol, price, change, onClick }: MarketItemProps) 
   const trend = change > 0 ? 'up' : change < 0 ? 'down' : 'up';
   const [isLoading, setIsLoading] = useState(Math.random() < 0.1); // 10% 概率显示加载
 
+  // 判断是否是加密货币
+  const isCrypto = [
+    'BTC', 'ETH', 'LTC', 'SOL', 'XRP', 'DOGE', 'ADA', 'DOT', 'BNB', 'LINK', 'AVAX', 'MATIC',
+    'ATOM', 'UNI', 'XLM', 'ALGO', 'VET', 'NEAR', 'FIL', 'SAND', 'MANA', 'AXS', 'SHIB', 'TRX', 'BCH'
+  ].some(c => symbol.includes(c));
+
   // 价格脉冲状态
   const [pulse, setPulse] = useState<'up' | 'down' | null>(null);
   const prevPrice = useRef(price);
@@ -222,15 +229,18 @@ export function MarketItem({ symbol, price, change, onClick }: MarketItemProps) 
       onClick={onClick}
       className="flex items-center gap-3 border-b border-gray-200 bg-white p-4 transition-colors hover:bg-gray-50 active:bg-gray-100"
     >
-      {/* 左侧：品种代码 + 国旗 */}
+      {/* 左侧：品种代码 + 图标 */}
       <div className="flex min-w-[100px] items-center gap-2">
-        {flags.length > 0 && (
+        {/* 加密货币使用彩色 SVG 图标，其他使用 emoji 图标 */}
+        {isCrypto ? (
+          <CryptoIcon symbol={symbol} size={24} />
+        ) : flags.length > 0 ? (
           <div className="flex">
             {flags.map((flag, i) => (
               <span key={i} className="text-base">{flag}</span>
             ))}
           </div>
-        )}
+        ) : null}
         <span className="text-base font-bold text-gray-900">{formatSymbol(symbol)}</span>
       </div>
 
