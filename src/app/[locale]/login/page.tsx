@@ -99,14 +99,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 relative">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
       {/* 左上角关闭按钮 */}
-      <button className="absolute top-4 left-4 text-gray-500 hover:text-gray-700">
+      <button className="fixed top-4 left-4 text-gray-500 hover:text-gray-700 z-30">
         <div className="w-6 h-0.5 bg-gray-500 rounded"></div>
       </button>
 
       {/* 右上角语言切换 */}
-      <div className="absolute top-4 right-4 relative">
+      <div className="fixed top-4 right-4 relative z-30">
         <button
           onClick={() => setShowLanguageMenu(!showLanguageMenu)}
           className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"

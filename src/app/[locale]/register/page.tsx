@@ -101,11 +101,11 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 relative">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
       {/* 左上角返回按钮 */}
       <button
         onClick={() => router.push(`/${locale}/login`)}
-        className="absolute top-4 left-4 text-gray-600 hover:text-gray-800"
+        className="fixed top-4 left-4 text-gray-600 hover:text-gray-800 z-30"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -113,7 +113,7 @@ export default function RegisterPage() {
       </button>
 
       {/* 右上角语言切换 */}
-      <div className="absolute top-4 right-4 relative">
+      <div className="fixed top-4 right-4 relative z-30">
         <button
           onClick={() => setShowLanguageMenu(!showLanguageMenu)}
           className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
