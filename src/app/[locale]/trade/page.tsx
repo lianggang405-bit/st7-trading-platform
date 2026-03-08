@@ -69,9 +69,9 @@ export default function TradePage() {
   const [timeframe, setTimeframe] = useState<Timeframe>('1H');
   const [tradeMode, setTradeMode] = useState<'instant' | 'pending'>('instant');
   const [useStopLoss, setUseStopLoss] = useState(false);
-  const [stopLoss, setStopLoss] = useState(0);
+  const [stopLoss, setStopLoss] = useState(''); // 改为空字符串
   const [useTakeProfit, setUseTakeProfit] = useState(false);
-  const [takeProfit, setTakeProfit] = useState(0);
+  const [takeProfit, setTakeProfit] = useState(''); // 改为空字符串
   const [pendingPrice, setPendingPrice] = useState(0);
   const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] = useState(false);
 
@@ -531,7 +531,9 @@ export default function TradePage() {
                 <span className="text-base font-bold text-gray-900">{t('stopLoss')}</span>
                 <button
                   onClick={() => setUseStopLoss(!useStopLoss)}
-                  className={`w-12 h-6 rounded-full transition-colors active:scale-95`}
+                  className={`w-12 h-6 rounded-full transition-colors active:scale-95 ${
+                    useStopLoss ? 'bg-blue-500' : 'bg-gray-300'
+                  }`}
                 >
                   <div
                     className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${
@@ -542,34 +544,49 @@ export default function TradePage() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setStopLoss(Math.max(0, stopLoss - 0.01))}
+                  onClick={() => {
+                    const currentLoss = parseFloat(stopLoss) || 0;
+                    setStopLoss(Math.max(0, currentLoss - 0.01).toString());
+                  }}
                   disabled={!useStopLoss}
                   className={`w-10 h-10 flex items-center justify-center rounded transition-colors active:scale-95 ${
-                    useStopLoss 
-                      ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
+                    useStopLoss
+                      ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 >
                   -
                 </button>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   step="0.01"
+                  min="0"
+                  placeholder="0.00"
                   disabled={!useStopLoss}
                   value={stopLoss}
-                  onChange={(e) => setStopLoss(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // 只允许数字和小数点
+                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                      setStopLoss(value);
+                    }
+                  }}
                   className={`w-20 text-right font-bold rounded px-3 py-2 transition-colors text-base ${
-                    useStopLoss 
-                      ? 'bg-gray-100 text-gray-900' 
+                    useStopLoss
+                      ? 'bg-gray-100 text-gray-900'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 />
                 <button
-                  onClick={() => setStopLoss(stopLoss + 0.01)}
+                  onClick={() => {
+                    const currentLoss = parseFloat(stopLoss) || 0;
+                    setStopLoss((currentLoss + 0.01).toString());
+                  }}
                   disabled={!useStopLoss}
                   className={`w-10 h-10 flex items-center justify-center rounded transition-colors active:scale-95 ${
-                    useStopLoss 
-                      ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
+                    useStopLoss
+                      ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 >
@@ -584,7 +601,9 @@ export default function TradePage() {
                 <span className="text-base font-bold text-gray-900">{t('takeProfit')}</span>
                 <button
                   onClick={() => setUseTakeProfit(!useTakeProfit)}
-                  className={`w-12 h-6 rounded-full transition-colors active:scale-95`}
+                  className={`w-12 h-6 rounded-full transition-colors active:scale-95 ${
+                    useTakeProfit ? 'bg-blue-500' : 'bg-gray-300'
+                  }`}
                 >
                   <div
                     className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${
@@ -595,34 +614,49 @@ export default function TradePage() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setTakeProfit(Math.max(0, takeProfit - 0.01))}
+                  onClick={() => {
+                    const currentProfit = parseFloat(takeProfit) || 0;
+                    setTakeProfit(Math.max(0, currentProfit - 0.01).toString());
+                  }}
                   disabled={!useTakeProfit}
                   className={`w-10 h-10 flex items-center justify-center rounded transition-colors active:scale-95 ${
-                    useTakeProfit 
-                      ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
+                    useTakeProfit
+                      ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 >
                   -
                 </button>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   step="0.01"
+                  min="0"
+                  placeholder="0.00"
                   disabled={!useTakeProfit}
                   value={takeProfit}
-                  onChange={(e) => setTakeProfit(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // 只允许数字和小数点
+                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                      setTakeProfit(value);
+                    }
+                  }}
                   className={`w-20 text-right font-bold rounded px-3 py-2 transition-colors text-base ${
-                    useTakeProfit 
-                      ? 'bg-gray-100 text-gray-900' 
+                    useTakeProfit
+                      ? 'bg-gray-100 text-gray-900'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 />
                 <button
-                  onClick={() => setTakeProfit(takeProfit + 0.01)}
+                  onClick={() => {
+                    const currentProfit = parseFloat(takeProfit) || 0;
+                    setTakeProfit((currentProfit + 0.01).toString());
+                  }}
                   disabled={!useTakeProfit}
                   className={`w-10 h-10 flex items-center justify-center rounded transition-colors active:scale-95 ${
-                    useTakeProfit 
-                      ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
+                    useTakeProfit
+                      ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 >
