@@ -63,7 +63,12 @@
     "crypto": "Kryptowährungen",
     "energy": "Energie",
     "cfd": "Differenzkontrakte",
-    "search": "Suchen"
+    "search": "Suchen",
+    "searchPlaceholder": "Handelspaare suchen...",
+    "searchEmpty": "Währung oder Handelspaar-Code eingeben",
+    "searchExample": "z.B. USD, EUR, BTC usw.",
+    "noResults": "Keine passenden Handelspaare gefunden",
+    "tryOtherKeywords": "Versuchen Sie andere Schlüsselwörter"
   },
   "me": {
     "deposit": "Einzahlung",

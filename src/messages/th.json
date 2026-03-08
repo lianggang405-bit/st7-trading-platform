@@ -63,7 +63,12 @@
     "crypto": "สกุลเงินดิจิทัล",
     "energy": "พลังงาน",
     "cfd": "สัญญาซื้อขายส่วนต่างดัชนี",
-    "search": "ค้นหา"
+    "search": "ค้นหา",
+    "searchPlaceholder": "ค้นหาคู่เงิน...",
+    "searchEmpty": "ป้อนสกุลเงินหรือรหัสคู่เงินเพื่อค้นหา",
+    "searchExample": "เช่น USD, EUR, BTC ฯลฯ",
+    "noResults": "ไม่พบคู่เงินที่ตรงกัน",
+    "tryOtherKeywords": "ลองใช้คำสำคัญอื่น"
   },
   "me": {
     "deposit": "ฝาก",

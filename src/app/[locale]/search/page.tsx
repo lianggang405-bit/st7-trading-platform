@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { PageShell } from '../../../components/layout/page-shell';
 import { MarketItem } from '../../../components/market/market-item';
 import { useMarketStore } from '../../../stores/marketStore';
@@ -11,6 +12,7 @@ import { formatSymbol } from '../../../lib/formatSymbol';
 export default function SearchPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const t = useTranslations('market');
   const marketState = useMarketStore();
   const symbols = marketState?.symbols ?? [];
   const setSymbols = marketState?.setSymbols;
@@ -105,7 +107,7 @@ export default function SearchPage() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="搜索交易对..."
+                placeholder={t('searchPlaceholder')}
                 className="w-full h-10 px-4 pr-10 bg-gray-100 rounded-full text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:bg-gray-200 transition-all"
                 autoFocus
               />
@@ -125,8 +127,8 @@ export default function SearchPage() {
               <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <p className="text-sm text-gray-500">输入货币或交易对代码进行搜索</p>
-              <p className="text-xs text-gray-400 mt-2">例如：USD、EUR、BTC 等</p>
+              <p className="text-sm text-gray-500">{t('searchEmpty')}</p>
+              <p className="text-xs text-gray-400 mt-2">{t('searchExample')}</p>
             </div>
           ) : filteredSymbols.length === 0 ? (
             // 无结果
@@ -134,8 +136,8 @@ export default function SearchPage() {
               <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-sm text-gray-500">未找到匹配的交易对</p>
-              <p className="text-xs text-gray-400 mt-2">尝试其他关键词</p>
+              <p className="text-sm text-gray-500">{t('noResults')}</p>
+              <p className="text-xs text-gray-400 mt-2">{t('tryOtherKeywords')}</p>
             </div>
           ) : (
             // 搜索结果列表

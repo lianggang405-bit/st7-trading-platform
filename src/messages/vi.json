@@ -63,7 +63,12 @@
     "crypto": "Tiền điện tử",
     "energy": "Năng lượng",
     "cfd": "Hợp đồng chênh lệch chỉ số",
-    "search": "Tìm kiếm"
+    "search": "Tìm kiếm",
+    "searchPlaceholder": "Tìm kiếm cặp giao dịch...",
+    "searchEmpty": "Nhập mã tiền tệ hoặc cặp giao dịch để tìm kiếm",
+    "searchExample": "ví dụ: USD, EUR, BTC, v.v.",
+    "noResults": "Không tìm thấy cặp giao dịch khớp",
+    "tryOtherKeywords": "Thử từ khóa khác"
   },
   "me": {
     "deposit": "Nạp tiền",

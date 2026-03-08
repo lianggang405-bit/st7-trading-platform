@@ -92,7 +92,12 @@
     "crypto": "Crypto",
     "energy": "Energy",
     "cfd": "CFD",
-    "search": "Search"
+    "search": "Search",
+    "searchPlaceholder": "Search trading pairs...",
+    "searchEmpty": "Enter currency or trading pair code to search",
+    "searchExample": "e.g. USD, EUR, BTC, etc.",
+    "noResults": "No matching trading pairs found",
+    "tryOtherKeywords": "Try other keywords"
   },
   "me": {
     "deposit": "Deposit",
