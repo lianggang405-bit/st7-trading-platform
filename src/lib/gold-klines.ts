@@ -14,9 +14,8 @@ async function getGoldKlinesFromAPI(
   interval: string,
   limit: number
 ): Promise<UnifiedKline[]> {
-  // Twelve Data API（需要 API Key）
-  // 这里使用 demo key，生产环境需要替换为真实 key
-  const API_KEY = 'demo';
+  // Twelve Data API（使用真实 API key）
+  const API_KEY = '8a33d2d6b0af4c8f8daea220399ee3fb';
   const TWELVE_DATA_API_URL = 'https://api.twelvedata.com/time_series';
 
   // 转换交易对格式：XAUUSD -> XAU/USD
