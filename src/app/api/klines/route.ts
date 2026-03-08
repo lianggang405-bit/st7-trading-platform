@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getKlines } from '@/lib/market-klines';
+import { klineCache } from '@/lib/kline-cache';
 
 /**
  * GET /api/klines
@@ -8,7 +9,9 @@ import { getKlines } from '@/lib/market-klines';
  * Query参数：
  * - symbol: 交易对（如 XAUUSD, BTCUSD, EURUSD）
  * - interval: 时间周期（如 1M, 5M, 15M, 1H）
- * - limit: K线数量（默认80，最大1000）
+ * - limit: K线数量（默认200，最大1000）
+ * - format: 数据格式（object/array，默认object）
+ * - noCache: 是否禁用缓存（true/false，默认false）
  *
  * 返回统一格式的K线数据：
  * [
@@ -22,13 +25,21 @@ import { getKlines } from '@/lib/market-klines';
  *   },
  *   ...
  * ]
+ *
+ * 或压缩格式（format=array）：
+ * [
+ *   [time, open, high, low, close, volume],
+ *   ...
+ * ]
  */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const symbol = searchParams.get('symbol');
     const interval = searchParams.get('interval');
-    const limit = parseInt(searchParams.get('limit') || '80', 10);
+    const limit = parseInt(searchParams.get('limit') || '200', 10);
+    const format = searchParams.get('format') || 'object';
+    const noCache = searchParams.get('noCache') === 'true';
 
     // 验证参数
     if (!symbol || !interval) {
@@ -47,17 +58,46 @@ export async function GET(request: NextRequest) {
 
     console.log(`[Klines API] 请求: symbol=${symbol}, interval=${interval}, limit=${limit}`);
 
-    // 获取K线数据（自动选择数据源）
-    const klines = await getKlines(symbol, interval, limit);
+    // 尝试从缓存获取
+    let klines: any[] = [];
+    let fromCache = false;
 
-    console.log(`[Klines API] 成功返回 ${klines.length} 条K线数据`);
+    if (!noCache) {
+      const cachedData = klineCache.get(symbol, interval, limit);
+      if (cachedData) {
+        klines = cachedData;
+        fromCache = true;
+        console.log(`[Klines API] 从缓存返回 ${klines.length} 条K线数据`);
+      }
+    }
+
+    // 缓存未命中或禁用缓存，从数据源获取
+    if (!klines.length) {
+      klines = await getKlines(symbol, interval, limit);
+      console.log(`[Klines API] 从数据源获取 ${klines.length} 条K线数据`);
+
+      // 存入缓存
+      if (!noCache) {
+        klineCache.set(symbol, interval, limit, klines);
+      }
+    }
+
+    // 根据格式转换数据
+    let responseData = klines;
+    if (format === 'array') {
+      // 压缩格式：[time, open, high, low, close, volume]
+      responseData = klines.map(k => [k.time, k.open, k.high, k.low, k.close, k.volume]);
+    }
 
     // 返回数据
     return NextResponse.json({
       success: true,
       symbol,
       interval,
-      data: klines,
+      limit,
+      format,
+      fromCache,
+      data: responseData,
     });
   } catch (error) {
     console.error('[Klines API] 错误:', error);
