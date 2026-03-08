@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ForexLogo } from '../brand/forex-logo';
 import { LanguageSelector } from '../common/language-selector';
@@ -12,7 +12,11 @@ interface MarketHeaderProps {
 
 export function MarketHeader({ activeCategory: externalActiveCategory, onCategoryChange }: MarketHeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const t = useTranslations('market');
+
+  // 获取当前语言
+  const locale = pathname.split('/')[1];
   
   const categories = [
     { key: 'forex', value: 'Forex' },
@@ -27,7 +31,7 @@ export function MarketHeader({ activeCategory: externalActiveCategory, onCategor
   };
 
   const handleSearchClick = () => {
-    router.push('/search');
+    router.push(`/${locale}/search`);
   };
 
   return (
