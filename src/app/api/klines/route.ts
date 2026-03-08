@@ -12,6 +12,8 @@ import { klineCache } from '@/lib/kline-cache';
  * - limit: K线数量（默认200，最大1000）
  * - format: 数据格式（object/array，默认object）
  * - noCache: 是否禁用缓存（true/false，默认false）
+ * - before: 加载指定时间之前的K线（用于分页加载历史数据）
+ * - after: 加载指定时间之后的K线（用于分页加载未来数据）
  *
  * 返回统一格式的K线数据：
  * [
@@ -40,6 +42,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '200', 10);
     const format = searchParams.get('format') || 'object';
     const noCache = searchParams.get('noCache') === 'true';
+    const before = searchParams.get('before');
+    const after = searchParams.get('after');
 
     // 验证参数
     if (!symbol || !interval) {
@@ -56,13 +60,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`[Klines API] 请求: symbol=${symbol}, interval=${interval}, limit=${limit}`);
+    console.log(`[Klines API] 请求: symbol=${symbol}, interval=${interval}, limit=${limit}, before=${before}, after=${after}`);
 
-    // 尝试从缓存获取
+    // 尝试从缓存获取（分页加载时不使用缓存）
     let klines: any[] = [];
     let fromCache = false;
 
-    if (!noCache) {
+    if (!noCache && !before && !after) {
       const cachedData = klineCache.get(symbol, interval, limit);
       if (cachedData) {
         klines = cachedData;
@@ -71,13 +75,28 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 缓存未命中或禁用缓存，从数据源获取
+    // 缓存未命中或分页加载，从数据源获取
     if (!klines.length) {
+      // TODO: 实现分页加载逻辑（需要修改 getKlines 函数支持 before/after）
+      // 暂时使用现有逻辑
       klines = await getKlines(symbol, interval, limit);
+
+      // 如果有 before/after 参数，进行过滤
+      if (before) {
+        const beforeTime = parseInt(before, 10);
+        klines = klines.filter(k => k.time < beforeTime);
+      } else if (after) {
+        const afterTime = parseInt(after, 10);
+        klines = klines.filter(k => k.time > afterTime);
+      }
+
+      // 限制返回数量
+      klines = klines.slice(0, limit);
+
       console.log(`[Klines API] 从数据源获取 ${klines.length} 条K线数据`);
 
-      // 存入缓存
-      if (!noCache) {
+      // 存入缓存（仅首次加载）
+      if (!noCache && !before && !after) {
         klineCache.set(symbol, interval, limit, klines);
       }
     }
@@ -97,7 +116,14 @@ export async function GET(request: NextRequest) {
       limit,
       format,
       fromCache,
+      before,
+      after,
+      hasMore: klines.length >= limit, // 是否还有更多数据
       data: responseData,
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30', // CDN 缓存策略
+      },
     });
   } catch (error) {
     console.error('[Klines API] 错误:', error);
