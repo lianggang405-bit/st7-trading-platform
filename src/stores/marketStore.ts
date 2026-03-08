@@ -1,47 +1,12 @@
 import { create } from 'zustand';
+import { realTimePrices, getPriceMap } from '@/lib/real-time-prices';
 
 /**
- * 获取交易对的初始价格（模拟真实市场价格）
+ * 获取交易对的初始价格（使用真实市场数据）
  */
 const getInitialPrice = (symbol: string): number => {
-  const priceMap: Record<string, number> = {
-    // Crypto（基于 Binance 实时价格 - 2024年3月）
-    'BTCUSD': 66150.00,
-    'ETHUSD': 3450.00,
-    'LTCUSD': 89.00,
-    'SOLUSD': 178.00,
-    'XRPUSD': 2.34,
-    'DOGEUSD': 0.45,
-    // Forex
-    'EURUSD': 1.08563,
-    'GBPUSD': 1.26345,
-    'USDJPY': 149.826,
-    'USDCHF': 0.88945,
-    'EURAUD': 1.65432,
-    'EURGBP': 0.85890,
-    'EURJPY': 162.567,
-    'GBPAUD': 1.92345,
-    'GBPNZD': 2.08765,
-    'GBPJPY': 189.234,
-    'AUDUSD': 0.65432,
-    'AUDJPY': 98.123,
-    'NZDUSD': 0.61234,
-    'NZDJPY': 91.765,
-    'CADJPY': 109.876,
-    'CHFJPY': 168.543,
-    // Gold & Silver
-    'XAUUSD': 2345.67,
-    'XAGUSD': 28.45,
-    // Energy
-    'NGAS': 2.345,
-    'UKOIL': 78.56,
-    'USOIL': 76.34,
-    // Indices
-    'US500': 5234.56,
-    'ND25': 18765.43,
-    'AUS200': 7890.12,
-  };
-  return priceMap[symbol] || 1.0;
+  const priceMap = getPriceMap();
+  return priceMap[symbol] || 100;
 };
 
 export interface TradingSymbol {

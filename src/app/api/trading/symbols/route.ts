@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { mockSymbols } from '@/lib/market-mock-data';
+import { realTimePrices } from '@/lib/real-time-prices';
 
 export async function GET() {
   try {
@@ -40,10 +41,14 @@ export async function GET() {
         category = 'forex'; // 指数类归为外汇
       }
 
+      // 从真实价格数据获取价格
+      const realPrice = realTimePrices.find(p => p.symbol === symbol);
+      const price = realPrice ? realPrice.price : 100;
+
       return {
         symbol: pair.symbol,
-        price: getBasePrice(symbol),
-        change: 0, // 价格变化由市场数据API提供
+        price: price,
+        change: realPrice ? realPrice.change : 0,
         category: category,
         id: pair.id,
       };
@@ -62,47 +67,4 @@ export async function GET() {
       isMock: true,
     });
   }
-}
-
-// 获取基准价格（2024年3月市场价）
-function getBasePrice(symbol: string): number {
-  const basePrices: { [key: string]: number } = {
-    // Crypto（基于 Binance 实时价格）
-    BTCUSD: 66150.00,
-    ETHUSD: 3450.00,
-    SOLUSD: 178.00,
-    XRPUSD: 2.34,
-    LTCUSD: 89.00,
-    DOGEUSD: 0.45,
-    // Forex
-    EURUSD: 1.0856,
-    GBPUSD: 1.2654,
-    USDJPY: 149.82,
-    USDCHF: 0.8842,
-    EURAUD: 1.6523,
-    EURGBP: 0.8574,
-    EURJPY: 162.45,
-    GBPAUD: 1.9234,
-    GBPNZD: 2.0856,
-    GBPJPY: 189.67,
-    AUDUSD: 0.6543,
-    AUDJPY: 98.12,
-    NZDUSD: 0.6089,
-    NZDJPY: 91.23,
-    CADJPY: 110.45,
-    CHFJPY: 169.54,
-    // Gold & Silver
-    XAUUSD: 2850.00,
-    XAGUSD: 32.50,
-    // Energy
-    NGAS: 3.15,
-    UKOIL: 82.50,
-    USOIL: 80.25,
-    // Indices
-    US500: 5250.00,
-    ND25: 18500.00,
-    AUS200: 8125.00,
-  };
-
-  return basePrices[symbol] || 100;
 }
