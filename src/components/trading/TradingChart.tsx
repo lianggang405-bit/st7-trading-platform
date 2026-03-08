@@ -72,13 +72,6 @@ export default function TradingChart({
   }, [currentPrice])
 
   // ✅ 响应式高度：手机端缩小一半
-  // ✅ 监听交易对变化，清除缓存并重置状态
-  useEffect(() => {
-    console.log(`[TradingChart] 交易对切换到: ${symbol}`)
-    setIsLoading(true)
-    lastCandleRef.current = null
-    lastPriceRef.current = 0
-  }, [symbol])
 
   useEffect(() => {
     const updateHeight = () => {
@@ -267,14 +260,6 @@ export default function TradingChart({
     }
     return priceMap[sym] || 100
   }
-
-  // ✅ 监听交易对变化，清除缓存并重置状态
-  useEffect(() => {
-    console.log(`[TradingChart] 交易对切换到: ${symbol}`)
-    setIsLoading(true)
-    lastCandleRef.current = null
-    lastPriceRef.current = 0
-  }, [symbol])
 
   useEffect(() => {
 
@@ -490,7 +475,7 @@ export default function TradingChart({
 
     }
 
-  }, [symbol, timeframe, actualHeight, currentPrice, symbols, setSymbols])
+  }, [symbol, timeframe, actualHeight, symbols, setSymbols])
 
   return (
     <div className="relative">

@@ -167,7 +167,8 @@ export default function TradePage() {
         }
       }
     }
-  }, [symbols, currentSymbol, updatePositions, pendingPrice]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symbols, currentSymbol, updatePositions]);
 
   // 更新风控状态
   useEffect(() => {
