@@ -9,7 +9,21 @@ import { orderBookEngine } from '../engine/orderbook-engine';
  * 用于验证数据链路是否正常
  */
 export class MockDataGenerator {
-  private symbols: string[] = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
+  // ✅ 支持所有交易对
+  private symbols: string[] = [
+    // Forex
+    'EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'EURAUD', 'EURGBP', 'EURJPY',
+    'GBPAUD', 'GBPNZD', 'GBPJPY', 'AUDUSD', 'AUDJPY', 'NZDUSD', 'NZDJPY',
+    'CADJPY', 'CHFJPY',
+    // Gold
+    'XAUUSD', 'XAGUSD',
+    // Crypto
+    'BTCUSD', 'ETHUSD', 'LTCUSD', 'SOLUSD', 'XRPUSD', 'DOGEUSD',
+    // Energy
+    'NGAS', 'UKOIL', 'USOIL',
+    // Indices
+    'US500', 'ND25', 'AUS200',
+  ];
   private prices: Map<string, number> = new Map();
   private interval: number;
   private timer: NodeJS.Timeout | null = null;
@@ -95,9 +109,47 @@ export class MockDataGenerator {
    */
   private getDefaultPrices(): Map<string, number> {
     const defaults = new Map<string, number>();
-    defaults.set('BTCUSDT', 67000);
-    defaults.set('ETHUSDT', 3400);
-    defaults.set('SOLUSDT', 145);
+
+    // Forex - 外汇货币对
+    defaults.set('EURUSD', 1.0850);
+    defaults.set('GBPUSD', 1.2730);
+    defaults.set('USDJPY', 154.50);
+    defaults.set('USDCHF', 0.8920);
+    defaults.set('EURAUD', 1.6650);
+    defaults.set('EURGBP', 0.8520);
+    defaults.set('EURJPY', 167.60);
+    defaults.set('GBPAUD', 1.9340);
+    defaults.set('GBPNZD', 2.1150);
+    defaults.set('GBPJPY', 196.80);
+    defaults.set('AUDUSD', 0.6550);
+    defaults.set('AUDJPY', 101.20);
+    defaults.set('NZDUSD', 0.6050);
+    defaults.set('NZDJPY', 93.40);
+    defaults.set('CADJPY', 112.50);
+    defaults.set('CHFJPY', 173.20);
+
+    // Gold - 贵金属
+    defaults.set('XAUUSD', 2650.00); // 黄金
+    defaults.set('XAGUSD', 32.50);   // 白银
+
+    // Crypto - 加密货币
+    defaults.set('BTCUSD', 67500.00); // Bitcoin
+    defaults.set('ETHUSD', 3450.00);  // Ethereum
+    defaults.set('LTCUSD', 85.00);    // Litecoin
+    defaults.set('SOLUSD', 150.00);   // Solana
+    defaults.set('XRPUSD', 0.52);     // Ripple
+    defaults.set('DOGEUSD', 0.12);    // Dogecoin
+
+    // Energy - 能源
+    defaults.set('NGAS', 2.85);    // 天然气
+    defaults.set('UKOIL', 76.50);  // 布伦特原油
+    defaults.set('USOIL', 72.30);  // WTI 原油
+
+    // Indices - 指数
+    defaults.set('US500', 5230.00);  // S&P 500
+    defaults.set('ND25', 18850.00);  // Nasdaq 100
+    defaults.set('AUS200', 8150.00); // ASX 200
+
     return defaults;
   }
 

@@ -125,9 +125,15 @@ router.get('/history', async (req, res) => {
     const fromTimestamp = Number(from) * 1000; // 转换为毫秒
     const toTimestamp = Number(to) * 1000;
 
+    // ✅ 转换交易对格式：XAUUSDT → XAUUSD, EURUSDT → EURUSD
+    let dbSymbol = symbol.toUpperCase();
+    if (dbSymbol.endsWith('USDT')) {
+      dbSymbol = dbSymbol.replace('USDT', 'USD');
+    }
+
     console.log(
-      `[TradingView API] Fetching history: ${symbol}, interval: ${interval}, ` +
-      `from: ${fromTimestamp}, to: ${toTimestamp}`
+      `[TradingView API] Fetching history: ${symbol} -> ${dbSymbol}, interval: ${interval}, ` +
+      `from: ${fromTimestamp} (${new Date(fromTimestamp).toISOString()}), to: ${toTimestamp} (${new Date(toTimestamp).toISOString()})`
     );
 
     // 从数据库查询 K 线数据（使用 DESC 查询提升性能，然后在代码中反转）
@@ -135,12 +141,14 @@ router.get('/history', async (req, res) => {
     const { data, error } = await supabase
       .from('klines')
       .select('*')
-      .eq('symbol', symbol.toUpperCase())
+      .eq('symbol', dbSymbol)
       .eq('interval', interval)
       .gte('open_time', fromTimestamp)
       .lte('open_time', toTimestamp)
       .order('open_time', { ascending: false }) // DESC 查询，性能更好
       .limit(MAX_BARS);
+
+    console.log(`[TradingView API] Query result: error=${!!error}, data.length=${data?.length || 0}`);
 
     if (error) {
       console.error('[TradingView API] Error fetching history:', error);
