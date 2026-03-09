@@ -9,12 +9,11 @@ import express from 'express';
 import cors from 'cors';
 import { testConnection } from './config/database';
 import { MockDataGenerator } from './collectors/mock';
-import { flushCandles, getCachedCandlesCount } from './engine/kline-engine';
+import { flushCandles, getCachedCandlesCount, generateFlatCandles } from './engine/kline-engine';
 import { getCacheSize } from './cache/market-cache';
 import { klineAggregator } from './engine/kline-aggregator';
 import { tickerEngine } from './engine/ticker-engine';
 import { orderBookEngine } from './engine/orderbook-engine';
-import { checkAndGenerateFlatCandles } from './engine/kline-engine';
 import tradingviewRoutes from './tradingview/routes';
 
 // 注意：BinanceTradeCollector 已实现，但在受限网络环境中无法使用
@@ -59,6 +58,9 @@ async function main() {
   // 启动 K 线刷新定时任务（每 5 秒检查一次）
   console.log('4. Starting K-line flush timer (every 5s)...');
   setInterval(async () => {
+    // 先生成平盘K线，确保所有交易对都有连续的K线数据
+    generateFlatCandles();
+    
     const cachedCount = getCachedCandlesCount();
     if (cachedCount > 0) {
       console.log(`[Timer] Flushing ${cachedCount} cached candles...`);
@@ -153,28 +155,6 @@ async function main() {
     const cacheSize = getCacheSize();
     console.log(`[Market Cache] 📊 Cached markets: ${cacheSize}`);
   }, 30000);
-
-  // 定时检查并生成平盘K线（使用对齐时间的定时器，严格对齐分钟）
-  const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
-  // 只检查 1m 周期，其他周期由聚合器自动生成（性能优化）
-  const intervals = ['1m'];
-  
-  // 计算下一次分钟整点的时间
-  const now = Date.now();
-  const delay = 60000 - (now % 60000); // 延迟到下一个整分钟
-  
-  console.log(`[Timer] Aligning to next minute in ${delay}ms...`);
-
-  setTimeout(() => {
-    // 第一次执行（对齐到整分钟）
-    checkAndGenerateFlatCandles(symbols, intervals);
-    console.log('[Timer] ✅ First check executed at minute boundary');
-
-    // 之后每 1 秒检查一次
-    setInterval(() => {
-      checkAndGenerateFlatCandles(symbols, intervals);
-    }, 1000);
-  }, delay);
 
   console.log('');
   console.log('✅ Market Collector Service is running!');

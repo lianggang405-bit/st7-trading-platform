@@ -193,6 +193,46 @@ function getIntervalMs(interval: string): number {
 }
 
 /**
+ * 自动生成平盘K线
+ * 如果某交易对在当前周期没有成交，则生成flat candle
+ */
+export function generateFlatCandles(): void {
+  const now = Date.now();
+  const interval = '1m';
+  const intervalMs = getIntervalMs(interval);
+
+  const openTime = Math.floor(now / intervalMs) * intervalMs;
+
+  Object.keys(lastPrices).forEach((symbol) => {
+    const cacheKey = `${symbol}_${interval}`;
+
+    if (candleCache[cacheKey]) {
+      return;
+    }
+
+    const price = lastPrices[symbol];
+
+    const candle: Candle = {
+      symbol,
+      open: price,
+      high: price,
+      low: price,
+      close: price,
+      volume: 0,
+      openTime,
+      closeTime: openTime + intervalMs,
+      interval,
+    };
+
+    candleCache[cacheKey] = candle;
+
+    console.log(
+      `[KlineEngine] 🟰 Flat candle generated for ${symbol} @ ${new Date(openTime).toLocaleTimeString()}`
+    );
+  });
+}
+
+/**
  * 获取缓存的 K 线数量
  */
 export function getCachedCandlesCount(): number {
