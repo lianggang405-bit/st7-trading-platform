@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { mockSymbols } from '@/lib/market-mock-data';
-import { realTimePrices } from '@/lib/real-time-prices';
+import { realTimePrices, getPriceMap } from '@/lib/real-time-prices';
 
 // ✅ 禁用 Next.js API 缓存，确保实时价格更新
 export const dynamic = 'force-dynamic';
+
+// ✅ 获取价格映射（从 real-time-prices.ts）- 用于默认价格
+const defaultPriceMap = getPriceMap();
 
 /**
  * 转换交易对格式：将带斜杠的格式转换为不带斜杠的格式
@@ -12,6 +15,23 @@ export const dynamic = 'force-dynamic';
  */
 function normalizeSymbol(symbol: string): string {
   return symbol.replace('/', '').replace('-', '').toUpperCase();
+}
+
+/**
+ * 获取交易对的默认价格（从 real-time-prices.ts）
+ */
+function getDefaultPrice(symbol: string): { price: number; change: number } {
+  const price = defaultPriceMap[symbol];
+  if (price !== undefined) {
+    // 从 realTimePrices 中查找对应的涨跌幅
+    const realTimePrice = realTimePrices.find(p => p.symbol === symbol);
+    return {
+      price: price,
+      change: realTimePrice ? realTimePrice.change : 0,
+    };
+  }
+  // 如果找不到，返回 0（前端会通过 getInitialPrice 再次获取）
+  return { price: 0, change: 0 };
 }
 
 export async function GET() {
@@ -58,11 +78,11 @@ export async function GET() {
 
     const tickers = await Promise.all(tickerPromises);
 
-    // 创建价格映射（使用原始 symbol 作为键）
-    const priceMap = new Map<string, { price: number; change: number }>();
+    // 创建价格映射（从 market-service 获取的实时价格）
+    const marketPriceMap = new Map<string, { price: number; change: number }>();
     tickers.forEach((ticker) => {
       if (ticker && ticker.originalSymbol) {
-        priceMap.set(ticker.originalSymbol, {
+        marketPriceMap.set(ticker.originalSymbol, {
           price: ticker.lastPrice,
           change: ticker.priceChangePercent,
         });
@@ -86,10 +106,10 @@ export async function GET() {
         category = 'forex'; // 指数类归为外汇
       }
 
-      // ✅ 从 market-service 获取实时价格（使用原始 symbol 作为键）
-      const priceData = priceMap.get(symbol);
-      const price = priceData ? priceData.price : 100;
-      const change = priceData ? priceData.change : 0;
+      // ✅ 从 market-service 获取实时价格，如果失败则使用默认价格
+      const priceData = marketPriceMap.get(symbol);
+      const price = priceData ? priceData.price : getDefaultPrice(symbol).price;
+      const change = priceData ? priceData.change : getDefaultPrice(symbol).change;
 
       return {
         symbol: pair.symbol,
