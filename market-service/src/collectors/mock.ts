@@ -128,9 +128,9 @@ export class MockDataGenerator {
     defaults.set('CADJPY', 112.50);
     defaults.set('CHFJPY', 173.20);
 
-    // Gold - 贵金属
-    defaults.set('XAUUSD', 2650.00); // 黄金
-    defaults.set('XAGUSD', 32.50);   // 白银
+    // Gold - 贵金属（2025年1月最新价格）
+    defaults.set('XAUUSD', 2750.00); // 黄金（更新为 2025年1月实际价格）
+    defaults.set('XAGUSD', 33.50);   // 白银（更新为 2025年1月实际价格）
 
     // Crypto - 加密货币
     defaults.set('BTCUSD', 67500.00); // Bitcoin
