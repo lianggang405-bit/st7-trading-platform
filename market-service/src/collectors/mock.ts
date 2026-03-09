@@ -3,10 +3,15 @@ import { updateCandle } from '../engine/kline-engine';
 import { updateMarket } from '../cache/market-cache';
 import { tickerEngine } from '../engine/ticker-engine';
 import { orderBookEngine } from '../engine/orderbook-engine';
+import { metalsCollector } from './metals-collector';
 
 /**
  * 模拟行情数据生成器
  * 用于验证数据链路是否正常
+ *
+ * 支持两种模式：
+ * 1. 真实价格模式：从 Metals-API 获取真实的黄金白银价格
+ * 2. 模拟价格模式：使用模拟数据生成算法（基于历史价格或默认价格）
  */
 export class MockDataGenerator {
   // ✅ 支持所有交易对
@@ -15,7 +20,7 @@ export class MockDataGenerator {
     'EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'EURAUD', 'EURGBP', 'EURJPY',
     'GBPAUD', 'GBPNZD', 'GBPJPY', 'AUDUSD', 'AUDJPY', 'NZDUSD', 'NZDJPY',
     'CADJPY', 'CHFJPY',
-    // Gold
+    // Gold & Silver（从 Metals-API 获取真实价格）
     'XAUUSD', 'XAGUSD',
     // Crypto
     'BTCUSD', 'ETHUSD', 'LTCUSD', 'SOLUSD', 'XRPUSD', 'DOGEUSD',
@@ -27,6 +32,7 @@ export class MockDataGenerator {
   private prices: Map<string, number> = new Map();
   private interval: number;
   private timer: NodeJS.Timeout | null = null;
+  private metalsSymbols: Set<string> = new Set(['XAUUSD', 'XAGUSD']); // 贵金属交易对
 
   constructor(interval: number = 3000) {
     this.interval = interval;
@@ -42,6 +48,22 @@ export class MockDataGenerator {
 
     // ✅ 从数据库读取最新的 K 线收盘价
     await this.initializePricesFromDatabase();
+
+    // ✅ 尝试从 Metals-API 获取真实的黄金白银价格
+    if (metalsCollector.isAvailable()) {
+      console.log('[MockDataGenerator] 🔄 Fetching real metals prices from Metals-API...');
+      const metalsRates = await metalsCollector.getAllMetalsRates();
+
+      metalsRates.forEach((rate) => {
+        this.prices.set(rate.symbol, rate.price);
+        console.log(`[MockDataGenerator] ✅ Loaded real price for ${rate.symbol}: $${rate.price.toFixed(2)}`);
+      });
+
+      // 启动 Metals-API 自动刷新（每 60 秒）
+      metalsCollector.startAutoRefresh(60000);
+    } else {
+      console.log('[MockDataGenerator] ⚠️ Metals-API not available, using simulated prices for metals');
+    }
 
     // 立即生成一次
     this.generateData();
@@ -60,6 +82,12 @@ export class MockDataGenerator {
       const supabase = getSupabase();
 
       for (const symbol of this.symbols) {
+        // ✅ 如果 Metals-API 可用，跳过贵金属交易对（从 Metals-API 获取）
+        if (metalsCollector.isAvailable() && this.metalsSymbols.has(symbol)) {
+          console.log(`[MockDataGenerator] ⏭️ Skipping ${symbol}, will fetch from Metals-API`);
+          continue;
+        }
+
         // ✅ 查询该交易对的最新 K 线（按 open_time DESC）
         const { data, error } = await supabase
           .from('klines')
@@ -169,7 +197,28 @@ export class MockDataGenerator {
    */
   private async generateData(): Promise<void> {
     for (const symbol of this.symbols) {
-      // ✅ 使用随机漫步算法，基于上一笔价格小幅波动
+      // ✅ 对于贵金属，先尝试从 Metals-API 获取最新价格
+      if (metalsCollector.isAvailable() && this.metalsSymbols.has(symbol)) {
+        const cachedRate = metalsCollector.getCachedRate(symbol);
+        if (cachedRate) {
+          // 使用 Metals-API 的真实价格
+          this.prices.set(symbol, cachedRate.price);
+          console.log(`[MockDataGenerator] 📊 ${symbol}: $${cachedRate.price.toFixed(2)} (from Metals-API)`);
+        } else {
+          // 缓存中没有，使用当前价格进行小幅度波动
+          const currentPrice = this.prices.get(symbol) || 0;
+          const newPrice = currentPrice * (1 + (Math.random() - 0.5) * 0.001);
+          this.prices.set(symbol, newPrice);
+          console.log(`[MockDataGenerator] 📊 ${symbol}: $${newPrice.toFixed(2)} (simulated, cache expired)`);
+        }
+
+        const price = this.prices.get(symbol) || 0;
+        await this.updateTicker(symbol, price);
+        this.generateMockOrderBook(symbol, price);
+        continue;
+      }
+
+      // ✅ 其他交易对，使用随机漫步算法，基于上一笔价格小幅波动
       const currentPrice = this.prices.get(symbol) || 0;
       const price = currentPrice;
 
