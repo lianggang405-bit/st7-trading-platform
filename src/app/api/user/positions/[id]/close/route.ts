@@ -105,10 +105,29 @@ export async function POST(
 
     if (user) {
       const newBalance = user.balance + order.margin + profit;
-      await supabase
+      const { error: updateBalanceError } = await supabase
         .from('users')
         .update({ balance: newBalance })
         .eq('id', userId);
+
+      if (updateBalanceError) {
+        console.error('[Close Position API] Error updating user balance:', updateBalanceError);
+        return NextResponse.json(
+          {
+            success: false,
+            error: '更新余额失败',
+          },
+          { status: 500 }
+        );
+      }
+
+      console.log('[Close Position API] Balance updated:', {
+        userId,
+        oldBalance: user.balance,
+        margin: order.margin,
+        profit,
+        newBalance,
+      });
     }
 
     return NextResponse.json({
