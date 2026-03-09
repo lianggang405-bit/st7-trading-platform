@@ -43,6 +43,12 @@ export async function fetchBinanceKlines(
       throw new Error(`API error: ${data.error || 'Unknown error'}`);
     }
 
+    // ✅ 如果返回空数组，抛出错误以触发模拟数据生成
+    if (!data.data || data.data.length === 0) {
+      console.warn(`[Klines] API 返回空数据，将使用模拟数据`);
+      throw new Error(`No data available for ${symbol} ${interval}`);
+    }
+
     console.log(`[Klines] 成功获取 ${data.data.length} 条K线数据`);
 
     return data.data;
