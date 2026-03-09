@@ -111,17 +111,21 @@ export class KlineAggregator {
         `(count: ${count})`
       );
 
-      // 获取需要聚合的符号列表
+      // ✅ 从 klines 表获取需要聚合的符号列表（更准确）
       const supabase = getSupabase();
       const { data: symbols, error: symbolsError } = await supabase
-        .from('symbols')
+        .from('klines')
         .select('symbol')
+        .eq('interval', sourceInterval)
+        .order('symbol', { ascending: true })
         .limit(100);
 
       if (symbolsError || !symbols) {
         console.error('[KlineAggregator] Error fetching symbols:', symbolsError);
         return;
       }
+
+      console.log(`[KlineAggregator] Found ${symbols.length} symbols for aggregation`);
 
       // 对每个符号进行聚合
       for (const { symbol } of symbols) {
@@ -252,6 +256,10 @@ export class KlineAggregator {
     const first = sortedKlines[0];
     const last = sortedKlines[sortedKlines.length - 1];
 
+    // ✅ 根据 targetInterval 计算 open_time（对齐到时间边界）
+    const targetIntervalMs = this.getIntervalMs(targetInterval);
+    const alignedOpenTime = Math.floor(first.open_time / targetIntervalMs) * targetIntervalMs;
+
     return {
       symbol: first.symbol,
       interval: targetInterval,
@@ -260,8 +268,8 @@ export class KlineAggregator {
       low: Math.min(...sortedKlines.map(k => k.low)),
       close: last.close,
       volume: sortedKlines.reduce((sum, k) => sum + k.volume, 0),
-      open_time: first.open_time,
-      close_time: last.close_time,
+      open_time: alignedOpenTime,  // ✅ 使用对齐后的时间
+      close_time: alignedOpenTime + targetIntervalMs,  // ✅ 使用 targetInterval 计算
     };
   }
 
