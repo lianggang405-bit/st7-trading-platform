@@ -1,7 +1,9 @@
-import { supabase } from './src/config/database';
+import { getSupabase } from './src/config/database';
 
 async function checkKlines() {
   console.log('Checking klines table...\n');
+
+  const supabase = getSupabase();
 
   const { data, error } = await supabase
     .from('klines')
