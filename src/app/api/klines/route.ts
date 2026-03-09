@@ -142,7 +142,16 @@ export async function GET(request: NextRequest) {
     // 转换数据格式
     // ⚠️ TradingView API 返回的是秒级时间戳，lightweight-charts 也需要秒级时间戳
     // ⚠️ 所有数值必须是 Number 类型，不能是字符串
-    const klines = data.t.map((time: number, index: number) => ({
+    type KlineData = {
+      time: number;
+      open: number;
+      high: number;
+      low: number;
+      close: number;
+      volume: number;
+    };
+
+    const klines: KlineData[] = data.t.map((time: number, index: number) => ({
       time,  // 秒级时间戳（TradingView API 返回的已经是秒级）
       open: Number(data.o[index]),
       high: Number(data.h[index]),
@@ -152,7 +161,7 @@ export async function GET(request: NextRequest) {
     }));
 
     // ✅ 按时间升序排序（Lightweight Charts 要求）
-    klines.sort((a, b) => a.time - b.time);
+    klines.sort((a: KlineData, b: KlineData) => a.time - b.time);
 
     console.log(`[Klines API] 成功获取 ${klines.length} 条K线数据`);
     console.log(`[Klines API] 第一条数据:`, klines[0]);
