@@ -2,6 +2,7 @@ import { getSupabase } from '../config/database';
 import { updateCandle } from '../engine/kline-engine';
 import { updateMarket } from '../cache/market-cache';
 import { tickerEngine } from '../engine/ticker-engine';
+import { orderBookEngine } from '../engine/orderbook-engine';
 
 /**
  * 模拟行情数据生成器
@@ -66,8 +67,39 @@ export class MockDataGenerator {
       // 写入数据库
       await this.updateTicker(symbol, newPrice);
 
+      // 生成模拟 OrderBook
+      this.generateMockOrderBook(symbol, newPrice);
+
       console.log(`[MockDataGenerator] 📊 ${symbol}: $${newPrice.toFixed(2)} (${(changePercent * 100).toFixed(2)}%)`);
     }
+  }
+
+  /**
+   * 生成模拟订单簿数据
+   */
+  private generateMockOrderBook(symbol: string, price: number): void {
+    const depth = 20; // 20档深度
+    const priceStep = price * 0.0001; // 0.01% 价格步长
+
+    const bids: [number, number][] = [];
+    const asks: [number, number][] = [];
+
+    // 生成买盘（从当前价格向下）
+    for (let i = 0; i < depth; i++) {
+      const bidPrice = price * (1 - (i + 1) * 0.0002);
+      const bidQuantity = Math.random() * 10 + 0.1;
+      bids.push([bidPrice, bidQuantity]);
+    }
+
+    // 生成卖盘（从当前价格向上）
+    for (let i = 0; i < depth; i++) {
+      const askPrice = price * (1 + (i + 1) * 0.0002);
+      const askQuantity = Math.random() * 10 + 0.1;
+      asks.push([askPrice, askQuantity]);
+    }
+
+    // 更新 OrderBook Engine
+    orderBookEngine.updateOrderBook(symbol, bids, asks, Date.now());
   }
 
   /**

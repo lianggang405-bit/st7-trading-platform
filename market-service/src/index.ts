@@ -13,6 +13,7 @@ import { flushCandles, getCachedCandlesCount } from './engine/kline-engine';
 import { getCacheSize } from './cache/market-cache';
 import { klineAggregator } from './engine/kline-aggregator';
 import { tickerEngine } from './engine/ticker-engine';
+import { orderBookEngine } from './engine/orderbook-engine';
 import tradingviewRoutes from './tradingview/routes';
 
 // 注意：BinanceTradeCollector 已实现，但在受限网络环境中无法使用
@@ -104,6 +105,29 @@ async function main() {
     }
   });
 
+  // OrderBook API - 深度数据
+  app.get('/orderbook', (req, res) => {
+    const { symbol, limit } = req.query;
+
+    if (symbol) {
+      // 获取单个交易对的深度数据
+      const limitNum = limit ? parseInt(limit as string) : undefined;
+      const orderBook = orderBookEngine.getOrderBook(symbol as string, limitNum);
+
+      if (orderBook) {
+        res.json(orderBook);
+      } else {
+        res.status(404).json({
+          error: `OrderBook not found for symbol: ${symbol}`
+        });
+      }
+    } else {
+      // 获取所有交易对的深度数据
+      const limitNum = limit ? parseInt(limit as string) : undefined;
+      res.json(orderBookEngine.getAllOrderBooks(limitNum));
+    }
+  });
+
   // 健康检查接口
   app.get('/health', (req, res) => {
     res.json({
@@ -131,14 +155,16 @@ async function main() {
 
   console.log('');
   console.log('✅ Market Collector Service is running!');
-  console.log('📊 Collecting mock market data (production: BinanceTradeCollector available)');
+  console.log('📊 Collecting mock market data (production: BinanceTradeCollector/BinanceDepthCollector available)');
   console.log('📈 Ticker Engine active (24h statistics)');
+  console.log('📚 OrderBook Engine active (depth data)');
   console.log('🕯️  K-line engine active (1m interval)');
   console.log('🔄 K-line aggregation engine active (1m → 5m → 15m → 1h → 4h → 1d)');
   console.log('📡 WebSocket server running on port 8081');
   console.log('🌐 HTTP server running on port 3000');
   console.log('📊 TradingView API available at http://localhost:3000/tv');
   console.log('📊 Ticker API available at http://localhost:3000/ticker/24hr');
+  console.log('📚 OrderBook API available at http://localhost:3000/orderbook');
   console.log('💾 Market cache active');
   console.log('Press Ctrl+C to stop.\n');
 }

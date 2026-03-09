@@ -1,5 +1,6 @@
 import WebSocket, { WebSocketServer, WebSocket as WebSocketType } from 'ws';
 import { getMarket, getAllMarkets, getKlineCache, getCacheSize } from '../cache/market-cache';
+import { orderBookEngine } from '../engine/orderbook-engine';
 
 /**
  * 订阅信息
@@ -129,6 +130,10 @@ class MarketWebSocketServer {
           this.handleGetKline(ws, symbol, interval || '1m');
           break;
 
+        case 'get_orderbook':
+          this.handleGetOrderBook(ws, symbol, interval || '20');
+          break;
+
         default:
           console.warn(`[WebSocket] Unknown message type: ${type}`);
           this.sendError(ws, `Unknown message type: ${type}`);
@@ -236,6 +241,29 @@ class MarketWebSocketServer {
       interval,
       data: kline
     }));
+  }
+
+  /**
+   * 处理获取订单簿
+   */
+  private handleGetOrderBook(ws: ClientSession, symbol: string, limitStr: string): void {
+    if (!symbol) {
+      this.sendError(ws, 'Symbol is required');
+      return;
+    }
+
+    const limit = limitStr ? parseInt(limitStr) : 20;
+    const orderBook = orderBookEngine.getOrderBook(symbol, limit);
+
+    if (orderBook) {
+      ws.send(JSON.stringify({
+        type: 'orderbook',
+        symbol,
+        data: orderBook
+      }));
+    } else {
+      this.sendError(ws, `OrderBook not found for symbol: ${symbol}`);
+    }
   }
 
   /**
