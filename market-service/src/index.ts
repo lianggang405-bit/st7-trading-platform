@@ -14,6 +14,7 @@ import { getCacheSize } from './cache/market-cache';
 import { klineAggregator } from './engine/kline-aggregator';
 import { tickerEngine } from './engine/ticker-engine';
 import { orderBookEngine } from './engine/orderbook-engine';
+import { checkAndGenerateFlatCandles } from './engine/kline-engine';
 import tradingviewRoutes from './tradingview/routes';
 
 // 注意：BinanceTradeCollector 已实现，但在受限网络环境中无法使用
@@ -152,6 +153,13 @@ async function main() {
     const cacheSize = getCacheSize();
     console.log(`[Market Cache] 📊 Cached markets: ${cacheSize}`);
   }, 30000);
+
+  // 定时检查并生成平盘K线（每秒检查一次）
+  const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
+  const intervals = ['1m', '5m', '15m', '1h', '4h', '1d'];
+  setInterval(() => {
+    checkAndGenerateFlatCandles(symbols, intervals);
+  }, 1000);
 
   console.log('');
   console.log('✅ Market Collector Service is running!');

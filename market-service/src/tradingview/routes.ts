@@ -111,6 +111,7 @@ router.get('/symbols', async (req, res) => {
 router.get('/history', async (req, res) => {
   try {
     const { symbol, resolution, from, to } = req.query;
+    const MAX_BARS = 1000; // 最多返回1000根K线
 
     if (!symbol || !resolution || !from || !to) {
       return res.status(400).json({
@@ -129,7 +130,7 @@ router.get('/history', async (req, res) => {
       `from: ${fromTimestamp}, to: ${toTimestamp}`
     );
 
-    // 从数据库查询 K 线数据
+    // 从数据库查询 K 线数据（限制返回数量）
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from('klines')
@@ -138,7 +139,8 @@ router.get('/history', async (req, res) => {
       .eq('interval', interval)
       .gte('open_time', fromTimestamp)
       .lte('open_time', toTimestamp)
-      .order('open_time', { ascending: true });
+      .order('open_time', { ascending: true })
+      .limit(MAX_BARS);
 
     if (error) {
       console.error('[TradingView API] Error fetching history:', error);
