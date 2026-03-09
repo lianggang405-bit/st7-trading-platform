@@ -10,7 +10,7 @@ import {
 } from 'lightweight-charts'
 
 import { useMarketStore } from '@/stores/marketStore'
-import { getKlinesWithCache, fetchBinanceKlines } from '@/lib/binance-klines'
+import { getKlinesWithCache, fetchBinanceKlines, clearKlineCache } from '@/lib/binance-klines'
 import { realTimePrices } from '@/lib/real-time-prices'
 
 interface TradingChartProps {
@@ -63,10 +63,22 @@ export default function TradingChart({
   // ✅ 监听交易对变化，清除缓存并重置状态
   useEffect(() => {
     console.log(`[TradingChart] 交易对切换到: ${symbol}`)
+    // 清除缓存，确保获取最新数据
+    clearKlineCache(symbol)
     setIsLoading(true)
     lastCandleRef.current = null
     lastPriceRef.current = 0
   }, [symbol])
+
+  // ✅ 监听时间周期变化，清除缓存并重置状态
+  useEffect(() => {
+    console.log(`[TradingChart] 时间周期切换到: ${timeframe}`)
+    // 清除缓存，确保获取最新数据
+    clearKlineCache(symbol, timeframe)
+    setIsLoading(true)
+    lastCandleRef.current = null
+    lastPriceRef.current = 0
+  }, [timeframe])
 
   useEffect(() => {
     priceRef.current = currentPrice

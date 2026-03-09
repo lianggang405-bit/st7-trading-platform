@@ -14,6 +14,72 @@ export interface KlineResponse {
 }
 
 /**
+ * 补全缺失的 K 线数据
+ * 确保返回的数据是连续的，避免 TradingView 显示异常
+ * @param klines K线数据数组
+ * @param interval 时间周期（秒）
+ * @returns 补全后的K线数据数组
+ */
+export function fillMissingKlines(
+  klines: KlineResponse[],
+  interval: number = 60
+): KlineResponse[] {
+  if (klines.length === 0) {
+    return klines;
+  }
+
+  console.log(`[Klines] 补全缺失的K线数据: ${klines.length} 条原始数据`);
+
+  const filledKlines: KlineResponse[] = [];
+  let prevKline: KlineResponse | null = null;
+
+  for (const kline of klines) {
+    if (!prevKline) {
+      // 第一根 K 线，直接添加
+      filledKlines.push(kline);
+      prevKline = kline;
+      continue;
+    }
+
+    // 检查时间间隔
+    const timeDiff = kline.time - prevKline.time;
+    const expectedDiff = interval;
+
+    if (timeDiff > expectedDiff) {
+      // 发现缺失的 K 线，需要补全
+      const missingCount = Math.floor(timeDiff / expectedDiff) - 1;
+
+      console.log(
+        `[Klines] 发现缺失的K线: ${missingCount} 根, ` +
+        `时间从 ${prevKline.time} 到 ${kline.time}`
+      );
+
+      // 补全缺失的 K 线
+      for (let i = 1; i <= missingCount; i++) {
+        const missingTime = prevKline.time + (i * expectedDiff);
+        const missingKline: KlineResponse = {
+          time: missingTime,
+          open: prevKline.close,      // 使用前一根的收盘价作为开盘价
+          high: prevKline.close,      // 使用前一根的收盘价作为最高价
+          low: prevKline.close,       // 使用前一根的收盘价作为最低价
+          close: prevKline.close,     // 使用前一根的收盘价作为收盘价
+          volume: 0,                  // 成交量为0
+        };
+        filledKlines.push(missingKline);
+      }
+    }
+
+    // 添加当前 K 线
+    filledKlines.push(kline);
+    prevKline = kline;
+  }
+
+  console.log(`[Klines] 补全后的K线数据: ${filledKlines.length} 条`);
+
+  return filledKlines;
+}
+
+/**
  * 从后端API获取历史K线数据
  * @param symbol 交易对（如 XAUUSD, BTCUSD）
  * @param interval 时间周期（如 1M, 5M, 15M, 1H）
@@ -96,13 +162,33 @@ export async function getKlinesWithCache(
   // 从API获取新数据
   const data = await fetchBinanceKlines(symbol, interval, limit);
 
+  // ✅ 补全缺失的 K 线数据，确保数据连续性
+  const intervalSeconds = getIntervalSeconds(interval);
+  const filledData = fillMissingKlines(data, intervalSeconds);
+
   // 更新缓存
   klineCache[cacheKey] = {
-    data,
+    data: filledData,
     timestamp: Date.now(),
   };
 
-  return data;
+  return filledData;
+}
+
+/**
+ * 获取时间周期对应的秒数
+ * @param interval 时间周期（如 1M, 5M, 15M, 1H）
+ * @returns 秒数
+ */
+function getIntervalSeconds(interval: string): number {
+  const intervalMap: Record<string, number> = {
+    '1M': 60,
+    '5M': 300,
+    '15M': 900,
+    '1H': 3600,
+    '1D': 86400,
+  };
+  return intervalMap[interval] || 60;
 }
 
 /**
