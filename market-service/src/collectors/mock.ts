@@ -9,9 +9,30 @@ import { getAllMetalsPrices } from './yahoo-finance';
  * 模拟行情数据生成器
  * 用于验证数据链路是否正常
  *
- * 支持两种模式：
- * 1. 真实价格模式：从 Yahoo Finance 获取真实的黄金白银价格（免费）
- * 2. 模拟价格模式：使用模拟数据生成算法（基于历史价格或默认价格）
+ * ✅ 正确的兜底行情机制设计：
+ *
+ * 1. 锚定价格机制
+ *    - 每个交易对有一个"锚定价格"（anchor price）
+ *    - 模拟价格围绕锚定价格波动（±0.1%）
+ *    - 锚定价格定期同步真实价格
+ *
+ * 2. 启动时的价格初始化策略（三级优先级）
+ *    - 优先级 1: Yahoo Finance 真实价格
+ *    - 优先级 2: 数据库最新收盘价
+ *    - 优先级 3: 硬编码默认价格（仅兜底）
+ *
+ * 3. 定期同步机制
+ *    - 每 10 分钟尝试同步一次真实价格
+ *    - 如果成功，更新锚定价格
+ *    - 如果失败，记录日志但不影响正常运行
+ *
+ * 4. 偏差检测和重置
+ *    - 检测当前锚定价格与真实价格的偏差
+ *    - 如果偏差 > 10%，立即重置锚定价格
+ *
+ * 5. 价格漂移控制
+ *    - 限制模拟价格波动范围：锚定价格 ±1%
+ *    - 防止长期漂移导致价格失真
  */
 export class MockDataGenerator {
   // ✅ 支持所有交易对
@@ -29,11 +50,20 @@ export class MockDataGenerator {
     // Indices
     'US500', 'ND25', 'AUS200',
   ];
-  private prices: Map<string, number> = new Map();
+
+  // ✅ 锚定价格机制
+  private anchorPrices: Map<string, number> = new Map(); // 锚定价格
+  private prices: Map<string, number> = new Map(); // 当前价格（围绕锚定价格波动）
   private interval: number;
   private timer: NodeJS.Timeout | null = null;
+  private syncTimer: NodeJS.Timeout | null = null; // 定期同步计时器（每10分钟）
   private metalsSymbols: Set<string> = new Set(['XAUUSD', 'XAGUSD']); // 贵金属交易对
-  private metalsRefreshTimer: NodeJS.Timeout | null = null; // Yahoo Finance 定时刷新
+
+  // ✅ 偏差检测阈值（10%）
+  private readonly DEVIATION_THRESHOLD = 0.10;
+
+  // ✅ 价格漂移限制（±1%）
+  private readonly MAX_DRIFT = 0.01;
 
   constructor(interval: number = 3000) {
     this.interval = interval;
@@ -46,45 +76,17 @@ export class MockDataGenerator {
     console.log('[MockDataGenerator] Starting mock data generator');
     console.log('[MockDataGenerator] Symbols:', this.symbols.join(', '));
     console.log('[MockDataGenerator] Interval:', this.interval / 1000, 'seconds');
+    console.log('[MockDataGenerator] Price sync interval: 10 minutes');
 
-    // ✅ 从数据库读取最新的 K 线收盘价
-    await this.initializePricesFromDatabase();
+    // ✅ 步骤 1: 初始化锚定价格（三级优先级）
+    console.log('[MockDataGenerator] 🔄 Initializing anchor prices...');
+    await this.initializeAnchorPrices();
 
-    // ✅ 尝试从 Yahoo Finance 获取真实的黄金白银价格（免费）
-    console.log('[MockDataGenerator] 🔄 Fetching real metals prices from Yahoo Finance...');
-    const metalsPrices = await getAllMetalsPrices();
-
-    metalsPrices.forEach((price, symbol) => {
-      this.prices.set(symbol, price);
-      console.log(`[MockDataGenerator] ✅ Loaded real price for ${symbol}: $${price.toFixed(2)}`);
-    });
-
-    // ✅ 如果 Yahoo Finance 请求失败，使用默认价格
-    for (const symbol of this.metalsSymbols) {
-      if (!this.prices.has(symbol) || this.prices.get(symbol) === 0) {
-        const defaultPrice = this.getDefaultPrice(symbol);
-        this.prices.set(symbol, defaultPrice);
-        console.log(`[MockDataGenerator] ⚠️ Yahoo Finance failed, using default price for ${symbol}: $${defaultPrice.toFixed(2)}`);
-      }
-    }
-
-    // ✅ 启动 Yahoo Finance 定时刷新（每 60 秒）
-    this.metalsRefreshTimer = setInterval(async () => {
-      console.log('[MockDataGenerator] 🔄 Refreshing metals prices from Yahoo Finance...');
-      const updatedPrices = await getAllMetalsPrices();
-      updatedPrices.forEach((price, symbol) => {
-        this.prices.set(symbol, price);
-        console.log(`[MockDataGenerator] ✅ Updated price for ${symbol}: $${price.toFixed(2)}`);
-      });
-
-      // ✅ 如果刷新失败，保持当前价格不变（不使用默认价格）
-      for (const symbol of this.metalsSymbols) {
-        if (!updatedPrices.has(symbol)) {
-          const currentPrice = this.prices.get(symbol) || 0;
-          console.log(`[MockDataGenerator] ⚠️ Yahoo Finance refresh failed for ${symbol}, keeping current price: $${currentPrice.toFixed(2)}`);
-        }
-      }
-    }, 60000);
+    // ✅ 步骤 2: 启动定期同步机制（每 10 分钟）
+    console.log('[MockDataGenerator] 🔄 Starting price sync timer (every 10 minutes)...');
+    this.syncTimer = setInterval(async () => {
+      await this.syncRealPrices();
+    }, 10 * 60 * 1000);
 
     // 立即生成一次
     this.generateData();
@@ -93,56 +95,130 @@ export class MockDataGenerator {
     this.timer = setInterval(() => {
       this.generateData();
     }, this.interval);
+
+    console.log('[MockDataGenerator] ✅ Started successfully with anchor price mechanism');
   }
 
   /**
-   * 从数据库初始化价格（读取最后一个 K 线的收盘价）
+   * 初始化锚定价格（三级优先级策略）
+   *
+   * 优先级 1: Yahoo Finance 真实价格（仅贵金属）
+   * 优先级 2: 数据库最新收盘价
+   * 优先级 3: 硬编码默认价格（仅兜底）
    */
-  private async initializePricesFromDatabase(): Promise<void> {
+  private async initializeAnchorPrices(): Promise<void> {
+    const supabase = getSupabase();
+
+    // 步骤 1: 尝试从 Yahoo Finance 获取贵金属真实价格
+    console.log('[MockDataGenerator] 🔍 Step 1: Fetching metals prices from Yahoo Finance...');
+    const yahooPrices = await getAllMetalsPrices();
+
+    for (const symbol of this.symbols) {
+      let anchorPrice: number;
+      let source: string;
+
+      // 优先级 1: Yahoo Finance 真实价格（仅贵金属）
+      if (this.metalsSymbols.has(symbol) && yahooPrices.has(symbol)) {
+        anchorPrice = yahooPrices.get(symbol)!;
+        source = 'Yahoo Finance';
+        console.log(`[MockDataGenerator] ✅ [${source}] ${symbol}: $${anchorPrice.toFixed(2)}`);
+      }
+      // 优先级 2: 数据库最新收盘价
+      else {
+        const lastClose = await this.getLastCloseFromDatabase(symbol);
+        anchorPrice = lastClose;
+        source = 'Database';
+
+        if (lastClose > 0) {
+          console.log(`[MockDataGenerator] ✅ [${source}] ${symbol}: $${lastClose.toFixed(2)}`);
+        } else {
+          // 优先级 3: 硬编码默认价格（仅兜底）
+          anchorPrice = this.getDefaultPrice(symbol);
+          source = 'Default (hardcoded)';
+          console.log(`[MockDataGenerator] ⚠️ [${source}] ${symbol}: $${anchorPrice.toFixed(2)}`);
+        }
+      }
+
+      // 设置锚定价格和当前价格
+      this.anchorPrices.set(symbol, anchorPrice);
+      this.prices.set(symbol, anchorPrice);
+    }
+
+    console.log(`[MockDataGenerator] ✅ Initialized ${this.anchorPrices.size} anchor prices`);
+  }
+
+  /**
+   * 从数据库获取最新的 K 线收盘价
+   */
+  private async getLastCloseFromDatabase(symbol: string): Promise<number> {
     try {
       const supabase = getSupabase();
 
-      for (const symbol of this.symbols) {
-        // ✅ 对于贵金属，跳过数据库查询（从 Yahoo Finance 获取）
-        if (this.metalsSymbols.has(symbol)) {
-          console.log(`[MockDataGenerator] ⏭️ Skipping ${symbol}, will fetch from Yahoo Finance`);
-          continue;
-        }
+      const { data, error } = await supabase
+        .from('klines')
+        .select('close')
+        .eq('symbol', symbol)
+        .order('open_time', { ascending: false })
+        .limit(1);
 
-        // ✅ 查询该交易对的最新 K 线（按 open_time DESC）
-        const { data, error } = await supabase
-          .from('klines')
-          .select('close')
-          .eq('symbol', symbol)
-          .order('open_time', { ascending: false })
-          .limit(1);
-
-        if (error) {
-          console.error(`[MockDataGenerator] Failed to fetch last candle for ${symbol}:`, error.message);
-          // 使用默认价格
-          const defaultPrice = this.getDefaultPrice(symbol);
-          this.prices.set(symbol, defaultPrice);
-          console.log(`[MockDataGenerator] Using default price for ${symbol}: $${defaultPrice.toFixed(2)}`);
-        } else if (data && data.length > 0) {
-          // ✅ 使用数据库中的最后一个 close 价格
-          const lastClose = data[0].close;
-          this.prices.set(symbol, lastClose);
-          console.log(`[MockDataGenerator] ✅ Loaded last close for ${symbol}: $${lastClose.toFixed(2)}`);
-        } else {
-          // 没有历史数据，使用默认价格
-          const defaultPrice = this.getDefaultPrice(symbol);
-          this.prices.set(symbol, defaultPrice);
-          console.log(`[MockDataGenerator] No history data for ${symbol}, using default price: $${defaultPrice.toFixed(2)}`);
-        }
+      if (error) {
+        console.error(`[MockDataGenerator] ❌ Failed to fetch last candle for ${symbol}:`, error.message);
+        return 0;
       }
+
+      if (data && data.length > 0) {
+        return data[0].close;
+      }
+
+      return 0;
     } catch (error) {
-      console.error('[MockDataGenerator] Error initializing prices from database:', error);
-      // 使用默认价格
-      const defaultPrices = this.getDefaultPrices();
-      defaultPrices.forEach((price, symbol) => {
-        this.prices.set(symbol, price);
-      });
+      console.error(`[MockDataGenerator] ❌ Error fetching last close for ${symbol}:`, error);
+      return 0;
     }
+  }
+
+  /**
+   * 定期同步真实价格（每 10 分钟）
+   */
+  private async syncRealPrices(): Promise<void> {
+    console.log('[MockDataGenerator] 🔄 Syncing real prices from Yahoo Finance...');
+
+    const realPrices = await getAllMetalsPrices();
+
+    if (realPrices.size === 0) {
+      console.log('[MockDataGenerator] ⚠️ No real prices fetched, skipping sync');
+      return;
+    }
+
+    let updatedCount = 0;
+    let resetCount = 0;
+
+    for (const [symbol, realPrice] of realPrices) {
+      const currentAnchor = this.anchorPrices.get(symbol) || 0;
+
+      if (currentAnchor === 0) {
+        console.log(`[MockDataGenerator] ⚠️ No anchor price for ${symbol}, skipping`);
+        continue;
+      }
+
+      // 检测偏差
+      const deviation = Math.abs(realPrice - currentAnchor) / currentAnchor;
+
+      if (deviation > this.DEVIATION_THRESHOLD) {
+        // 偏差 > 10%，立即重置锚定价格
+        console.warn(`[MockDataGenerator] ⚠️ Price deviation ${(deviation * 100).toFixed(2)}% for ${symbol}, resetting anchor`);
+        this.anchorPrices.set(symbol, realPrice);
+        this.prices.set(symbol, realPrice);
+        resetCount++;
+      } else {
+        // 偏差 <= 10%，平滑更新锚定价格
+        const newAnchor = (currentAnchor * 0.9) + (realPrice * 0.1); // 90% 旧价格 + 10% 新价格
+        this.anchorPrices.set(symbol, newAnchor);
+        updatedCount++;
+      }
+    }
+
+    console.log(`[MockDataGenerator] ✅ Sync completed: ${updatedCount} updated, ${resetCount} reset`);
   }
 
   /**
@@ -206,58 +282,48 @@ export class MockDataGenerator {
    * 停止生成器
    */
   public stop(): void {
+    console.log('[MockDataGenerator] Stopping mock data generator');
+
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
-      console.log('[MockDataGenerator] Stopped mock data generator');
     }
 
-    if (this.metalsRefreshTimer) {
-      clearInterval(this.metalsRefreshTimer);
-      this.metalsRefreshTimer = null;
-      console.log('[MockDataGenerator] Stopped Yahoo Finance refresh');
+    if (this.syncTimer) {
+      clearInterval(this.syncTimer);
+      this.syncTimer = null;
+      console.log('[MockDataGenerator] Stopped price sync timer');
     }
   }
 
   /**
-   * 生成模拟数据
+   * 生成模拟数据（基于锚定价格机制）
    */
   private async generateData(): Promise<void> {
     for (const symbol of this.symbols) {
-      // ✅ 对于贵金属，使用 Yahoo Finance 的真实价格
-      if (this.metalsSymbols.has(symbol)) {
-        const price = this.prices.get(symbol) || 0;
+      const anchorPrice = this.anchorPrices.get(symbol) || 0;
+      const currentPrice = this.prices.get(symbol) || anchorPrice;
 
-        // 如果有真实价格，使用真实价格
-        if (price > 0) {
-          console.log(`[MockDataGenerator] 📊 ${symbol}: $${price.toFixed(2)} (from Yahoo Finance)`);
-        } else {
-          // 如果没有真实价格，使用当前价格进行小幅度波动
-          const currentPrice = this.prices.get(symbol) || 0;
-          const newPrice = currentPrice * (1 + (Math.random() - 0.5) * 0.001);
-          this.prices.set(symbol, newPrice);
-          console.log(`[MockDataGenerator] 📊 ${symbol}: $${newPrice.toFixed(2)} (simulated, no Yahoo Finance data)`);
-        }
-
-        const finalPrice = this.prices.get(symbol) || price;
-        await this.updateTicker(symbol, finalPrice);
-        this.generateMockOrderBook(symbol, finalPrice);
+      if (anchorPrice === 0) {
+        console.warn(`[MockDataGenerator] ⚠️ No anchor price for ${symbol}, skipping`);
         continue;
       }
 
-      // ✅ 其他交易对，使用随机漫步算法，基于上一笔价格小幅波动
-      const currentPrice = this.prices.get(symbol) || 0;
-      const price = currentPrice;
+      // ✅ 基于锚定价格的小幅度波动（±0.1%）
+      const drift = (Math.random() - 0.5) * 0.002; // -0.1% 到 +0.1%
+      let newPrice = currentPrice * (1 + drift);
 
-      // ✅ 减小波动幅度到 0.05%（0.0005），避免 1 分钟内剧烈波动
-      // 对于 BTC，0.05% 约为 $33，这是合理的 1 分钟波动
-      const changePercent = (Math.random() - 0.5) * 0.001; // -0.05% 到 +0.05%
-      const newPrice = price * (1 + changePercent);
+      // ✅ 价格漂移控制：限制在锚定价格 ±1% 范围内
+      const maxDeviation = anchorPrice * this.MAX_DRIFT;
+      const minPrice = anchorPrice - maxDeviation;
+      const maxPrice = anchorPrice + maxDeviation;
 
-      // ✅ 确保价格不会变成负数或零
-      const safePrice = Math.max(newPrice, price * 0.5);
+      newPrice = Math.max(minPrice, Math.min(maxPrice, newPrice));
 
-      // 更新价格（用于下一次生成）
+      // 确保价格不会变成负数或零
+      const safePrice = Math.max(newPrice, anchorPrice * 0.99);
+
+      // 更新当前价格
       this.prices.set(symbol, safePrice);
 
       // 写入数据库
@@ -266,7 +332,10 @@ export class MockDataGenerator {
       // 生成模拟 OrderBook
       this.generateMockOrderBook(symbol, safePrice);
 
-      console.log(`[MockDataGenerator] 📊 ${symbol}: $${safePrice.toFixed(2)} (${(changePercent * 100).toFixed(3)}%)`);
+      // 计算与锚定价格的偏差
+      const deviationFromAnchor = ((safePrice - anchorPrice) / anchorPrice) * 100;
+
+      console.log(`[MockDataGenerator] 📊 ${symbol}: $${safePrice.toFixed(2)} (anchor: $${anchorPrice.toFixed(2)}, drift: ${deviationFromAnchor.toFixed(3)}%)`);
     }
   }
 

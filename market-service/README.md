@@ -425,6 +425,82 @@ npm run collector:mock
 
 系统支持从 Yahoo Finance 获取黄金（XAUUSD）和白银（XAGUSD）的实时价格。Yahoo Finance 提供免费的公开 API，无需 API Key，适合大多数使用场景。
 
+### ✅ 正确的兜底行情机制设计
+
+为了避免模拟价格与真实价格长期偏差，系统实现了完整的**锚定价格机制**：
+
+#### 1. 锚定价格机制
+- 每个交易对有一个**锚定价格**（anchor price）
+- 模拟价格围绕锚定价格波动（±0.1%）
+- 锚定价格定期同步真实价格
+
+#### 2. 启动时的价格初始化策略（三级优先级）
+
+```
+优先级 1: Yahoo Finance 真实价格（仅贵金属）
+   ↓ 失败
+优先级 2: 数据库最新收盘价
+   ↓ 失败
+优先级 3: 硬编码默认价格（仅兜底）
+```
+
+**示例**：
+```typescript
+// XAUUSD 初始化流程
+1. 尝试从 Yahoo Finance 获取 → 失败（网络限制）
+2. 从数据库获取最新收盘价 → $2637.89 ✅
+3. 使用硬编码默认价格 → $2750.00（未使用）
+```
+
+#### 3. 定期同步机制
+
+- **每 10 分钟**尝试同步一次真实价格
+- 如果成功：
+  - 偏差 ≤ 10%：平滑更新锚定价格（90% 旧 + 10% 新）
+  - 偏差 > 10%：立即重置锚定价格
+- 如果失败：记录日志，不影响正常运行
+
+**示例**：
+```
+10分钟后同步：
+- 真实价格：$2750.00
+- 锚定价格：$2637.89
+- 偏差：4.3%（< 10%）
+- 新锚定价格：$2637.89 * 0.9 + $2750.00 * 0.1 = $2649.10
+```
+
+#### 4. 偏差检测和重置
+
+- 检测当前锚定价格与真实价格的偏差
+- **如果偏差 > 10%，立即重置锚定价格**
+
+**示例**：
+```
+场景：Yahoo Finance 恢复，获取到真实价格
+
+真实价格：$3000.00
+锚定价格：$2637.89
+偏差：13.7%（> 10%）
+
+系统行为：
+⚠️ Price deviation 13.7% for XAUUSD, resetting anchor
+✅ 锚定价格重置为：$3000.00
+```
+
+#### 5. 价格漂移控制
+
+- 限制模拟价格波动范围：锚定价格 ±1%
+- 防止长期漂移导致价格失真
+
+**示例**：
+```
+锚定价格：$2637.89
+波动范围：$2611.51 ~ $2664.27
+
+当前价格：$2639.02
+漂移：+0.043%（在安全范围内）
+```
+
 ### 数据源详情
 
 #### Yahoo Finance（当前方案，推荐）
@@ -495,22 +571,40 @@ METALS_API_KEY=your-metals-api-key-here
 #### 方法 1：查看日志
 
 ```bash
-tail -f /app/work/logs/bypass/market-service.log | grep -E "XAU|XAG|Yahoo"
+tail -f /app/work/logs/bypass/market-service.log | grep -E "XAU|XAG|anchor|Syncing"
 ```
 
-**正常输出：**
+**正常输出（Yahoo Finance 可用）**：
 ```
-[MockDataGenerator] 🔄 Fetching real metals prices from Yahoo Finance...
+[MockDataGenerator] 🔍 Step 1: Fetching metals prices from Yahoo Finance...
 [YahooFinance] ✅ XAUUSD (GC=F): $2750.00
 [YahooFinance] ✅ XAGUSD (SI=F): $33.50
-[MockDataGenerator] ✅ Loaded real price for XAUUSD: $2750.00
-[MockDataGenerator] ✅ Loaded real price for XAGUSD: $33.50
+[MockDataGenerator] ✅ [Yahoo Finance] XAUUSD: $2750.00
+[MockDataGenerator] ✅ [Yahoo Finance] XAGUSD: $33.50
+[MockDataGenerator] ✅ Initialized 30 anchor prices
+[MockDataGenerator] 🔄 Starting price sync timer (every 10 minutes)...
+[MockDataGenerator] 📊 XAUUSD: $2750.12 (anchor: $2750.00, drift: 0.004%)
+[MockDataGenerator] 📊 XAGUSD: $33.51 (anchor: $33.50, drift: 0.030%)
 ```
 
-**降级输出：**
+**降级输出（Yahoo Finance 不可用）**：
 ```
-[MockDataGenerator] ⚠️ Yahoo Finance failed, using default price for XAUUSD: $2750.00
-[MockDataGenerator] ⚠️ Yahoo Finance failed, using default price for XAGUSD: $33.50
+[MockDataGenerator] 🔍 Step 1: Fetching metals prices from Yahoo Finance...
+[YahooFinance] ❌ Error fetching XAUUSD price: fetch failed
+[YahooFinance] ❌ Error fetching XAGUSD price: fetch failed
+[MockDataGenerator] ✅ [Database] XAUUSD: $2637.89
+[MockDataGenerator] ✅ [Database] XAGUSD: $32.91
+[MockDataGenerator] ✅ Initialized 30 anchor prices
+[MockDataGenerator] 📊 XAUUSD: $2639.02 (anchor: $2637.89, drift: 0.043%)
+[MockDataGenerator] 📊 XAGUSD: $32.92 (anchor: $32.91, drift: 0.028%)
+```
+
+**同步输出（每 10 分钟）**：
+```
+[MockDataGenerator] 🔄 Syncing real prices from Yahoo Finance...
+[YahooFinance] ✅ XAUUSD (GC=F): $2750.00
+[MockDataGenerator] ⚠️ Price deviation 4.30% for XAUUSD
+[MockDataGenerator] ✅ Sync completed: 2 updated, 0 reset
 ```
 
 #### 方法 2：检查数据库
@@ -532,6 +626,7 @@ ws.onopen = () => {
 ws.onmessage = (e) => {
   const msg = JSON.parse(e.data);
   console.log(msg);
+  // 查看价格漂移：msg.data.XAUUSD.price 与锚定价格的偏差
 };
 ```
 
@@ -547,20 +642,29 @@ ws.onmessage = (e) => {
    pnpm run dev
    ```
 3. **验证价格**：查看日志确认 Yahoo Finance 请求成功
+4. **监控锚定价格**：定期检查锚定价格是否与市场价格同步
+   ```bash
+   tail -f /app/work/logs/bypass/market-service.log | grep "anchor"
+   ```
 
 ### 已知问题
 
 1. **沙箱环境无法访问外网**
    - 症状：日志显示 "ETIMEDOUT" 或 "fetch failed"
-   - 解决：自动降级到默认价格，不影响功能
+   - 解决：自动降级到数据库收盘价，不影响功能
+   - 长期影响：如果数据库价格不是最新的，模拟价格会围绕数据库价格波动
 
 2. **企业防火墙**
    - 症状：无法连接 Yahoo Finance
    - 解决：使用 Metals-API 或配置代理
 
 3. **价格波动异常**
-   - 症状：价格波动过大（±1% 以上）
-   - 解决：检查网络连接，降级机制会自动修复
+   - 症状：价格波动超过 ±1%
+   - 解决：检查锚定价格设置，系统会自动限制漂移范围
+
+4. **锚定价格偏差过大**
+   - 症状：日志显示 "Price deviation > 10%"
+   - 解决：系统会自动重置锚定价格，无需手动干预
 
 ### 未来改进
 
