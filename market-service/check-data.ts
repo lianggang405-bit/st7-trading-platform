@@ -1,7 +1,9 @@
-import { supabase } from './src/config/database';
+import { getSupabase } from './src/config/database';
 
 async function checkData() {
   console.log('Checking tickers table...\n');
+
+  const supabase = getSupabase();
 
   const { data, error } = await supabase
     .from('tickers')
