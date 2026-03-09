@@ -105,6 +105,13 @@ export async function flushCandles(): Promise<void> {
 
   // 如果没有完成的 K 线，直接返回
   if (completedCandles.length === 0) {
+    // 打印一些示例 K 线的时间信息，用于调试
+    const sampleCandles = Object.entries(candleCache).slice(0, 3);
+    console.log(`[KlineEngine] ℹ️ No completed candles to flush. ${Object.keys(candleCache).length} candles still pending.`);
+    console.log(`[KlineEngine] Current time: ${new Date(now).toISOString()}, now=${now}`);
+    sampleCandles.forEach(([key, candle]) => {
+      console.log(`[KlineEngine] Sample candle: ${key}, openTime=${candle.openTime}, closeTime=${candle.closeTime}, diff=${candle.closeTime - now}ms`);
+    });
     return;
   }
 
