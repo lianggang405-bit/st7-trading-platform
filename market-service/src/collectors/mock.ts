@@ -59,6 +59,15 @@ export class MockDataGenerator {
       console.log(`[MockDataGenerator] ✅ Loaded real price for ${symbol}: $${price.toFixed(2)}`);
     });
 
+    // ✅ 如果 Yahoo Finance 请求失败，使用默认价格
+    for (const symbol of this.metalsSymbols) {
+      if (!this.prices.has(symbol) || this.prices.get(symbol) === 0) {
+        const defaultPrice = this.getDefaultPrice(symbol);
+        this.prices.set(symbol, defaultPrice);
+        console.log(`[MockDataGenerator] ⚠️ Yahoo Finance failed, using default price for ${symbol}: $${defaultPrice.toFixed(2)}`);
+      }
+    }
+
     // ✅ 启动 Yahoo Finance 定时刷新（每 60 秒）
     this.metalsRefreshTimer = setInterval(async () => {
       console.log('[MockDataGenerator] 🔄 Refreshing metals prices from Yahoo Finance...');
@@ -67,6 +76,14 @@ export class MockDataGenerator {
         this.prices.set(symbol, price);
         console.log(`[MockDataGenerator] ✅ Updated price for ${symbol}: $${price.toFixed(2)}`);
       });
+
+      // ✅ 如果刷新失败，保持当前价格不变（不使用默认价格）
+      for (const symbol of this.metalsSymbols) {
+        if (!updatedPrices.has(symbol)) {
+          const currentPrice = this.prices.get(symbol) || 0;
+          console.log(`[MockDataGenerator] ⚠️ Yahoo Finance refresh failed for ${symbol}, keeping current price: $${currentPrice.toFixed(2)}`);
+        }
+      }
     }, 60000);
 
     // 立即生成一次
@@ -207,7 +224,7 @@ export class MockDataGenerator {
    */
   private async generateData(): Promise<void> {
     for (const symbol of this.symbols) {
-      // ✅ 对于贵金属，使用 Yahoo Finance 的真实价格（已定时刷新）
+      // ✅ 对于贵金属，使用 Yahoo Finance 的真实价格
       if (this.metalsSymbols.has(symbol)) {
         const price = this.prices.get(symbol) || 0;
 

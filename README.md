@@ -97,6 +97,9 @@ pm2 start npm --name "st7-trading-platform" -- start
 - 🚀 PWA 支持
 - 🔥 網站元數據配置（ST7品牌）
 - 📊 實時價格數據（2026年3月）
+- 🥇 **貴金屬實時價格**（黃金 XAUUSD ~$2700-2800，白銀 XAGUSD ~$31-34）
+- 🔄 **自動降級機制**（Yahoo Finance 失敗時使用模擬價格）
+- 📡 **WebSocket 實時推送**（價格、訂單、K 線）
 
 ---
 

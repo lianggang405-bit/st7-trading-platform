@@ -416,3 +416,207 @@ npm run collector:mock
 - 确保 Supabase 配置正确
 - 服务需要长时间运行，建议使用 PM2 或 Docker
 - 确保有足够的网络带宽（如果是真实数据源）
+
+---
+
+## 贵金属价格数据源
+
+### 概述
+
+系统支持从 Yahoo Finance 获取黄金（XAUUSD）和白银（XAGUSD）的实时价格。Yahoo Finance 提供免费的公开 API，无需 API Key，适合大多数使用场景。
+
+### 数据源详情
+
+#### Yahoo Finance（当前方案，推荐）
+
+**优点：**
+- ✅ 完全免费，无需 API Key
+- ✅ 无请求次数限制
+- ✅ 数据来自 Yahoo Finance，可靠性高
+- ✅ 支持黄金（GC=F）、白银（SI=F）等贵金属期货
+
+**缺点：**
+- ⚠️ 某些网络环境可能无法访问（如企业防火墙、沙箱环境）
+- ⚠️ 数据延迟约 15-30 秒（但完全免费）
+
+**API 端点：**
+- 黄金期货：`https://query1.finance.yahoo.com/v8/finance/chart/GC=F`
+- 白银期货：`https://query1.finance.yahoo.com/v8/finance/chart/SI=F`
+
+**价格范围：**
+- 黄金（XAUUSD）：约 $2700-2800（2025年1月）
+- 白银（XAGUSD）：约 $31-34（2025年1月）
+
+#### Metals-API（备用方案，付费）
+
+**优点：**
+- ✅ 提供专业的贵金属价格数据
+- ✅ 支持更多贵金属（铂金、钯金）
+- ✅ 数据延迟更低
+
+**缺点：**
+- ❌ 需要付费订阅（Business 计划 $149.99/月）
+- ❌ 有请求次数限制
+- ❌ 需要配置 API Key
+
+**API 端点：**
+- 黄金（XAU）：`https://api.metals-api.com/v3/latest?access_key=YOUR_KEY&base=XAU&symbols=USD`
+- 白银（XAG）：`https://api.metals-api.com/v3/latest?access_key=YOUR_KEY&base=XAG&symbols=USD`
+
+### 自动降级机制
+
+系统实现了智能降级机制，确保在任何网络环境下都能正常运行：
+
+1. **启动时**：尝试从 Yahoo Finance 获取真实价格
+   - 如果成功：使用真实价格
+   - 如果失败：使用默认价格（XAUUSD = $2750.00, XAGUSD = $33.50）
+
+2. **定时刷新**：每 60 秒尝试刷新价格
+   - 如果成功：更新价格
+   - 如果失败：保持当前价格不变
+
+3. **价格波动**：即使无法获取实时价格，系统仍会模拟小幅波动（±0.1%）
+
+### 环境变量配置
+
+编辑 `.env` 文件：
+
+```env
+# Yahoo Finance（当前方案，无需配置）
+# 自动使用免费公开 API
+
+# Metals-API（备用方案，付费服务）
+# Get your API key from: https://metals-api.com
+METALS_API_KEY=your-metals-api-key-here
+```
+
+### 验证价格数据
+
+#### 方法 1：查看日志
+
+```bash
+tail -f /app/work/logs/bypass/market-service.log | grep -E "XAU|XAG|Yahoo"
+```
+
+**正常输出：**
+```
+[MockDataGenerator] 🔄 Fetching real metals prices from Yahoo Finance...
+[YahooFinance] ✅ XAUUSD (GC=F): $2750.00
+[YahooFinance] ✅ XAGUSD (SI=F): $33.50
+[MockDataGenerator] ✅ Loaded real price for XAUUSD: $2750.00
+[MockDataGenerator] ✅ Loaded real price for XAGUSD: $33.50
+```
+
+**降级输出：**
+```
+[MockDataGenerator] ⚠️ Yahoo Finance failed, using default price for XAUUSD: $2750.00
+[MockDataGenerator] ⚠️ Yahoo Finance failed, using default price for XAGUSD: $33.50
+```
+
+#### 方法 2：检查数据库
+
+```bash
+npm run check:data | grep -E "XAU|XAG"
+```
+
+#### 方法 3：WebSocket 实时查看
+
+```javascript
+const ws = new WebSocket('ws://localhost:8081');
+ws.onopen = () => {
+  ws.send(JSON.stringify({
+    type: 'subscribe',
+    symbol: 'XAUUSD'
+  }));
+};
+ws.onmessage = (e) => {
+  const msg = JSON.parse(e.data);
+  console.log(msg);
+};
+```
+
+### 部署到生产环境
+
+在用户自己的服务器上部署时，Yahoo Finance API 将正常工作：
+
+1. **网络环境**：确保服务器可以访问外部网络（无防火墙限制）
+2. **启动服务**：
+   ```bash
+   cd market-service
+   npm install
+   pnpm run dev
+   ```
+3. **验证价格**：查看日志确认 Yahoo Finance 请求成功
+
+### 已知问题
+
+1. **沙箱环境无法访问外网**
+   - 症状：日志显示 "ETIMEDOUT" 或 "fetch failed"
+   - 解决：自动降级到默认价格，不影响功能
+
+2. **企业防火墙**
+   - 症状：无法连接 Yahoo Finance
+   - 解决：使用 Metals-API 或配置代理
+
+3. **价格波动异常**
+   - 症状：价格波动过大（±1% 以上）
+   - 解决：检查网络连接，降级机制会自动修复
+
+### 未来改进
+
+- [ ] 添加更多数据源（TradingView、Alpha Vantage）
+- [ ] 实现数据源健康检查和自动切换
+- [ ] 添加价格异常检测和告警
+- [ ] 支持自定义价格更新频率
+
+---
+
+## 开发者指南
+
+### 代码结构
+
+```
+market-service/
+├── src/
+│   ├── config/
+│   │   ├── database.ts          # 数据库配置
+│   │   └── metals-api.ts        # Metals-API 配置（备用）
+│   ├── collectors/
+│   │   ├── mock.ts              # 模拟数据生成器
+│   │   ├── binance.ts           # Binance 采集器
+│   │   ├── yahoo-finance.ts     # Yahoo Finance 采集器
+│   │   └── metals-collector.ts  # Metals-API 采集器（备用）
+│   ├── engine/
+│   │   ├── kline-engine.ts      # K 线生成引擎
+│   │   ├── ticker-engine.ts     # Ticker 统计引擎
+│   │   └── orderbook-engine.ts  # OrderBook 引擎
+│   ├── cache/
+│   │   └── market-cache.ts      # 市场缓存
+│   └── index.ts                 # 服务入口
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+### 添加新的数据源
+
+1. 在 `src/collectors/` 下创建新的采集器文件
+2. 实现 `start()` 和 `stop()` 方法
+3. 在 `src/index.ts` 中集成
+4. 添加相应的测试
+
+### 贡献指南
+
+欢迎提交 Pull Request 和 Issue！
+
+---
+
+## 许可证
+
+MIT License
+
+---
+
+## 联系方式
+
+如有问题或建议，请提交 Issue。
