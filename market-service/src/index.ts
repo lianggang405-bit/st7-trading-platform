@@ -1,5 +1,6 @@
 import { testConnection } from './config/database';
 import { MockDataGenerator } from './collectors/mock';
+import { flushCandles, getCachedCandlesCount } from './engine/kline-engine';
 
 /**
  * 行情采集服务主入口
@@ -24,8 +25,21 @@ async function main() {
   mockGenerator.start();
 
   console.log('');
+
+  // 启动 K 线刷新定时任务（每 5 秒检查一次）
+  console.log('3. Starting K-line flush timer (every 5s)...');
+  setInterval(async () => {
+    const cachedCount = getCachedCandlesCount();
+    if (cachedCount > 0) {
+      console.log(`[Timer] Flushing ${cachedCount} cached candles...`);
+      await flushCandles();
+    }
+  }, 5000);
+
+  console.log('');
   console.log('✅ Market Collector Service is running!');
   console.log('📊 Collecting mock market data...');
+  console.log('🕯️  K-line engine active (1m interval)');
   console.log('Press Ctrl+C to stop.\n');
 }
 

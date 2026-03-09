@@ -1,4 +1,5 @@
 import { supabase } from '../config/database';
+import { updateCandle } from '../engine/kline-engine';
 
 /**
  * 模拟行情数据生成器
@@ -89,6 +90,10 @@ export class MockDataGenerator {
       } else {
         console.log(`[MockDataGenerator] ✅ Updated ticker: ${symbol} = $${price.toFixed(2)}`);
       }
+
+      // 更新 K 线（1分钟）
+      updateCandle(symbol, price, '1m', Math.random() * 10); // 模拟成交量
+
     } catch (error) {
       console.error('[MockDataGenerator] Error updating ticker:', error);
     }

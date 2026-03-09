@@ -10,7 +10,9 @@
     "collector:binance": "tsx src/collectors/binance.ts",
     "collector:binance-http": "tsx src/collectors/binance-http.ts",
     "collector:mock": "tsx src/collectors/mock.ts",
-    "test:db": "tsx test-connection.ts"
+    "test:db": "tsx test-connection.ts",
+    "check:data": "npx tsx check-data.ts",
+    "check:klines": "npx tsx check-klines.ts"
   },
   "keywords": ["market", "crypto", "trading"],
   "author": "",
