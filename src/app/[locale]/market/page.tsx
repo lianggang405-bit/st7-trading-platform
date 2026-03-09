@@ -38,14 +38,18 @@ export default function MarketPage() {
         const response = await fetch('/api/trading/symbols');
         const data = await response.json();
 
+        console.log('[MarketPage] API Response:', data);
+
         if (data.success && data.symbols && setSymbols) {
+          console.log('[MarketPage] Setting symbols:', data.symbols.slice(0, 5)); // 打印前5个
           setSymbols(data.symbols);
         } else {
           // 如果 API 失敗，使用备用数据
+          console.log('[MarketPage] API failed, using mockSymbols');
           setSymbols?.(mockSymbols);
         }
       } catch (error) {
-        console.error('Failed to load symbols:', error);
+        console.error('[MarketPage] Failed to load symbols:', error);
         // 如果 API 失敗，使用备用数据
         setSymbols?.(mockSymbols);
       } finally {
@@ -59,6 +63,8 @@ export default function MarketPage() {
 
   // 根据分类过滤
   useEffect(() => {
+    console.log('[MarketPage] symbols updated:', symbols.slice(0, 3)); // 打印前3个
+
     let filtered: any[] = [];
 
     if (categoryFilter === 'Forex') {

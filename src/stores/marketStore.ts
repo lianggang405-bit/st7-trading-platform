@@ -6,7 +6,15 @@ import { realTimePrices, getPriceMap } from '@/lib/real-time-prices';
  */
 const getInitialPrice = (symbol: string): number => {
   const priceMap = getPriceMap();
-  return priceMap[symbol] || 100;
+  const price = priceMap[symbol];
+
+  if (price === undefined) {
+    console.warn('[MarketStore] Symbol not found in priceMap:', symbol, 'Available symbols:', Object.keys(priceMap).slice(0, 10));
+    return 100;
+  }
+
+  console.log('[MarketStore] getInitialPrice:', symbol, '=', price);
+  return price;
 };
 
 export interface TradingSymbol {
@@ -33,10 +41,12 @@ export const useMarketStore = create<MarketState>((set, get) => ({
       currentSymbol: symbol,
     }),
 
-  setSymbols: (symbols: TradingSymbol[]) =>
+  setSymbols: (symbols: TradingSymbol[]) => {
+    console.log('[MarketStore] setSymbols called:', symbols.slice(0, 5)); // 打印前5个
     set({
       symbols,
-    }),
+    });
+  },
 
   tick: () => {
     set((state) => {
@@ -44,6 +54,12 @@ export const useMarketStore = create<MarketState>((set, get) => ({
       // 真实交易所不会每秒更新所有交易对
       const symbols = [...state.symbols];
       const total = symbols.length;
+
+      // 打印调试信息（每10次打印一次，避免过多日志）
+      if (Math.random() < 0.1) {
+        console.log('[MarketStore] tick called, total symbols:', total, 'sample:', symbols.slice(0, 2));
+      }
+
       const updateCount = Math.max(1, Math.floor(total * 0.3)); // 每次更新 30% 的交易对
 
       // 随机选择要更新的交易对索引
