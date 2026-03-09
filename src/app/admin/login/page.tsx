@@ -30,10 +30,7 @@ export default function AdminLoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // 存储 token 到 localStorage
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('admin_token', data.token);
-        }
+        // Token 已经通过 cookie 设置，无需再设置 localStorage
         toast.success('登录成功');
         router.push('/admin');
       } else {

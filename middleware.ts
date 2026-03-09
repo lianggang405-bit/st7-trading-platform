@@ -13,14 +13,17 @@ const intlMiddleware = createIntlMiddleware({
 export default function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const token = request.cookies.get('token')?.value;
+  const adminToken = request.cookies.get('admin_token')?.value;
 
   console.log('[Middleware] pathname:', pathname);
   console.log('[Middleware] token exists:', !!token);
+  console.log('[Middleware] admin_token exists:', !!adminToken);
 
   // 🔒 排除管理端路径和 API 路径，不进行 locale 处理
   if (pathname.startsWith('/admin') || pathname.startsWith('/api')) {
-    // 应用认证逻辑
-    if (pathname.startsWith('/admin') && !token) {
+    // 应用认证逻辑 - 管理端使用 admin_token
+    if (pathname.startsWith('/admin') && !adminToken && pathname !== '/admin/login') {
+      console.log('[Middleware] Redirecting to /admin/login (no admin_token)');
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
     return NextResponse.next();

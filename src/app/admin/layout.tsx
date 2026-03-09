@@ -206,28 +206,18 @@ export default function AdminLayout({
   };
 
   useEffect(() => {
-    console.log('[AdminLayout] Hydrating from storage...');
-    // 标记为已 hydrate（类似前端的 AuthProvider）
+    console.log('[AdminLayout] Hydrating...');
+    // 标记为已 hydrate（避免 Hydration 错误）
     setIsHydrated(true);
 
-    // 检查认证（只在客户端执行）
-    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
-
-    console.log('[AdminLayout] Token exists:', !!token, 'Path:', pathname);
-
-    if (!token && pathname !== '/admin/login') {
-      console.log('[AdminLayout] No token, redirecting to login');
-      router.push('/admin/login');
-    } else {
-      setIsAuthenticated(!!token);
-    }
+    // 注意：认证逻辑由 middleware 在服务端处理，这里不再需要检查
+    // 未认证的请求会被 middleware 重定向到登录页
+    setIsAuthenticated(true);
   }, [pathname, router]);
 
   const handleLogout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('admin_token');
-      document.cookie = 'admin_token=; path=/; max-age=0';
-    }
+    // 清除 admin_token cookie
+    document.cookie = 'admin_token=; path=/; max-age=0';
     toast.success('已退出登录');
     router.push('/admin/login');
   };
