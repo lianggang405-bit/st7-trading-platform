@@ -14,6 +14,12 @@ import { getCacheSize } from './cache/market-cache';
 import { klineAggregator } from './engine/kline-aggregator';
 import tradingviewRoutes from './tradingview/routes';
 
+// 注意：BinanceTradeCollector 已实现，但在受限网络环境中无法使用
+// 在有网络环境中，可以替换为：
+// import { BinanceTradeCollector } from './collectors/binance-trade';
+// const binanceCollector = new BinanceTradeCollector(['BTCUSDT', 'ETHUSDT', 'SOLUSDT']);
+// binanceCollector.start();
+
 // 启动 WebSocket 行情服务器（会自动启动）
 import './ws/market-server';
 
@@ -34,8 +40,8 @@ async function main() {
 
   console.log('');
 
-  // 启动模拟数据生成器（默认使用模拟数据，因为网络限制）
-  console.log('2. Starting mock data generator...');
+  // 启动模拟数据生成器（受限网络环境，使用 Mock 数据）
+  console.log('2. Starting mock data generator (BinanceTradeCollector available in production)...');
   const mockGenerator = new MockDataGenerator(3000);
   mockGenerator.start();
 
@@ -98,7 +104,7 @@ async function main() {
 
   console.log('');
   console.log('✅ Market Collector Service is running!');
-  console.log('📊 Collecting mock market data...');
+  console.log('📊 Collecting mock market data (production: BinanceTradeCollector available)');
   console.log('🕯️  K-line engine active (1m interval)');
   console.log('🔄 K-line aggregation engine active (1m → 5m → 15m → 1h → 4h → 1d)');
   console.log('📡 WebSocket server running on port 8081');
