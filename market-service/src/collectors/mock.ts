@@ -1,4 +1,4 @@
-import { supabase } from '../config/database';
+import { getSupabase } from '../config/database';
 import { updateCandle } from '../engine/kline-engine';
 import { updateMarket } from '../cache/market-cache';
 
@@ -74,6 +74,7 @@ export class MockDataGenerator {
    */
   private async updateTicker(symbol: string, price: number): Promise<void> {
     try {
+      const supabase = getSupabase();
       const { error } = await supabase
         .from('tickers')
         .upsert({

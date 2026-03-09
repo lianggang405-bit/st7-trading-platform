@@ -1,4 +1,4 @@
-import { supabase } from '../config/database';
+import { getSupabase } from '../config/database';
 
 /**
  * K线数据类型
@@ -102,6 +102,7 @@ export async function flushCandles(): Promise<void> {
   console.log(`[KlineEngine] 💾 Flushing ${completedCandles.length} candles to database...`);
 
   try {
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('klines')
       .insert(

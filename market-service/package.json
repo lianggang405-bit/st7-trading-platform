@@ -4,7 +4,7 @@
   "description": "Market data collector service",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx src/index.ts",
+    "dev": "node -r dotenv/config node_modules/tsx/cli.js src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "collector:binance": "tsx src/collectors/binance.ts",
@@ -14,17 +14,27 @@
     "check:data": "npx tsx check-data.ts",
     "check:klines": "npx tsx check-klines.ts"
   },
-  "keywords": ["market", "crypto", "trading"],
+  "keywords": [
+    "market",
+    "crypto",
+    "trading"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "ws": "^8.16.0",
-    "@supabase/supabase-js": "^2.39.3"
+    "@supabase/supabase-js": "^2.39.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/node": "^20.10.6",
     "@types/ws": "^8.5.10",
-    "typescript": "^5.3.3",
-    "tsx": "^4.7.0"
+    "dotenv-cli": "^11.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
   }
 }

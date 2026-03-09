@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { supabase } from '../config/database';
+import { getSupabase } from '../config/database';
 import { TickerData, BinanceTradeMessage } from '../types';
 
 /**
@@ -93,6 +93,7 @@ export class BinanceCollector {
    */
   private async updateTicker(symbol: string, price: number, volume: number): Promise<void> {
     try {
+      const supabase = getSupabase();
       const { error } = await supabase
         .from('tickers')
         .upsert({

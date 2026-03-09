@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { supabase } from '../config/database';
+import { getSupabase } from '../config/database';
 
 /**
  * Binance HTTP API 行情采集器
@@ -77,6 +77,7 @@ export class BinanceHttpCollector {
    */
   private async updateTicker(symbol: string, price: number): Promise<void> {
     try {
+      const supabase = getSupabase();
       const { error } = await supabase
         .from('tickers')
         .upsert({

@@ -1,19 +1,32 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// 从环境变量读取配置
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let supabaseInstance: SupabaseClient | null = null;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase configuration. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env file.');
+// 创建 Supabase 客户端（延迟初始化）
+export function getSupabase(): SupabaseClient {
+  if (!supabaseInstance) {
+    // 从环境变量读取配置
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase configuration. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env file.');
+    }
+
+    supabaseInstance = createClient(supabaseUrl, supabaseKey);
+  }
+
+  return supabaseInstance;
 }
-
-// 创建 Supabase 客户端
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
 
 // 测试数据库连接
 export async function testConnection(): Promise<boolean> {
   try {
+    console.log('[Debug] testConnection called');
+    console.log('[Debug] process.env.SUPABASE_URL:', process.env.SUPABASE_URL ? 'SET' : 'NOT SET');
+    console.log('[Debug] process.env.SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'NOT SET');
+
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('symbols')
       .select('count')

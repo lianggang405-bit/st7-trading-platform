@@ -1,7 +1,17 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
+// 调试：打印环境变量
+console.log('[Debug] SUPABASE_URL:', process.env.SUPABASE_URL ? 'SET' : 'NOT SET');
+console.log('[Debug] SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'NOT SET');
+
+import express from 'express';
+import cors from 'cors';
 import { testConnection } from './config/database';
 import { MockDataGenerator } from './collectors/mock';
 import { flushCandles, getCachedCandlesCount } from './engine/kline-engine';
 import { getCacheSize } from './cache/market-cache';
+import tradingviewRoutes from './tradingview/routes';
 
 // 启动 WebSocket 行情服务器（会自动启动）
 import './ws/market-server';
@@ -42,6 +52,37 @@ async function main() {
 
   console.log('');
 
+  // 启动 Express HTTP 服务器（TradingView API）
+  console.log('4. Starting HTTP server (TradingView API)...');
+  const app = express();
+  const port = 3000;
+
+  // 中间件
+  app.use(cors());
+  app.use(express.json());
+
+  // 注册 TradingView API 路由
+  app.use('/tv', tradingviewRoutes);
+
+  // 健康检查接口
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'ok',
+      timestamp: Date.now(),
+      services: {
+        websocket: 8081,
+        http: port,
+        database: 'connected'
+      }
+    });
+  });
+
+  // 启动 HTTP 服务器
+  app.listen(port, () => {
+    console.log(`🌐 HTTP server listening on port ${port}`);
+    console.log(`📊 TradingView API available at http://localhost:${port}/tv`);
+  });
+
   // 显示市场缓存状态（每 30 秒）
   setInterval(() => {
     const cacheSize = getCacheSize();
@@ -53,6 +94,8 @@ async function main() {
   console.log('📊 Collecting mock market data...');
   console.log('🕯️  K-line engine active (1m interval)');
   console.log('📡 WebSocket server running on port 8081');
+  console.log('🌐 HTTP server running on port 3000');
+  console.log('📊 TradingView API available at http://localhost:3000/tv');
   console.log('💾 Market cache active');
   console.log('Press Ctrl+C to stop.\n');
 }
