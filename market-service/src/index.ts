@@ -1,6 +1,10 @@
 import { testConnection } from './config/database';
 import { MockDataGenerator } from './collectors/mock';
 import { flushCandles, getCachedCandlesCount } from './engine/kline-engine';
+import { getCacheSize } from './cache/market-cache';
+
+// 启动 WebSocket 行情服务器（会自动启动）
+import './ws/market-server';
 
 /**
  * 行情采集服务主入口
@@ -37,9 +41,19 @@ async function main() {
   }, 5000);
 
   console.log('');
+
+  // 显示市场缓存状态（每 30 秒）
+  setInterval(() => {
+    const cacheSize = getCacheSize();
+    console.log(`[Market Cache] 📊 Cached markets: ${cacheSize}`);
+  }, 30000);
+
+  console.log('');
   console.log('✅ Market Collector Service is running!');
   console.log('📊 Collecting mock market data...');
   console.log('🕯️  K-line engine active (1m interval)');
+  console.log('📡 WebSocket server running on port 8081');
+  console.log('💾 Market cache active');
   console.log('Press Ctrl+C to stop.\n');
 }
 

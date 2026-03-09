@@ -1,15 +1,26 @@
 # Market Collector Service
 
-实时行情采集服务，支持从 Binance 获取加密货币实时价格数据，并自动生成 K 线数据。
+专业级实时行情采集与推送服务，支持多交易对实时行情、K线生成和 WebSocket 推送。
 
 ## 功能特性
 
+### 核心功能
 - ✅ 实时获取交易对价格（支持多种数据源）
 - ✅ 自动写入数据库 tickers 表
 - ✅ **K 线生成引擎（自动生成 1 分钟 K 线）**
+- ✅ **内存行情缓存（Market Cache）**
+- ✅ **WebSocket 实时行情推送**
 - ✅ 自动重连机制
 - ✅ 优雅退出处理
 - ✅ 支持模拟数据生成（用于测试）
+
+### WebSocket 功能
+- ✅ 实时行情推送（每秒更新）
+- ✅ 订阅/取消订阅机制
+- ✅ 批量订阅（一次订阅多个交易对）
+- ✅ K 线数据推送
+- ✅ 心跳检测
+- ✅ 连接管理
 
 ## 技术栈
 
@@ -87,13 +98,96 @@ npm run collector:binance-http
 
 **注意：** 需要能够访问 `https://api.binance.com`
 
-### 4. 开发模式（使用 tsx）
+### 4. WebSocket 功能测试
+
+#### 启动完整服务（包含 WebSocket）
 
 ```bash
 npm run dev
 ```
 
-### 5. 生产模式（编译后运行）
+服务启动后，WebSocket 服务器会在 **8081 端口**运行。
+
+#### 运行自动化测试
+
+```bash
+./test-websocket.sh
+```
+
+**测试内容：**
+- ✅ 订阅单个交易对
+- ✅ 订阅所有交易对
+- ✅ 获取所有行情
+- ✅ 获取 K 线数据
+- ✅ 取消订阅
+
+#### 浏览器控制台测试
+
+打开浏览器控制台（F12），运行以下代码：
+
+```javascript
+// 连接 WebSocket
+const ws = new WebSocket('ws://localhost:8081');
+
+// 监听消息
+ws.onmessage = (e) => {
+  const msg = JSON.parse(e.data);
+  console.log(msg);
+};
+
+// 连接成功后订阅
+ws.onopen = () => {
+  // 订阅单个交易对
+  ws.send(JSON.stringify({
+    type: 'subscribe',
+    symbol: 'BTCUSDT'
+  }));
+
+  // 或者订阅所有交易对
+  ws.send(JSON.stringify({
+    type: 'subscribe_all'
+  }));
+};
+```
+
+#### WebSocket 消息格式
+
+**订阅交易对：**
+```json
+{
+  "type": "subscribe",
+  "symbol": "BTCUSDT"
+}
+```
+
+**实时行情推送：**
+```json
+{
+  "type": "ticker_update",
+  "data": {
+    "BTCUSDT": {
+      "symbol": "BTCUSDT",
+      "price": 67000,
+      "bid": 66990,
+      "ask": 67010,
+      "high": 67100,
+      "low": 66900,
+      "change": 100,
+      "changePercent": 0.15,
+      "time": 1710000000000
+    }
+  },
+  "timestamp": 1710000000000
+}
+```
+
+### 5. 开发模式（使用 tsx）
+
+```bash
+npm run dev
+```
+
+### 6. 生产模式（编译后运行）
 
 ```bash
 # 编译
@@ -208,9 +302,36 @@ SELECT * FROM tickers WHERE symbol = 'BTCUSDT';
    │  Tick Stream  │ → tickers 表
    └──────────────┘
        ↓
+   ┌────────────────┐
+   │ Market Cache   │ ← 内存缓存
+   └────────────────┘
+       ↓
    Kline Engine (K 线引擎)
        ↓
+   ┌─────────────────┐
+   │   WebSocket     │ ← 实时推送
+   │   Push Server   │ ← port 8081
+   └─────────────────┘
+       ↓
    klines 表 (1m K 线)
+```
+
+### 完整数据流
+
+```
+实时价格
+    ↓
+更新 tickers 表
+    ↓
+更新 Market Cache（内存）
+    ↓
+更新 Kline Engine（K线）
+    ↓
+WebSocket 推送给前端（每秒）
+    ↓
+K 线刷新到数据库（每5秒）
+    ↓
+持久化到 klines 表
 ```
 
 ### 支持的数据源
@@ -254,7 +375,8 @@ Close: 67010
 ### 短期目标
 - [ ] 支持更多交易对（Forex、Metals、Oil、Indices）
 - [ ] 支持 K 线数据采集 ✅
-- [ ] 添加 market_cache 表
+- [ ] Market Cache（内存缓存）✅
+- [ ] WebSocket 推送服务 ✅
 - [ ] 添加性能监控和日志
 
 ### 中期目标
@@ -262,7 +384,7 @@ Close: 67010
 - [ ] 支持多数据源聚合
 - [ ] 添加数据校验和异常处理
 - [ ] 集成到主项目（Next.js API Routes）
-- [ ] 添加 WebSocket 推送服务
+- [ ] K 线实时推送
 
 ### 长期目标
 - [ ] 添加 Forex、Metals、Oil、Indices 真实数据源

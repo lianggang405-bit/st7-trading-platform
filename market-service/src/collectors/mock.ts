@@ -1,5 +1,6 @@
 import { supabase } from '../config/database';
 import { updateCandle } from '../engine/kline-engine';
+import { updateMarket } from '../cache/market-cache';
 
 /**
  * 模拟行情数据生成器
@@ -93,6 +94,9 @@ export class MockDataGenerator {
 
       // 更新 K 线（1分钟）
       updateCandle(symbol, price, '1m', Math.random() * 10); // 模拟成交量
+
+      // 更新市场缓存（内存）
+      updateMarket(symbol, price, Math.random() * 10); // 模拟成交量
 
     } catch (error) {
       console.error('[MockDataGenerator] Error updating ticker:', error);
