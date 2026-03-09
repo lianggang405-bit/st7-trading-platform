@@ -1,4 +1,6 @@
 import { getSupabase } from '../config/database';
+import { broadcastKline } from '../ws/market-server';
+import { cacheKlines, isRedisEnabled } from '../config/redis';
 
 export type Interval = '1m' | '5m' | '15m';
 
@@ -40,6 +42,7 @@ function getCacheKey(symbol: string, interval: Interval, openTime: number) {
 /**
  * 更新 K线
  * 同时更新 1m、5m、15m 三个时间周期
+ * 并通过 WebSocket 实时推送
  */
 export function updateCandle(symbol: string, price: number, volume = 0) {
   const now = Date.now();
@@ -74,6 +77,9 @@ export function updateCandle(symbol: string, price: number, volume = 0) {
       candle.close = price;
       candle.volume += volume;
     }
+
+    // 实时推送 K 线更新到前端
+    broadcastKline(symbol, interval, candle);
   });
 }
 
@@ -117,7 +123,7 @@ export function generateFlatCandles() {
 }
 
 /**
- * 批量写入数据库
+ * 批量写入数据库和 Redis 缓存
  */
 export async function flushCandles() {
   const candles = Object.values(candleCache);
@@ -154,6 +160,12 @@ export async function flushCandles() {
     }
 
     console.log(`[KlineEngine] ✅ Flushed ${data.length} candles to database`);
+
+    // 写入 Redis 缓存
+    if (isRedisEnabled()) {
+      await cacheKlines(candles);
+      console.log(`[KlineEngine] ✅ Cached ${data.length} candles to Redis`);
+    }
 
     // 打印部分 K 线信息（最多 5 个）
     const previewCandles = candles.slice(0, 5);

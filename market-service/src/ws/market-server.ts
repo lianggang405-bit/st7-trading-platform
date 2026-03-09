@@ -306,6 +306,31 @@ class MarketWebSocketServer {
   }
 
   /**
+   * 广播 K 线更新
+   * 当 K 线数据变化时，立即推送给订阅该交易对的客户端
+   */
+  public broadcastKline(symbol: string, interval: string, candle: any): void {
+    const message = JSON.stringify({
+      type: 'kline_update',
+      symbol,
+      interval,
+      data: candle,
+      timestamp: Date.now()
+    });
+
+    this.wss.clients.forEach((ws: ClientSession) => {
+      // 只推送给订阅该交易对的客户端
+      if (ws.subscriptions.has(symbol)) {
+        try {
+          ws.send(message);
+        } catch (error) {
+          console.error(`[WebSocket] Error sending kline update to client: ${error}`);
+        }
+      }
+    });
+  }
+
+  /**
    * 获取连接数
    */
   public getConnectionCount(): number {
@@ -328,6 +353,14 @@ class MarketWebSocketServer {
 
 // 创建并导出服务器实例
 export const marketServer = new MarketWebSocketServer(8081);
+
+/**
+ * 广播 K 线更新（全局函数）
+ * 供 KlineEngine 调用
+ */
+export function broadcastKline(symbol: string, interval: string, candle: any): void {
+  marketServer.broadcastKline(symbol, interval, candle);
+}
 
 // 优雅退出
 process.on('SIGINT', () => {

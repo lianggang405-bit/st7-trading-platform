@@ -1,5 +1,6 @@
 import express from 'express';
 import { getSupabase } from '../config/database';
+import { getCachedKlines, isRedisEnabled } from '../config/redis';
 
 const router = express.Router();
 
@@ -136,19 +137,40 @@ router.get('/history', async (req, res) => {
       `from: ${fromTimestamp} (${new Date(fromTimestamp).toISOString()}), to: ${toTimestamp} (${new Date(toTimestamp).toISOString()})`
     );
 
-    // 从数据库查询 K 线数据（使用 DESC 查询提升性能，然后在代码中反转）
-    const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from('klines')
-      .select('*')
-      .eq('symbol', dbSymbol)
-      .eq('interval', interval)
-      .gte('open_time', fromTimestamp)
-      .lte('open_time', toTimestamp)
-      .order('open_time', { ascending: false }) // DESC 查询，性能更好
-      .limit(MAX_BARS);
+    let data: any[] | null = null;
+    let error: any = null;
 
-    console.log(`[TradingView API] Query result: error=${!!error}, data.length=${data?.length || 0}`);
+    // 先尝试从 Redis 缓存查询
+    if (isRedisEnabled()) {
+      console.log(`[TradingView API] 🔍 Trying Redis cache...`);
+      data = await getCachedKlines(dbSymbol, interval, MAX_BARS);
+
+      if (data && data.length > 0) {
+        console.log(`[TradingView API] ✅ Got ${data.length} candles from Redis cache`);
+      } else {
+        console.log(`[TradingView API] ℹ️ No data in Redis cache, fallback to database`);
+        data = null;
+      }
+    }
+
+    // 如果 Redis 没有数据或 Redis 未启用，查询数据库
+    if (!data || data.length === 0) {
+      const supabase = getSupabase();
+      const result = await supabase
+        .from('klines')
+        .select('*')
+        .eq('symbol', dbSymbol)
+        .eq('interval', interval)
+        .gte('open_time', fromTimestamp)
+        .lte('open_time', toTimestamp)
+        .order('open_time', { ascending: false }) // DESC 查询，性能更好
+        .limit(MAX_BARS);
+
+      data = result.data;
+      error = result.error;
+
+      console.log(`[TradingView API] Query result: error=${!!error}, data.length=${data?.length || 0}`);
+    }
 
     if (error) {
       console.error('[TradingView API] Error fetching history:', error);
