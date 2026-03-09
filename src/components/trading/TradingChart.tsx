@@ -174,6 +174,11 @@ export default function TradingChart({
         close: Number(k.close.toFixed(2)),
       }))
 
+      console.log(`[TradingChart] 转换后的数据: ${klineData.length} 条`)
+      console.log(`[TradingChart] 第一条:`, klineData[0])
+      console.log(`[TradingChart] 最后一条:`, klineData[klineData.length - 1])
+      console.log(`[TradingChart] 价格范围: ${Math.min(...klineData.map(k => k.low)).toFixed(2)} - ${Math.max(...klineData.map(k => k.high)).toFixed(2)}`)
+
       return klineData
     } catch (error) {
       console.warn('[TradingChart] Binance API 失败，使用模拟历史数据:', error)

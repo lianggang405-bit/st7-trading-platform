@@ -175,13 +175,15 @@ export class KlineAggregator {
 
       // 分组聚合
       let currentGroup: typeof sourceKlines = [];
-      let currentGroupOpenTime = sortedKlines[0].open_time;
+      // ✅ 使用对齐后的 open_time 作为分组的基准
+      let currentGroupOpenTime = Math.floor(sortedKlines[0].open_time / targetIntervalMs) * targetIntervalMs;
 
       for (const kline of sortedKlines) {
-        // 检查是否属于同一组
-        const timeDiff = kline.open_time - currentGroupOpenTime;
+        // ✅ 计算 K 线的对齐时间
+        const alignedOpenTime = Math.floor(kline.open_time / targetIntervalMs) * targetIntervalMs;
 
-        if (timeDiff < targetIntervalMs) {
+        // 检查是否属于同一组
+        if (alignedOpenTime === currentGroupOpenTime) {
           // 同一组
           currentGroup.push(kline);
         } else {
@@ -195,7 +197,7 @@ export class KlineAggregator {
 
           // 开始新组
           currentGroup = [kline];
-          currentGroupOpenTime = kline.open_time;
+          currentGroupOpenTime = alignedOpenTime;
         }
       }
 
