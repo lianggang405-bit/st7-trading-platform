@@ -26,7 +26,7 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [checkedAuth, setCheckedAuth] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
   // 生成面包屑导航函数
@@ -206,24 +206,21 @@ export default function AdminLayout({
   };
 
   useEffect(() => {
-    console.log('[AdminLayout] Checking auth...');
-    // 检查认证
-    const checkAuth = () => {
-      if (typeof window === 'undefined') return;
+    console.log('[AdminLayout] Hydrating from storage...');
+    // 标记为已 hydrate（类似前端的 AuthProvider）
+    setIsHydrated(true);
 
-      const token = localStorage.getItem('admin_token');
-      console.log('[AdminLayout] Token exists:', !!token, 'Path:', pathname);
+    // 检查认证（只在客户端执行）
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
 
-      if (!token && pathname !== '/admin/login') {
-        console.log('[AdminLayout] No token, redirecting to login');
-        router.push('/admin/login');
-      } else {
-        setIsAuthenticated(!!token);
-      }
-    };
+    console.log('[AdminLayout] Token exists:', !!token, 'Path:', pathname);
 
-    checkAuth();
-    setCheckedAuth(true);
+    if (!token && pathname !== '/admin/login') {
+      console.log('[AdminLayout] No token, redirecting to login');
+      router.push('/admin/login');
+    } else {
+      setIsAuthenticated(!!token);
+    }
   }, [pathname, router]);
 
   const handleLogout = () => {
@@ -240,8 +237,8 @@ export default function AdminLayout({
     return <>{children}</>;
   }
 
-  // 检查认证状态，避免闪屏和白屏
-  if (!checkedAuth) {
+  // 如果未 hydrate，显示加载状态（避免闪屏）
+  if (!isHydrated) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-white">加载中...</div>
