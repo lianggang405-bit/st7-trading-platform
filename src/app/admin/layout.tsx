@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/sonner';
+import TelegramBlocker from '@/components/TelegramBlocker';
 import {
   LayoutDashboard,
   Users,
@@ -255,7 +256,11 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 overflow-hidden">
+    <>
+      {/* Telegram WebView 检测 - 生产级解决方案 */}
+      <TelegramBlocker />
+
+      <div className="min-h-screen bg-slate-900 overflow-hidden">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -418,5 +423,6 @@ export default function AdminLayout({
       {/* Toaster for notifications */}
       <Toaster />
     </div>
+    </>
   );
 }
