@@ -1,6 +1,7 @@
 import { getSupabase } from '../config/database';
 import { updateCandle } from '../engine/kline-engine';
 import { updateMarket } from '../cache/market-cache';
+import { tickerEngine } from '../engine/ticker-engine';
 
 /**
  * 模拟行情数据生成器
@@ -94,10 +95,14 @@ export class MockDataGenerator {
       }
 
       // 更新 K 线（1分钟）
-      updateCandle(symbol, price, '1m', Math.random() * 10); // 模拟成交量
+      const volume = Math.random() * 10;
+      updateCandle(symbol, price, '1m', volume);
 
       // 更新市场缓存（内存）
-      updateMarket(symbol, price, Math.random() * 10); // 模拟成交量
+      updateMarket(symbol, price, volume);
+
+      // 更新 24h 统计（Ticker Engine）
+      tickerEngine.updateTrade(symbol, price, volume);
 
     } catch (error) {
       console.error('[MockDataGenerator] Error updating ticker:', error);
