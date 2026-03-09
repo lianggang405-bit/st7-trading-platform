@@ -1,4 +1,5 @@
 import { getSupabase } from '../config/database';
+import { klineAggregator } from './kline-aggregator';
 
 /**
  * K线数据类型
@@ -128,6 +129,16 @@ export async function flushCandles(): Promise<void> {
     console.log(
       `[KlineEngine] ✅ Successfully inserted ${completedCandles.length} candles:`
     );
+
+    // 检查是否有 1m K线写入，如果有则触发聚合
+    const has1mCandles = completedCandles.some(c => c.interval === '1m');
+    if (has1mCandles) {
+      console.log('[KlineEngine] 🔔 Triggering K-line aggregation...');
+      // 异步触发聚合，不阻塞主流程
+      klineAggregator.aggregateOnce().catch(err => {
+        console.error('[KlineEngine] Aggregation error:', err);
+      });
+    }
 
     // 打印插入的 K 线信息
     completedCandles.forEach((candle) => {

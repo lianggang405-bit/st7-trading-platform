@@ -4,13 +4,13 @@
   "description": "Market data collector service",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "node -r dotenv/config node_modules/tsx/cli.js src/index.ts",
+    "dev": "npx tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "collector:binance": "tsx src/collectors/binance.ts",
-    "collector:binance-http": "tsx src/collectors/binance-http.ts",
-    "collector:mock": "tsx src/collectors/mock.ts",
-    "test:db": "tsx test-connection.ts",
+    "collector:binance": "npx tsx src/collectors/binance.ts",
+    "collector:binance-http": "npx tsx src/collectors/binance-http.ts",
+    "collector:mock": "npx tsx src/collectors/mock.ts",
+    "test:db": "npx tsx test-connection.ts",
     "check:data": "npx tsx check-data.ts",
     "check:klines": "npx tsx check-klines.ts"
   },

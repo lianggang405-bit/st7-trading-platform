@@ -11,6 +11,7 @@ import { testConnection } from './config/database';
 import { MockDataGenerator } from './collectors/mock';
 import { flushCandles, getCachedCandlesCount } from './engine/kline-engine';
 import { getCacheSize } from './cache/market-cache';
+import { klineAggregator } from './engine/kline-aggregator';
 import tradingviewRoutes from './tradingview/routes';
 
 // 启动 WebSocket 行情服务器（会自动启动）
@@ -49,6 +50,12 @@ async function main() {
       await flushCandles();
     }
   }, 5000);
+
+  console.log('');
+
+  // 启动 K 线聚合引擎（每 30 秒聚合一次）
+  console.log('4. Starting K-line aggregation engine (every 30s)...');
+  klineAggregator.start();
 
   console.log('');
 
@@ -93,6 +100,7 @@ async function main() {
   console.log('✅ Market Collector Service is running!');
   console.log('📊 Collecting mock market data...');
   console.log('🕯️  K-line engine active (1m interval)');
+  console.log('🔄 K-line aggregation engine active (1m → 5m → 15m → 1h → 4h → 1d)');
   console.log('📡 WebSocket server running on port 8081');
   console.log('🌐 HTTP server running on port 3000');
   console.log('📊 TradingView API available at http://localhost:3000/tv');

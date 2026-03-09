@@ -164,7 +164,8 @@ router.get('/history', async (req, res) => {
     const v: number[] = [];
 
     data.forEach((kline) => {
-      t.push(Math.floor(new Date(kline.open_time).getTime() / 1000));
+      // open_time 已经是毫秒时间戳，直接转换为秒
+      t.push(Math.floor(kline.open_time / 1000));
       o.push(parseFloat(kline.open));
       h.push(parseFloat(kline.high));
       l.push(parseFloat(kline.low));
