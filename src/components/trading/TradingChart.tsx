@@ -11,7 +11,6 @@ import {
 
 import { useMarketStore } from '@/stores/marketStore'
 import { getKlinesWithCache, fetchBinanceKlines, clearKlineCache } from '@/lib/binance-klines'
-import { realTimePrices } from '@/lib/real-time-prices'
 
 interface TradingChartProps {
   symbol?: string
@@ -184,7 +183,12 @@ export default function TradingChart({
       console.warn('[TradingChart] Binance API 失败，使用模拟历史数据:', error)
 
       // ✅ 如果API失败，基于当前价格生成模拟历史数据
-      let basePrice = currentPrice || getInitialPriceForSymbol(symbol)
+      let basePrice = currentPrice;
+      if (!basePrice || basePrice <= 0) {
+        // 从 market-service 获取实时价格
+        basePrice = await getInitialPriceForSymbol(symbol);
+      }
+
       if (!basePrice || basePrice <= 0) {
         basePrice = 100 // 默认价格
       }
@@ -200,14 +204,28 @@ export default function TradingChart({
     }
   }
 
-  // ✅ 获取交易对初始价格（使用真实市场数据）
-  const getInitialPriceForSymbol = (sym: string): number => {
-    const priceMap = realTimePrices.reduce((map, p) => {
-      map[p.symbol] = p.price;
-      return map;
-    }, {} as Record<string, number>);
+  // ✅ 获取交易对初始价格（从 market-service 获取实时价格）
+  const getInitialPriceForSymbol = async (sym: string): Promise<number> => {
+    try {
+      // 从 market-service 获取实时价格
+      const response = await fetch(`http://localhost:3000/ticker/24hr?symbol=${encodeURIComponent(sym)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.lastPrice) {
+          return data.lastPrice;
+        }
+      }
+    } catch (error) {
+      console.warn(`[TradingChart] Failed to fetch price for ${sym} from market-service:`, error);
+    }
 
-    return priceMap[sym] || 100;
+    // 降级：使用当前价格
+    if (currentPrice && currentPrice > 0) {
+      return currentPrice;
+    }
+
+    // 最终降级：返回默认价格
+    return 100;
   }
 
   useEffect(() => {
@@ -217,18 +235,8 @@ export default function TradingChart({
 
     if (!chartRef.current) return
 
-    // ✅ 使用默认价格，不依赖 currentPrice
-    let effectivePrice = currentPrice
-    if (!effectivePrice || effectivePrice <= 0) {
-      effectivePrice = getInitialPriceForSymbol(symbol)
-      console.log(`[TradingChart] 使用默认价格: ${symbol} = ${effectivePrice}`)
-    }
-
-    priceRef.current = effectivePrice
-
-    console.log(`[TradingChart] 初始化图表: symbol=${symbol}, price=${effectivePrice}`)
-
-    const chart = createChart(chartRef.current, {
+    // ✅ 创建图表
+    const chart = createChart(chartRef.current!, {
 
       width: chartRef.current.clientWidth,
       height: actualHeight,
@@ -280,8 +288,22 @@ export default function TradingChart({
     chartInstance.current = chart
     seriesRef.current = series
 
-    // ✅ 从Binance API加载真实历史数据
-    const initializeChart = async () => {
+    // ✅ 异步初始化价格和图表数据
+    const initChart = async () => {
+      // 获取初始价格
+      let effectivePrice = priceRef.current
+      if (!effectivePrice || effectivePrice <= 0) {
+        effectivePrice = await getInitialPriceForSymbol(symbol)
+        console.log(`[TradingChart] 使用默认价格: ${symbol} = ${effectivePrice}`)
+      }
+
+      if (!isMounted.current) return;
+
+      priceRef.current = effectivePrice
+
+      console.log(`[TradingChart] 初始化图表: symbol=${symbol}, price=${effectivePrice}`)
+
+      // 从Binance API加载真实历史数据
       if (!isMounted.current) return
 
       const history = await loadHistory(isMounted, chartInstance, series)
@@ -304,7 +326,7 @@ export default function TradingChart({
       }
     }
 
-    initializeChart()
+    initChart()
 
     intervalRef.current = setInterval(() => {
 
