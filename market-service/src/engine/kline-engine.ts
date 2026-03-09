@@ -1,9 +1,7 @@
 import { getSupabase } from '../config/database';
-import { klineAggregator } from './kline-aggregator';
 
-/**
- * K线数据类型
- */
+export type Interval = '1m' | '5m' | '15m';
+
 export interface Candle {
   symbol: string;
   open: number;
@@ -13,155 +11,153 @@ export interface Candle {
   volume: number;
   openTime: number;
   closeTime: number;
-  interval: string;
+  interval: Interval;
 }
 
-/**
- * K线缓存
- * key: symbol_interval, value: Candle
- */
 const candleCache: Record<string, Candle> = {};
-
-/**
- * 最后成交价格（用于生成平盘K线）
- * key: symbol, value: lastPrice
- */
 const lastPrices: Record<string, number> = {};
+
+function getIntervalMs(interval: Interval) {
+  switch (interval) {
+    case '1m':
+      return 60_000;
+    case '5m':
+      return 300_000;
+    case '15m':
+      return 900_000;
+  }
+}
+
+function getOpenTime(ts: number, interval: Interval) {
+  const ms = getIntervalMs(interval);
+  return Math.floor(ts / ms) * ms;
+}
+
+function getCacheKey(symbol: string, interval: Interval, openTime: number) {
+  return `${symbol}_${interval}_${openTime}`;
+}
 
 /**
  * 更新 K线
- * @param symbol 交易对
- * @param price 当前价格
- * @param interval 时间周期（默认 1m）
- * @param volume 成交量（可选）
+ * 同时更新 1m、5m、15m 三个时间周期
  */
-export function updateCandle(
-  symbol: string,
-  price: number,
-  interval: string = '1m',
-  volume: number = 0
-): void {
+export function updateCandle(symbol: string, price: number, volume = 0) {
   const now = Date.now();
-  const intervalMs = getIntervalMs(interval);
-  const openTime = Math.floor(now / intervalMs) * intervalMs;
 
-  const cacheKey = `${symbol}_${interval}`;
-  let candle = candleCache[cacheKey];
+  lastPrices[symbol] = price;
 
-  // 如果没有缓存或当前 K 线已结束，创建新的 K 线
-  if (!candle || candle.openTime !== openTime) {
-    candle = {
-      symbol,
-      open: price,
-      high: price,
-      low: price,
-      close: price,
-      volume,
-      openTime,
-      closeTime: openTime + intervalMs,
-      interval,
-    };
+  const intervals: Interval[] = ['1m', '5m', '15m'];
 
-    candleCache[cacheKey] = candle;
-    console.log(
-      `[KlineEngine] 🆕 New ${interval} candle for ${symbol}: ` +
-      `Open=$${price.toFixed(2)}, Time=${new Date(openTime).toLocaleTimeString()}`
-    );
-  } else {
-    // 更新现有 K 线
-    candle.high = Math.max(candle.high, price);
-    candle.low = Math.min(candle.low, price);
-    candle.close = price;
-    candle.volume += volume;
+  intervals.forEach((interval) => {
+    const openTime = getOpenTime(now, interval);
+    const cacheKey = getCacheKey(symbol, interval, openTime);
 
-    // 保存最后价格（用于生成平盘K线）
-    lastPrices[symbol] = price;
+    let candle = candleCache[cacheKey];
 
-    console.log(
-      `[KlineEngine] 📊 Updated ${interval} candle for ${symbol}: ` +
-      `O=$${candle.open.toFixed(2)} H=$${candle.high.toFixed(2)} ` +
-      `L=$${candle.low.toFixed(2)} C=$${candle.close.toFixed(2)}`
-    );
-  }
+    if (!candle) {
+      candle = {
+        symbol,
+        open: price,
+        high: price,
+        low: price,
+        close: price,
+        volume,
+        openTime,
+        closeTime: openTime + getIntervalMs(interval),
+        interval,
+      };
+
+      candleCache[cacheKey] = candle;
+    } else {
+      candle.high = Math.max(candle.high, price);
+      candle.low = Math.min(candle.low, price);
+      candle.close = price;
+      candle.volume += volume;
+    }
+  });
 }
 
 /**
- * 刷新已完成的 K 线到数据库
+ * 自动生成 Flat Candle（平盘K线）
+ * 为所有交易对生成当前周期的平盘K线
  */
-export async function flushCandles(): Promise<void> {
+export function generateFlatCandles() {
   const now = Date.now();
-  const completedCandles: Candle[] = [];
 
-  // 检查所有缓存的 K 线
-  for (const cacheKey in candleCache) {
-    const candle = candleCache[cacheKey];
+  Object.keys(lastPrices).forEach((symbol) => {
+    const price = lastPrices[symbol];
 
-    // 如果 K 线已结束（当前时间 >= 关闭时间）
-    if (now >= candle.closeTime) {
-      completedCandles.push(candle);
-      delete candleCache[cacheKey];
-    }
-  }
+    const intervals: Interval[] = ['1m', '5m', '15m'];
 
-  // 如果没有完成的 K 线，直接返回
-  if (completedCandles.length === 0) {
-    // 打印一些示例 K 线的时间信息，用于调试
-    const sampleCandles = Object.entries(candleCache).slice(0, 3);
-    console.log(`[KlineEngine] ℹ️ No completed candles to flush. ${Object.keys(candleCache).length} candles still pending.`);
-    console.log(`[KlineEngine] Current time: ${new Date(now).toISOString()}, now=${now}`);
-    sampleCandles.forEach(([key, candle]) => {
-      console.log(`[KlineEngine] Sample candle: ${key}, openTime=${candle.openTime}, closeTime=${candle.closeTime}, diff=${candle.closeTime - now}ms`);
+    intervals.forEach((interval) => {
+      const openTime = getOpenTime(now, interval);
+      const cacheKey = getCacheKey(symbol, interval, openTime);
+
+      if (!candleCache[cacheKey]) {
+        candleCache[cacheKey] = {
+          symbol,
+          open: price,
+          high: price,
+          low: price,
+          close: price,
+          volume: 0,
+          openTime,
+          closeTime: openTime + getIntervalMs(interval),
+          interval,
+        };
+
+        console.log(
+          `[KlineEngine] 🟰 Flat candle ${symbol} ${interval} ${new Date(
+            openTime
+          ).toLocaleTimeString()}`
+        );
+      }
     });
+  });
+}
+
+/**
+ * 批量写入数据库
+ */
+export async function flushCandles() {
+  const candles = Object.values(candleCache);
+
+  if (!candles.length) {
+    console.log(`[KlineEngine] ℹ️ No candles to flush. Cache empty.`);
     return;
   }
 
-  // 批量写入数据库（使用 ON CONFLICT 处理重复）
-  console.log(`[KlineEngine] 💾 Flushing ${completedCandles.length} candles to database...`);
+  const data = candles.map((c) => ({
+    symbol: c.symbol,
+    interval: c.interval,
+    open: c.open,
+    high: c.high,
+    low: c.low,
+    close: c.close,
+    volume: c.volume,
+    open_time: new Date(c.openTime).toISOString(),
+    close_time: new Date(c.closeTime).toISOString(),
+  }));
 
   try {
     const supabase = getSupabase();
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('klines')
-      .upsert(
-        completedCandles.map((candle) => ({
-          symbol: candle.symbol,
-          interval: candle.interval,
-          open: candle.open,
-          high: candle.high,
-          low: candle.low,
-          close: candle.close,
-          volume: candle.volume,
-          open_time: candle.openTime,
-          close_time: candle.closeTime,
-        })),
-        {
-          onConflict: 'symbol,interval,open_time',
-          ignoreDuplicates: false
-        }
-      )
-      .select();
+      .upsert(data, {
+        onConflict: 'symbol,interval,open_time',
+        ignoreDuplicates: false
+      });
 
     if (error) {
-      console.error('[KlineEngine] ❌ Failed to upsert candles:', error.message);
+      console.error('[KlineEngine] ❌ Flush error:', error.message);
       throw error;
     }
 
-    console.log(
-      `[KlineEngine] ✅ Successfully inserted ${completedCandles.length} candles:`
-    );
+    console.log(`[KlineEngine] ✅ Flushed ${data.length} candles to database`);
 
-    // 检查是否有 1m K线写入，如果有则触发聚合
-    const has1mCandles = completedCandles.some(c => c.interval === '1m');
-    if (has1mCandles) {
-      console.log('[KlineEngine] 🔔 Triggering K-line aggregation...');
-      // 异步触发聚合，不阻塞主流程
-      klineAggregator.aggregateOnce().catch(err => {
-        console.error('[KlineEngine] Aggregation error:', err);
-      });
-    }
-
-    // 打印插入的 K 线信息
-    completedCandles.forEach((candle) => {
+    // 打印部分 K 线信息（最多 5 个）
+    const previewCandles = candles.slice(0, 5);
+    previewCandles.forEach((candle) => {
       console.log(
         `   ${candle.symbol} ${candle.interval}: ` +
         `O=${candle.open.toFixed(2)} H=${candle.high.toFixed(2)} ` +
@@ -169,67 +165,12 @@ export async function flushCandles(): Promise<void> {
         `@${new Date(candle.openTime).toLocaleTimeString()}`
       );
     });
-
-  } catch (error) {
-    console.error('[KlineEngine] Error flushing candles:', error);
+  } catch (err) {
+    console.error('[KlineEngine] ❌ Flush error:', err);
   }
-}
 
-/**
- * 获取时间周期的毫秒数
- */
-function getIntervalMs(interval: string): number {
-  const intervals: Record<string, number> = {
-    '1m': 60 * 1000,
-    '5m': 5 * 60 * 1000,
-    '15m': 15 * 60 * 1000,
-    '30m': 30 * 60 * 1000,
-    '1h': 60 * 60 * 1000,
-    '4h': 4 * 60 * 60 * 1000,
-    '1d': 24 * 60 * 60 * 1000,
-  };
-
-  return intervals[interval] || 60 * 1000; // 默认 1 分钟
-}
-
-/**
- * 自动生成平盘K线
- * 如果某交易对在当前周期没有成交，则生成flat candle
- */
-export function generateFlatCandles(): void {
-  const now = Date.now();
-  const interval = '1m';
-  const intervalMs = getIntervalMs(interval);
-
-  const openTime = Math.floor(now / intervalMs) * intervalMs;
-
-  Object.keys(lastPrices).forEach((symbol) => {
-    const cacheKey = `${symbol}_${interval}`;
-
-    if (candleCache[cacheKey]) {
-      return;
-    }
-
-    const price = lastPrices[symbol];
-
-    const candle: Candle = {
-      symbol,
-      open: price,
-      high: price,
-      low: price,
-      close: price,
-      volume: 0,
-      openTime,
-      closeTime: openTime + intervalMs,
-      interval,
-    };
-
-    candleCache[cacheKey] = candle;
-
-    console.log(
-      `[KlineEngine] 🟰 Flat candle generated for ${symbol} @ ${new Date(openTime).toLocaleTimeString()}`
-    );
-  });
+  // 清空缓存
+  Object.keys(candleCache).forEach((k) => delete candleCache[k]);
 }
 
 /**
@@ -240,7 +181,31 @@ export function getCachedCandlesCount(): number {
 }
 
 /**
- * 清空所有缓存的 K 线（仅用于测试）
+ * 获取最后成交价格
+ */
+export function getLastPrice(symbol: string): number | undefined {
+  return lastPrices[symbol];
+}
+
+/**
+ * 获取所有最后成交价格
+ */
+export function getAllLastPrices(): Record<string, number> {
+  return { ...lastPrices };
+}
+
+/**
+ * 初始化最后价格（用于重启后恢复）
+ */
+export function initLastPrice(symbol: string, price: number): void {
+  if (!lastPrices[symbol]) {
+    lastPrices[symbol] = price;
+    console.log(`[KlineEngine] 📥 Initialized last price for ${symbol}: $${price}`);
+  }
+}
+
+/**
+ * 清空缓存（仅用于测试）
  */
 export function clearCandleCache(): void {
   for (const key in candleCache) {
@@ -250,64 +215,11 @@ export function clearCandleCache(): void {
 }
 
 /**
- * 生成平盘K线（无交易分钟）
- * @param symbol 交易对
- * @param interval 时间周期
- * @returns 平盘K线
+ * 清空最后价格（仅用于测试）
  */
-function generateFlatCandle(symbol: string, interval: string): Candle | null {
-  const lastPrice = lastPrices[symbol];
-  if (!lastPrice) {
-    return null; // 没有历史价格，无法生成平盘K线
+export function clearLastPrices(): void {
+  for (const key in lastPrices) {
+    delete lastPrices[key];
   }
-
-  const now = Date.now();
-  const intervalMs = getIntervalMs(interval);
-  const openTime = Math.floor(now / intervalMs) * intervalMs;
-
-  // 检查当前时间段是否已存在K线
-  const cacheKey = `${symbol}_${interval}`;
-  if (candleCache[cacheKey] && candleCache[cacheKey].openTime === openTime) {
-    return null; // 已存在，不需要生成
-  }
-
-  return {
-    symbol,
-    open: lastPrice,
-    high: lastPrice,
-    low: lastPrice,
-    close: lastPrice,
-    volume: 0,
-    openTime,
-    closeTime: openTime + intervalMs,
-    interval,
-  };
-}
-
-/**
- * 检查并生成平盘K线（定时器调用）
- * 每秒调用一次，检查是否需要生成无交易分钟的K线
- */
-export function checkAndGenerateFlatCandles(symbols: string[], intervals: string[]): void {
-  const now = Date.now();
-
-  for (const symbol of symbols) {
-    for (const interval of intervals) {
-      const intervalMs = getIntervalMs(interval);
-      const openTime = Math.floor(now / intervalMs) * intervalMs;
-      const cacheKey = `${symbol}_${interval}`;
-
-      // 如果没有缓存且存在最后价格，生成平盘K线
-      if (!candleCache[cacheKey] && lastPrices[symbol]) {
-        const flatCandle = generateFlatCandle(symbol, interval);
-        if (flatCandle) {
-          candleCache[cacheKey] = flatCandle;
-          console.log(
-            `[KlineEngine] 🔄 Generated flat candle for ${symbol} ${interval} ` +
-            `@ ${new Date(flatCandle.openTime).toLocaleTimeString()}`
-          );
-        }
-      }
-    }
-  }
+  console.log('[KlineEngine] 🧹 Last prices cleared');
 }

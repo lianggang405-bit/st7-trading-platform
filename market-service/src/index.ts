@@ -11,7 +11,7 @@ import { testConnection } from './config/database';
 import { MockDataGenerator } from './collectors/mock';
 import { flushCandles, getCachedCandlesCount, generateFlatCandles } from './engine/kline-engine';
 import { getCacheSize } from './cache/market-cache';
-import { klineAggregator } from './engine/kline-aggregator';
+
 import { tickerEngine } from './engine/ticker-engine';
 import { orderBookEngine } from './engine/orderbook-engine';
 import tradingviewRoutes from './tradingview/routes';
@@ -56,23 +56,17 @@ async function main() {
   console.log('');
 
   // 启动 K 线刷新定时任务（每 5 秒检查一次）
-  console.log('4. Starting K-line flush timer (every 5s)...');
+  // 新版本 K 线引擎支持同时更新 1m、5m、15m，无需单独的聚合引擎
+  console.log('4. Starting K-line flush timer (every 5s) with 1m/5m/15m support...');
   setInterval(async () => {
     // 先生成平盘K线，确保所有交易对都有连续的K线数据
     generateFlatCandles();
     
     const cachedCount = getCachedCandlesCount();
     if (cachedCount > 0) {
-      console.log(`[Timer] Flushing ${cachedCount} cached candles...`);
       await flushCandles();
     }
   }, 5000);
-
-  console.log('');
-
-  // 启动 K 线聚合引擎（每 30 秒聚合一次）
-  console.log('5. Starting K-line aggregation engine (every 30s)...');
-  klineAggregator.start();
 
   console.log('');
 
@@ -161,14 +155,14 @@ async function main() {
   console.log('📊 Collecting mock market data (production: BinanceTradeCollector/BinanceDepthCollector available)');
   console.log('📈 Ticker Engine active (24h statistics)');
   console.log('📚 OrderBook Engine active (depth data)');
-  console.log('🕯️  K-line engine active (1m interval)');
-  console.log('🔄 K-line aggregation engine active (1m → 5m → 15m → 1h → 4h → 1d)');
+  console.log('🕯️  K-line engine active (1m/5m/15m intervals with flat candle generation)');
   console.log('📡 WebSocket server running on port 8081');
   console.log('🌐 HTTP server running on port 3000');
   console.log('📊 TradingView API available at http://localhost:3000/tv');
   console.log('📊 Ticker API available at http://localhost:3000/ticker/24hr');
   console.log('📚 OrderBook API available at http://localhost:3000/orderbook');
   console.log('💾 Market cache active');
+  console.log('🕯️  K-line engine active (1m/5m/15m intervals with flat candle generation)');
   console.log('Press Ctrl+C to stop.\n');
 }
 
