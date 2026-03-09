@@ -130,7 +130,7 @@ router.get('/history', async (req, res) => {
       `from: ${fromTimestamp}, to: ${toTimestamp}`
     );
 
-    // 从数据库查询 K 线数据（限制返回数量）
+    // 从数据库查询 K 线数据（使用 DESC 查询提升性能，然后在代码中反转）
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from('klines')
@@ -139,7 +139,7 @@ router.get('/history', async (req, res) => {
       .eq('interval', interval)
       .gte('open_time', fromTimestamp)
       .lte('open_time', toTimestamp)
-      .order('open_time', { ascending: true })
+      .order('open_time', { ascending: false }) // DESC 查询，性能更好
       .limit(MAX_BARS);
 
     if (error) {
@@ -152,10 +152,19 @@ router.get('/history', async (req, res) => {
 
     if (!data || data.length === 0) {
       console.log('[TradingView API] No data found');
+
+      // 计算 nextTime（建议从当前时间开始）
+      const currentTime = Math.floor(Date.now() / 1000); // 秒级时间戳
+      const intervalMs = getIntervalMs(interval);
+
       return res.json({
-        s: 'no_data'
+        s: 'no_data',
+        nextTime: currentTime // 建议从当前时间开始请求
       });
     }
+
+    // 反转数据为升序（TradingView 需要升序）
+    const ascendingData = data.reverse();
 
     // 转换数据格式（TradingView 需要的格式）
     const t: number[] = [];
@@ -165,7 +174,7 @@ router.get('/history', async (req, res) => {
     const c: number[] = [];
     const v: number[] = [];
 
-    data.forEach((kline) => {
+    ascendingData.forEach((kline) => {
       // open_time 已经是毫秒时间戳，直接转换为秒
       t.push(Math.floor(kline.open_time / 1000));
       o.push(parseFloat(kline.open));
@@ -248,5 +257,27 @@ router.get('/search', async (req, res) => {
     res.json([]);
   }
 });
+
+/**
+ * 辅助函数：获取周期对应的毫秒数
+ */
+function getIntervalMs(interval: string): number {
+  const intervalMap: Record<string, number> = {
+    '1m': 60 * 1000,
+    '5m': 5 * 60 * 1000,
+    '15m': 15 * 60 * 1000,
+    '30m': 30 * 60 * 1000,
+    '1h': 60 * 60 * 1000,
+    '2h': 2 * 60 * 60 * 1000,
+    '4h': 4 * 60 * 60 * 1000,
+    '6h': 6 * 60 * 60 * 1000,
+    '12h': 12 * 60 * 60 * 1000,
+    '1d': 24 * 60 * 60 * 1000,
+    '1w': 7 * 24 * 60 * 60 * 1000,
+    '1M': 30 * 24 * 60 * 60 * 1000,
+  };
+
+  return intervalMap[interval] || 60 * 1000; // 默认 1 分钟
+}
 
 export default router;

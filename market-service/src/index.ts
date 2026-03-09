@@ -154,12 +154,27 @@ async function main() {
     console.log(`[Market Cache] 📊 Cached markets: ${cacheSize}`);
   }, 30000);
 
-  // 定时检查并生成平盘K线（每秒检查一次）
+  // 定时检查并生成平盘K线（使用对齐时间的定时器，严格对齐分钟）
   const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
-  const intervals = ['1m', '5m', '15m', '1h', '4h', '1d'];
-  setInterval(() => {
+  // 只检查 1m 周期，其他周期由聚合器自动生成（性能优化）
+  const intervals = ['1m'];
+  
+  // 计算下一次分钟整点的时间
+  const now = Date.now();
+  const delay = 60000 - (now % 60000); // 延迟到下一个整分钟
+  
+  console.log(`[Timer] Aligning to next minute in ${delay}ms...`);
+
+  setTimeout(() => {
+    // 第一次执行（对齐到整分钟）
     checkAndGenerateFlatCandles(symbols, intervals);
-  }, 1000);
+    console.log('[Timer] ✅ First check executed at minute boundary');
+
+    // 之后每 1 秒检查一次
+    setInterval(() => {
+      checkAndGenerateFlatCandles(symbols, intervals);
+    }, 1000);
+  }, delay);
 
   console.log('');
   console.log('✅ Market Collector Service is running!');
