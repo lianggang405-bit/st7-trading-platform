@@ -318,7 +318,8 @@ export default function TradingChart({
         try {
           series.setData(history)
           lastCandleRef.current = history[history.length - 1]
-          lastPriceRef.current = effectivePrice
+          // ✅ 使用 K 线最后一根的收盘价，避免初始化跳动
+          lastPriceRef.current = history[history.length - 1].close
           chart.timeScale().fitContent()
         } catch (error) {
           console.warn('[TradingChart] setData error:', error)

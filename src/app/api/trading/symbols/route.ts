@@ -3,6 +3,9 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { mockSymbols } from '@/lib/market-mock-data';
 import { realTimePrices } from '@/lib/real-time-prices';
 
+// ✅ 禁用 Next.js API 缓存，确保实时价格更新
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const supabase = getSupabaseClient();
