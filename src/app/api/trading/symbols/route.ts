@@ -24,6 +24,37 @@ export async function GET() {
       });
     }
 
+    // 从 market-service 获取实时价格（批量获取）
+    const marketServiceUrl = process.env.MARKET_SERVICE_URL || 'http://localhost:3000';
+    const symbolsList = tradingPairs?.map(pair => pair.symbol) || [];
+    
+    // 构建批量查询参数
+    const tickerPromises = symbolsList.map(async (symbol) => {
+      try {
+        const response = await fetch(`${marketServiceUrl}/ticker/24hr?symbol=${encodeURIComponent(symbol)}`);
+        if (response.ok) {
+          return await response.json();
+        }
+        return null;
+      } catch (error) {
+        console.warn(`[Trading Symbols API] Failed to fetch ticker for ${symbol}:`, error);
+        return null;
+      }
+    });
+
+    const tickers = await Promise.all(tickerPromises);
+
+    // 创建价格映射
+    const priceMap = new Map<string, { price: number; change: number }>();
+    tickers.forEach((ticker, index) => {
+      if (ticker && ticker.symbol) {
+        priceMap.set(ticker.symbol, {
+          price: ticker.lastPrice,
+          change: ticker.priceChangePercent,
+        });
+      }
+    });
+
     // 将数据库数据转换为前端需要的格式
     const symbols = tradingPairs?.map(pair => {
       // 根据交易对确定分类
@@ -41,14 +72,15 @@ export async function GET() {
         category = 'forex'; // 指数类归为外汇
       }
 
-      // 从真实价格数据获取价格
-      const realPrice = realTimePrices.find(p => p.symbol === symbol);
-      const price = realPrice ? realPrice.price : 100;
+      // ✅ 从 market-service 获取实时价格，而不是从静态文件
+      const priceData = priceMap.get(symbol);
+      const price = priceData ? priceData.price : 100;
+      const change = priceData ? priceData.change : 0;
 
       return {
         symbol: pair.symbol,
         price: price,
-        change: realPrice ? realPrice.change : 0,
+        change: change,
         category: category,
         id: pair.id,
       };
