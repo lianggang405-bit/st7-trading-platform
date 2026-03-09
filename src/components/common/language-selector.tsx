@@ -108,24 +108,24 @@ export function LanguageSelector() {
             onClick={() => setIsOpen(false)}
           />
 
-          {/* 菜单内容 */}
-          <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-2 min-w-[200px] max-h-[300px] overflow-y-auto">
+          {/* 菜单内容 - 右对齐，增加宽度确保完整显示 */}
+          <div className="absolute top-full right-0 mt-2 z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-2 w-[180px] max-h-[300px] overflow-y-auto">
             {languages.map((language) => (
               <button
                 key={language.code}
                 onClick={() => handleLanguageChange(language.code)}
-                className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 active:bg-gray-100 transition-colors ${
+                className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 active:bg-gray-100 transition-colors ${
                   currentLocale === language.code ? 'bg-blue-50' : ''
                 }`}
               >
                 {language.code === 'zh-TW' ? (
-                  <TaiwanFlag className="w-7 h-5" />
+                  <TaiwanFlag className="w-6 h-4 flex-shrink-0" />
                 ) : (
-                  <span className="text-xl">{language.flag}</span>
+                  <span className="text-lg flex-shrink-0">{language.flag}</span>
                 )}
-                <div className="text-sm text-gray-900 font-medium">{language.nativeName}</div>
+                <div className="text-sm text-gray-900 font-medium flex-1 text-left whitespace-nowrap overflow-hidden text-ellipsis">{language.nativeName}</div>
                 {currentLocale === language.code && (
-                  <svg className="h-4 w-4 text-blue-600 flex-shrink-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 )}
