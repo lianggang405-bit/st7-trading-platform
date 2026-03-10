@@ -201,6 +201,9 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // 创建模拟订单ID
+        const orderId = `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
         // 只有市价单才扣除保证金，挂单在触发时才扣除
         if (orderType === 'market') {
           // 更新数据库中的模拟账户余额
@@ -235,9 +238,6 @@ export async function POST(request: NextRequest) {
             // 交易流水失败不影响开仓操作
           }
         }
-
-        // 创建模拟订单并写入数据库
-        const orderId = `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         // 根据订单类型设置状态
         const orderStatus = orderType === 'market' ? 'open' : 'pending';
@@ -418,6 +418,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // 创建订单ID
+    const orderId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     // 检查用户余额是否足够 (真实账户)
     const { data: user } = await supabase
       .from('users')
@@ -469,9 +472,6 @@ export async function POST(request: NextRequest) {
         // 交易流水失败不影响开仓操作
       }
     }
-
-    // 创建订单
-    const orderId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // 根据订单类型设置状态
     // 市价单直接成交，限价单等待价格触发
