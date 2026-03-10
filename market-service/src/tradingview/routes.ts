@@ -148,14 +148,14 @@ router.get('/history', async (req, res) => {
     if (resolution !== '1') {
       console.log(`[TradingView API] 🔄 Need to aggregate from 1m to ${interval}`);
 
-      // ✅ 优先从增量聚合的 Redis 列表读取（O(1) 复杂度）
+      // 🎯 统一数据源策略：只从增量聚合获取数据，避免重复
       let aggregated: any[] | null = null;
 
       if (isRedisEnabled()) {
         const incrementalCandles = await getAggregatedKlineList(
           dbSymbol,
           resolution as any,
-          MAX_BARS
+          MAX_BARS * 2  // 获取更多数据，避免时间范围不足
         );
 
         if (incrementalCandles && incrementalCandles.length > 0) {
@@ -169,8 +169,15 @@ router.get('/history', async (req, res) => {
             return candleTime >= fromTimestamp && candleTime <= toTimestamp;
           });
 
+          // 🔍 去重：基于时间戳去重
+          const uniqueMap = new Map();
+          aggregated.forEach((c: any) => {
+            uniqueMap.set(c.time, c);
+          });
+          aggregated = Array.from(uniqueMap.values()).sort((a, b) => a.time - b.time);
+
           console.log(
-            `[TradingView API] 📊 Filtered ${aggregated.length} ${interval} candles in time range`
+            `[TradingView API] 📊 After filtering & deduplication: ${aggregated.length} ${interval} candles`
           );
         }
       }
@@ -189,8 +196,15 @@ router.get('/history', async (req, res) => {
             return candleTime >= fromTimestamp && candleTime <= toTimestamp;
           });
 
+          // 🔍 去重：基于时间戳去重
+          const uniqueMap = new Map();
+          aggregated.forEach((c: any) => {
+            uniqueMap.set(c.open_time, c);
+          });
+          aggregated = Array.from(uniqueMap.values()).sort((a, b) => a.open_time - b.open_time);
+
           console.log(
-            `[TradingView API] 📊 Filtered ${aggregated.length} ${interval} candles in time range`
+            `[TradingView API] 📊 After filtering & deduplication: ${aggregated.length} ${interval} candles`
           );
         }
       }
@@ -258,17 +272,9 @@ router.get('/history', async (req, res) => {
 
           await setAggregatedKlinesToRedis(dbSymbol, resolution, cacheData);
         }
-      } else {
-        console.log(`[TradingView API] 📦 Using cached aggregated data (${aggregated.length} candles)`);
       }
 
-      // 过滤时间范围（如果是缓存的，可能需要再次过滤）
-      const filteredAggregated = aggregated.filter((c: any) => {
-        const candleTime = c.time * 1000; // 转换为毫秒
-        return candleTime >= fromTimestamp && candleTime <= toTimestamp;
-      });
-
-      if (filteredAggregated.length === 0) {
+      if (aggregated.length === 0) {
         console.log('[TradingView API] No aggregated data in time range');
         return res.json({
           s: 'no_data',
@@ -276,10 +282,10 @@ router.get('/history', async (req, res) => {
         });
       }
 
-      console.log(`[TradingView API] ✅ Returning ${filteredAggregated.length} ${interval} candles`);
+      console.log(`[TradingView API] ✅ Returning ${aggregated.length} ${interval} candles`);
 
       // 转换为 TradingView 格式
-      return formatTradingViewResponse(filteredAggregated, res);
+      return formatTradingViewResponse(aggregated, res);
     }
 
     // 📊 如果是 1m K 线，直接查询数据库
@@ -434,7 +440,7 @@ function getAggregationCount(resolution: string): number {
  * @param res Express Response 对象
  */
 function formatTradingViewResponse(
-  candles: Array<{ time: number; open: number; high: number; low: number; close: number; volume: number } | { open_time: string; open: number; high: number; low: number; close: number; volume: number }>,
+  candles: Array<{ time: number; open: number; high: number; low: number; close: number; volume: number } | { open_time: string | number; open: number; high: number; low: number; close: number; volume: number }>,
   res: any
 ): void {
   const t: number[] = [];
