@@ -342,21 +342,19 @@ export default function TradingChart({
         try {
           // ✅ 关键修复：校正最后一根K线的close等于当前价格
           // 确保历史数据和实时价格一致，避免出现巨大跳空
+          // 注意：只修改close，不修改high/low，保持历史数据不可变原则
           const lastCandle = history[history.length - 1]
           const priceDiff = Math.abs(lastCandle.close - effectivePrice)
           const tolerance = effectivePrice * 0.001 // 0.1% 容差
 
           if (priceDiff > tolerance) {
-            console.log(`[TradingChart] 价格差异过大 (${priceDiff.toFixed(2)})，校正最后一根K线`)
+            console.log(`[TradingChart] 价格差异过大 (${priceDiff.toFixed(2)})，校正最后一根K线的close`)
             console.log(`[TradingChart] 历史close: ${lastCandle.close} -> 实时price: ${effectivePrice}`)
 
-            // 校正最后一根K线
+            // ✅ 只修改close，保持历史high/low不变（交易所级最佳实践）
             history[history.length - 1] = {
-              time: lastCandle.time,
-              open: lastCandle.open,
-              high: Math.max(lastCandle.high, effectivePrice),
-              low: Math.min(lastCandle.low, effectivePrice),
-              close: effectivePrice // ✅ 强制等于当前价格
+              ...lastCandle,
+              close: effectivePrice
             }
           }
 
@@ -386,6 +384,7 @@ export default function TradingChart({
 
       const now = Math.floor(Date.now() / 1000)
 
+      // ✅ 对齐到时间周期的开始时间（确保时间戳唯一性）
       const candleTime = Math.floor(now / interval) * interval
 
       const lastCandle = lastCandleRef.current
@@ -397,6 +396,15 @@ export default function TradingChart({
           ? lastCandle.time
           : Number(lastCandle.time)
 
+      // ✅ 价格限制保护：防止异常价格和闪崩（交易所级保护）
+      const MAX_DEVIATION = 0.02 // 2% 容差
+      const priceDeviation = Math.abs(price - lastCandle.close) / lastCandle.close
+
+      if (priceDeviation > MAX_DEVIATION) {
+        console.warn(`[TradingChart] 异常价格跳过: price=${price}, deviation=${(priceDeviation * 100).toFixed(2)}%`)
+        return
+      }
+
       if (candleTime > lastTime) {
 
         // ✅ 关键修复：新K线的open使用当前价格，而不是历史K线的close
@@ -406,7 +414,8 @@ export default function TradingChart({
           open: price,  // ✅ 使用当前价格，而不是 lastCandle.close
           high: price,
           low: price,
-          close: price
+          close: price,
+          volume: 0  // ✅ 添加volume字段，避免undefined
         }
 
         try {
@@ -420,13 +429,15 @@ export default function TradingChart({
 
       } else {
 
+        // ✅ 时间戳唯一性保护：确保不会出现双线
+        // TradingView中如果时间重复会出现两条线
         const updated = {
-
           time: lastTime as Time,
           open: lastCandle.open,
           high: Math.max(lastCandle.high, price),
           low: Math.min(lastCandle.low, price),
-          close: price
+          close: price,
+          volume: 0  // ✅ 添加volume字段
         }
 
         try {
