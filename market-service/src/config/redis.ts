@@ -62,6 +62,13 @@ export async function testRedisConnection(): Promise<boolean> {
 }
 
 /**
+ * 检查 Redis 是否可用
+ */
+export function isRedisEnabled(): boolean {
+  return redisClient !== null && redisClient.status === 'ready';
+}
+
+/**
  * 关闭 Redis 连接
  */
 export async function closeRedisConnection(): Promise<void> {
