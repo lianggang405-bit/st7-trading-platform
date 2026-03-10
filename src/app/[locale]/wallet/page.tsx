@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
 import { useAuthStore } from '../../../stores/authStore';
@@ -16,7 +15,6 @@ export interface Wallet {
 
 export default function WalletAuthorizePage() {
   const router = useRouter();
-  const t = useTranslations('wallet');
   const { user, logout, isHydrated } = useAuthStore();
   const { balance, syncFromBackend } = useAssetStore();
 
@@ -25,34 +23,31 @@ export default function WalletAuthorizePage() {
   const [selectedChain, setSelectedChain] = useState('ETH');
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const handleConnect = () => {
     setError('');
 
-    // 验证钱包地址
     if (!newWalletAddress) {
-      setError(t('error.enterAddress'));
+      setError('请输入钱包地址');
       return;
     }
 
-    // 简单验证以太坊地址格式（以 0x 开头，42 位）
     if (!/^0x[a-fA-F0-9]{40}$/.test(newWalletAddress)) {
-      setError(t('error.invalidAddress'));
+      setError('无效的钱包地址格式');
       return;
     }
 
-    // 檢查是否已连接
     const isAlreadyConnected = wallets.some(
       (w) => w.address.toLowerCase() === newWalletAddress.toLowerCase()
     );
     if (isAlreadyConnected) {
-      setError(t('error.alreadyConnected'));
+      setError('该钱包地址已连接');
       return;
     }
 
     setIsConnecting(true);
 
-    // 模擬连接延迟
     setTimeout(() => {
       const newWallet: Wallet = {
         address: newWalletAddress,
@@ -63,6 +58,7 @@ export default function WalletAuthorizePage() {
       setWallets([...wallets, newWallet]);
       setNewWalletAddress('');
       setIsConnecting(false);
+      setShowAddModal(false);
 
       console.log(`[Wallet] Connected wallet: ${newWalletAddress} on ${selectedChain}`);
     }, 1000);
@@ -73,222 +69,131 @@ export default function WalletAuthorizePage() {
     console.log(`[Wallet] Disconnected wallet: ${address}`);
   };
 
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
-  };
-
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  // 同步后端余额数据
+  const formatBalance = (amount: number) => {
+    return new Intl.NumberFormat('zh-TW', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
   useEffect(() => {
     if (user && isHydrated) {
       syncFromBackend();
     }
   }, [user, isHydrated, syncFromBackend]);
 
-  // 格式化余额显示
-  const formatBalance = (amount: number) => {
-    return `$${new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount)}`;
-  };
-
   return (
     <PageShell loading={false}>
       <AuthGuard>
-        <div className="min-h-screen bg-gray-50">
-        {/* 顶部导航 */}
-        <nav className="bg-white shadow-sm">
-          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between">
-              {/* 左上角余额展示 */}
-              <div className="flex items-center gap-6">
-                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg p-4 shadow-lg">
-                  <div className="flex flex-col">
-                    <span className="text-indigo-100 text-sm font-medium">{t('availableBalance')}</span>
-                    <span className="text-white text-2xl font-bold mt-1">
-                      {formatBalance(balance)}
-                    </span>
-                  </div>
-                </div>
-                <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-600">
-                  {t('userId')}: {user?.id}
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-                >
-                  {t('logout')}
-                </button>
-              </div>
+        <div className="min-h-screen bg-white">
+          {/* 左上角返回按钮 */}
+          <button
+            onClick={() => router.back()}
+            className="fixed left-4 top-4 z-50 flex items-center gap-2 text-gray-700 hover:text-gray-900"
+          >
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            <span className="text-sm text-red-500">返回按键</span>
+          </button>
+
+          {/* 顶部标题 */}
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-gray-700">錢包</h1>
+              <span className="text-xs text-red-500">当前页面显示</span>
             </div>
           </div>
-        </nav>
 
-        {/* 主要内容 */}
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* 左侧：连接钱包表单 */}
-            <div className="space-y-6">
-              {/* 连接新钱包 */}
-              <div className="rounded-lg bg-white p-6 shadow-md">
-                <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('connectWallet')}</h2>
-                <p className="mb-6 text-sm text-gray-600">
-                  {t('authorizeDescription')}
-                </p>
-                <ul className="mb-6 list-inside list-disc space-y-2 text-sm text-gray-600">
-                  <li>{t('features.viewBalance')}</li>
-                  <li>{t('features.receiveAssets')}</li>
-                  <li>{t('features.manageAuth')}</li>
-                </ul>
-
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="chain" className="mb-2 block text-sm font-medium text-gray-700">
-                      {t('selectChain')}
-                    </label>
-                    <select
-                      id="chain"
-                      value={selectedChain}
-                      onChange={(e) => setSelectedChain(e.target.value)}
-                      className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                    >
-                      <option value="ETH">{t('chains.eth')}</option>
-                      <option value="BSC">{t('chains.bsc')}</option>
-                      <option value="POLYGON">{t('chains.polygon')}</option>
-                      <option value="SOL">{t('chains.sol')}</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label htmlFor="walletAddress" className="mb-2 block text-sm font-medium text-gray-700">
-                      {t('walletAddress')}
-                    </label>
-                    <input
-                      id="walletAddress"
-                      type="text"
-                      value={newWalletAddress}
-                      onChange={(e) => setNewWalletAddress(e.target.value)}
-                      placeholder="0x1234567890abcdef1234567890abcdef12345678"
-                      className="block w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                    />
-                    <p className="mt-2 text-xs text-gray-500">
-                      {t('enterValidAddress', { chain: selectedChain })}
-                    </p>
-                  </div>
-
-                  {error && (
-                    <div className="rounded-md bg-red-50 p-4">
-                      <p className="text-sm text-red-800">{error}</p>
+          {/* 主要内容 */}
+          <div className="flex min-h-screen items-center justify-center p-8">
+            <div className="w-full max-w-4xl">
+              {/* 左侧余额显示 */}
+              <div className="mb-8">
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="text-sm text-gray-600">餘額</span>
+                      <span className="text-xs text-red-500">余额显示</span>
                     </div>
-                  )}
-
-                  <button
-                    onClick={handleConnect}
-                    disabled={isConnecting}
-                    className="w-full rounded-md bg-indigo-600 px-4 py-2 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isConnecting ? t('connecting') : t('connectButton')}
-                  </button>
+                    <div className="text-5xl font-bold text-blue-600">
+                      {formatBalance(balance)}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* 提示信息 */}
-              <div className="rounded-md bg-blue-50 p-4">
-                <h3 className="mb-2 font-semibold text-blue-900">{t('tips.title')}</h3>
-                <ul className="list-inside list-disc space-y-1 text-sm text-blue-800">
-                  <li>{t('tips.noTransaction')}</li>
-                  <li>{t('tips.viewStatus')}</li>
-                  <li>{t('tips.ensureCorrect')}</li>
-                  <li>{t('tips.contactSupport')}</li>
-                </ul>
-              </div>
-            </div>
-
-            {/* 右侧：已连接钱包列表 */}
-            <div>
-              <div className="rounded-lg bg-white p-6 shadow-md">
-                <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('connectedWallets')}</h2>
-                <p className="mb-4 text-sm text-gray-600">
-                  {t('connectedCount', { count: wallets.length })}
-                </p>
-
-                {wallets.length === 0 ? (
-                  <div className="rounded-md bg-gray-50 p-8 text-center">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-200">
-                      <svg
-                        className="h-6 w-6 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-gray-500">{t('noConnectedWallets')}</p>
-                    <p className="mt-2 text-sm text-gray-400">
-                      {t('enterAddressToConnect')}
-                    </p>
+              {/* 添加数字货币地址按钮 */}
+              <div className="space-y-4">
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 p-6 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
+                    <svg
+                      className="h-6 w-6 text-gray-700"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
                   </div>
-                ) : (
-                  <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg text-gray-700">添加數字貨幣地址</span>
+                    <span className="text-xs text-red-500">添加数字货币地址按钮</span>
+                  </div>
+                </button>
+
+                {/* 已连接的钱包列表 */}
+                {wallets.length > 0 && (
+                  <div className="mt-8 space-y-3">
+                    <h2 className="text-sm font-medium text-gray-600">已连接的钱包</h2>
                     {wallets.map((wallet, index) => (
                       <div
                         key={wallet.address}
-                        className="rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50"
+                        className="flex items-center justify-between rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors"
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="mb-2 flex items-center gap-2">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100">
-                                <span className="text-sm font-semibold text-indigo-600">
-                                  {index + 1}
-                                </span>
-                              </div>
-                              <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
-                                {t('connected')}
-                              </span>
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+                            <span className="text-sm font-semibold text-blue-600">
+                              {index + 1}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-mono text-sm font-medium text-gray-900">
+                              {formatAddress(wallet.address)}
                             </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">{t('address')}</span>
-                                <span className="font-mono text-sm font-semibold text-gray-900">
-                                  {formatAddress(wallet.address)}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">{t('chain')}</span>
-                                <span className="text-sm font-semibold text-gray-900">
-                                  {wallet.chain}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">{t('connectedAt')}</span>
-                                <span className="text-xs text-gray-500">
-                                  {new Date(wallet.connectedAt).toLocaleString()}
-                                </span>
-                              </div>
+                            <div className="text-xs text-gray-500">
+                              {wallet.chain} • {new Date(wallet.connectedAt).toLocaleDateString()}
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleDisconnect(wallet.address)}
-                            className="ml-4 rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
-                          >
-                            {t('disconnect')}
-                          </button>
                         </div>
+                        <button
+                          onClick={() => handleDisconnect(wallet.address)}
+                          className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+                        >
+                          断开连接
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -296,9 +201,88 @@ export default function WalletAuthorizePage() {
               </div>
             </div>
           </div>
+
+          {/* 添加钱包弹窗 */}
+          {showAddModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+              <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">添加数字货币地址</h3>
+                  <button
+                    onClick={() => {
+                      setShowAddModal(false);
+                      setError('');
+                      setNewWalletAddress('');
+                    }}
+                    className="rounded-md p-2 hover:bg-gray-100 transition-colors"
+                  >
+                    <svg
+                      className="h-5 w-5 text-gray-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="chain" className="mb-2 block text-sm font-medium text-gray-700">
+                      选择链
+                    </label>
+                    <select
+                      id="chain"
+                      value={selectedChain}
+                      onChange={(e) => setSelectedChain(e.target.value)}
+                      className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                    >
+                      <option value="ETH">Ethereum (ETH)</option>
+                      <option value="BSC">BSC</option>
+                      <option value="POLYGON">Polygon</option>
+                      <option value="SOL">Solana</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="walletAddress" className="mb-2 block text-sm font-medium text-gray-700">
+                      钱包地址
+                    </label>
+                    <input
+                      id="walletAddress"
+                      type="text"
+                      value={newWalletAddress}
+                      onChange={(e) => setNewWalletAddress(e.target.value)}
+                      placeholder="0x1234567890abcdef1234567890abcdef12345678"
+                      className="block w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="rounded-md bg-red-50 p-3">
+                      <p className="text-sm text-red-800">{error}</p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleConnect}
+                    disabled={isConnecting}
+                    className="w-full rounded-md bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isConnecting ? '连接中...' : '连接钱包'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
-    </AuthGuard>
+      </AuthGuard>
     </PageShell>
   );
 }
