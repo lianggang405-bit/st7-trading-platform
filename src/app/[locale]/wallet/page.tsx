@@ -108,15 +108,11 @@ export default function WalletAuthorizePage() {
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            <span className="text-sm text-red-500">返回按键</span>
           </button>
 
           {/* 顶部标题 */}
           <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-gray-700">錢包</h1>
-              <span className="text-xs text-red-500">当前页面显示</span>
-            </div>
+            <h1 className="text-2xl font-bold text-gray-700">錢包</h1>
           </div>
 
           {/* 主要内容 */}
@@ -126,9 +122,8 @@ export default function WalletAuthorizePage() {
               <div className="mb-8">
                 <div className="flex items-start gap-4">
                   <div className="flex-1">
-                    <div className="mb-2 flex items-center gap-2">
+                    <div className="mb-2">
                       <span className="text-sm text-gray-600">餘額</span>
-                      <span className="text-xs text-red-500">余额显示</span>
                     </div>
                     <div className="text-5xl font-bold text-blue-600">
                       {formatBalance(balance)}
@@ -158,10 +153,7 @@ export default function WalletAuthorizePage() {
                       />
                     </svg>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg text-gray-700">添加數字貨幣地址</span>
-                    <span className="text-xs text-red-500">添加数字货币地址按钮</span>
-                  </div>
+                  <span className="text-lg text-gray-700">添加數字貨幣地址</span>
                 </button>
 
                 {/* 已连接的钱包列表 */}
