@@ -61,7 +61,7 @@ export default function BindWalletPage() {
 
       setWallets([...wallets, newWallet]);
       setIsBinding(false);
-      router.push('/wallet');
+      router.push('..');
     }, 1000);
   };
 
