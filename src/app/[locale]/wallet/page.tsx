@@ -136,7 +136,7 @@ export default function WalletAuthorizePage() {
               <div className="space-y-3">
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-gray-300 p-4 hover:bg-gray-50 transition-colors"
+                  className="mx-auto flex w-auto items-center justify-center gap-2 rounded-lg border-2 border-gray-300 px-8 py-4 hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
                     <svg
