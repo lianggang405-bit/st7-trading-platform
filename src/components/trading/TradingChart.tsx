@@ -340,6 +340,26 @@ export default function TradingChart({
 
       if (history.length > 0) {
         try {
+          // ✅ 关键修复：校正最后一根K线的close等于当前价格
+          // 确保历史数据和实时价格一致，避免出现巨大跳空
+          const lastCandle = history[history.length - 1]
+          const priceDiff = Math.abs(lastCandle.close - effectivePrice)
+          const tolerance = effectivePrice * 0.001 // 0.1% 容差
+
+          if (priceDiff > tolerance) {
+            console.log(`[TradingChart] 价格差异过大 (${priceDiff.toFixed(2)})，校正最后一根K线`)
+            console.log(`[TradingChart] 历史close: ${lastCandle.close} -> 实时price: ${effectivePrice}`)
+
+            // 校正最后一根K线
+            history[history.length - 1] = {
+              time: lastCandle.time,
+              open: lastCandle.open,
+              high: Math.max(lastCandle.high, effectivePrice),
+              low: Math.min(lastCandle.low, effectivePrice),
+              close: effectivePrice // ✅ 强制等于当前价格
+            }
+          }
+
           series.setData(history)
           lastCandleRef.current = history[history.length - 1]
           // ✅ 使用 K 线最后一根的收盘价，避免初始化跳动
@@ -379,10 +399,11 @@ export default function TradingChart({
 
       if (candleTime > lastTime) {
 
+        // ✅ 关键修复：新K线的open使用当前价格，而不是历史K线的close
+        // 这样可以避免出现巨大的跳空K线
         const newCandle = {
-
           time: candleTime as Time,
-          open: lastCandle.close,
+          open: price,  // ✅ 使用当前价格，而不是 lastCandle.close
           high: price,
           low: price,
           close: price
