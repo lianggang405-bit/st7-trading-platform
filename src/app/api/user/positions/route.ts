@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/storage/database/supabase-admin-client';
 import { getBatchRealPrices } from '@/lib/market-data-source';
 import { createDemoOrder } from '@/lib/create-demo-order';
+import { createTransaction } from '@/lib/transaction-service';
 
 // GET - 获取持仓列表
 export async function GET(request: NextRequest) {
@@ -200,21 +201,39 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // 更新数据库中的模拟账户余额
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({ balance: dbDemoUser.balance - margin })
-          .eq('id', dbDemoUser.id);
+        // 只有市价单才扣除保证金，挂单在触发时才扣除
+        if (orderType === 'market') {
+          // 更新数据库中的模拟账户余额
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({ balance: dbDemoUser.balance - margin })
+            .eq('id', dbDemoUser.id);
 
-        if (updateError) {
-          console.error('[Positions API] Error updating demo balance:', updateError);
-          return NextResponse.json(
-            {
-              success: false,
-              error: '扣除保证金失败',
-            },
-            { status: 500 }
-          );
+          if (updateError) {
+            console.error('[Positions API] Error updating demo balance:', updateError);
+            return NextResponse.json(
+              {
+                success: false,
+                error: '扣除保证金失败',
+              },
+              { status: 500 }
+            );
+          }
+
+          // 记录开仓交易流水
+          try {
+            await createTransaction({
+              user_id: dbDemoUser.id,
+              type: 'open_position',
+              amount: -margin,
+              balance: dbDemoUser.balance - margin,
+              order_id: orderId,
+              description: `开仓 ${symbol} ${side} ${volume} @ ${price.toFixed(2)}`,
+            });
+          } catch (error) {
+            console.error('[Positions API] Failed to create transaction:', error);
+            // 交易流水失败不影响开仓操作
+          }
         }
 
         // 创建模拟订单并写入数据库
@@ -249,8 +268,10 @@ export async function POST(request: NextRequest) {
 
         if (insertError) {
           console.error('[Positions API] Error creating demo order:', insertError);
-          // 回滚余额
-          await supabase.from('users').update({ balance: dbDemoUser.balance }).eq('id', dbDemoUser.id);
+          // 回滚余额（只有市价单才需要回滚）
+          if (orderType === 'market') {
+            await supabase.from('users').update({ balance: dbDemoUser.balance }).eq('id', dbDemoUser.id);
+          }
           return NextResponse.json(
             {
               success: false,
@@ -316,21 +337,24 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 更新数据库中的模拟账户余额
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ balance: newUser.balance - margin })
-        .eq('id', newUser.id);
+      // 只有市价单才扣除保证金，挂单在触发时才扣除
+      if (orderType === 'market') {
+        // 更新数据库中的模拟账户余额
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ balance: newUser.balance - margin })
+          .eq('id', newUser.id);
 
-      if (updateError) {
-        console.error('[Positions API] Error updating demo balance:', updateError);
-        return NextResponse.json(
-          {
-            success: false,
-            error: '扣除保证金失败',
-          },
-          { status: 500 }
-        );
+        if (updateError) {
+          console.error('[Positions API] Error updating demo balance:', updateError);
+          return NextResponse.json(
+            {
+              success: false,
+              error: '扣除保证金失败',
+            },
+            { status: 500 }
+          );
+        }
       }
 
       // 创建模拟订单并写入数据库
@@ -363,8 +387,10 @@ export async function POST(request: NextRequest) {
 
       if (insertError) {
         console.error('[Positions API] Error creating demo order:', insertError);
-        // 回滚余额
-        await supabase.from('users').update({ balance: newUser.balance }).eq('id', newUser.id);
+        // 回滚余额（只有市价单才需要回滚）
+        if (orderType === 'market') {
+          await supabase.from('users').update({ balance: newUser.balance }).eq('id', newUser.id);
+        }
         return NextResponse.json(
           {
             success: false,
@@ -409,21 +435,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 扣除保证金
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ balance: user.balance - margin })
-      .eq('id', userId);
+    // 只有市价单才立即扣除保证金，挂单在触发时才扣除
+    if (orderType === 'market') {
+      // 扣除保证金
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ balance: user.balance - margin })
+        .eq('id', userId);
 
-    if (updateError) {
-      console.error('[Positions API] Error updating balance:', updateError);
-      return NextResponse.json(
-        {
-          success: false,
-          error: '扣除保证金失败',
-        },
-        { status: 500 }
-      );
+      if (updateError) {
+        console.error('[Positions API] Error updating balance:', updateError);
+        return NextResponse.json(
+          {
+            success: false,
+            error: '扣除保证金失败',
+          },
+          { status: 500 }
+        );
+      }
+
+      // 记录开仓交易流水
+      try {
+        await createTransaction({
+          user_id: parseInt(userId),
+          type: 'open_position',
+          amount: -margin,
+          balance: user.balance - margin,
+          order_id: orderId,
+          description: `开仓 ${symbol} ${side} ${volume} @ ${price.toFixed(2)}`,
+        });
+      } catch (error) {
+        console.error('[Positions API] Failed to create transaction:', error);
+        // 交易流水失败不影响开仓操作
+      }
     }
 
     // 创建订单
@@ -457,8 +501,10 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[Positions API] Error creating order:', error);
-      // 回滚余额
-      await supabase.from('users').update({ balance: user.balance }).eq('id', userId);
+      // 回滚余额（只有市价单才需要回滚）
+      if (orderType === 'market') {
+        await supabase.from('users').update({ balance: user.balance }).eq('id', userId);
+      }
       return NextResponse.json(
         {
           success: false,

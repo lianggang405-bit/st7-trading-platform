@@ -43,12 +43,12 @@ export async function GET(request: NextRequest) {
       if (dbDemoUser) {
         const balance = dbDemoUser.balance;
 
-        // 查询模拟账户的持仓信息（和真实账户一样）
+        // 查询模拟账户的持仓信息（和真实账户一样，包括持仓和挂单）
         const { data: positions } = await supabase
           .from('orders')
           .select('*')
           .eq('user_id', dbDemoUser.id)
-          .eq('status', 'open'); // 只查询开仓状态的订单
+          .in('status', ['open', 'pending']); // 查询开仓和挂单状态的订单
 
         let usedMargin = 0;
         let floatingProfit = 0;
@@ -62,17 +62,20 @@ export async function GET(request: NextRequest) {
 
           // 计算已用保证金和浮动盈亏
           positions.forEach((pos: any) => {
-            // 累加保证金
+            // 累加保证金（包括挂单的保证金）
             usedMargin += (pos.margin || 0);
 
-            // 计算单个持仓盈亏
-            const currentPrice = currentPrices[pos.symbol] || pos.price;
-            const openPrice = pos.price;
-            const volume = pos.quantity;
-            const isLong = pos.side === 'buy';
+            // 只计算持仓的浮动盈亏（挂单没有浮动盈亏）
+            if (pos.status === 'open') {
+              // 计算单个持仓盈亏
+              const currentPrice = currentPrices[pos.symbol] || pos.price;
+              const openPrice = pos.price;
+              const volume = pos.quantity;
+              const isLong = pos.side === 'buy';
 
-            const profit = (currentPrice - openPrice) * volume * (isLong ? 1 : -1);
-            floatingProfit += profit;
+              const profit = (currentPrice - openPrice) * volume * (isLong ? 1 : -1);
+              floatingProfit += profit;
+            }
           });
         }
 
@@ -163,36 +166,39 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 查询用户的持仓信息
+    // 查询用户的持仓信息（包括持仓和挂单）
     const { data: positions } = await supabase
       .from('orders')
       .select('*')
       .eq('user_id', userId)
-      .eq('status', 'open'); // 只查询开仓状态的订单
+      .in('status', ['open', 'pending']); // 查询开仓和挂单状态的订单
 
     let usedMargin = 0;
     let floatingProfit = 0;
-    
+
     if (positions && positions.length > 0) {
       // 获取持仓相关的所有 symbol
       const symbols = Array.from(new Set(positions.map((p: any) => p.symbol)));
-      
+
       // 批量获取实时价格
       const currentPrices = await getBatchRealPrices(symbols);
-      
+
       // 计算已用保证金和浮动盈亏
       positions.forEach((pos: any) => {
-        // 累加保证金
+        // 累加保证金（包括挂单的保证金）
         usedMargin += (pos.margin || 0);
-        
-        // 计算单个持仓盈亏
-        const currentPrice = currentPrices[pos.symbol] || pos.price;
-        const openPrice = pos.price;
-        const volume = pos.quantity;
-        const isLong = pos.side === 'buy';
-        
-        const profit = (currentPrice - openPrice) * volume * (isLong ? 1 : -1);
-        floatingProfit += profit;
+
+        // 只计算持仓的浮动盈亏（挂单没有浮动盈亏）
+        if (pos.status === 'open') {
+          // 计算单个持仓盈亏
+          const currentPrice = currentPrices[pos.symbol] || pos.price;
+          const openPrice = pos.price;
+          const volume = pos.quantity;
+          const isLong = pos.side === 'buy';
+
+          const profit = (currentPrice - openPrice) * volume * (isLong ? 1 : -1);
+          floatingProfit += profit;
+        }
       });
     }
 

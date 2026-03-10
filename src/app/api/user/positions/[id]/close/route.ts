@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { createTransaction } from '@/lib/transaction-service';
 
 // POST - 平仓
 export async function POST(
@@ -128,6 +129,21 @@ export async function POST(
         profit,
         newBalance,
       });
+
+      // 记录交易流水
+      try {
+        await createTransaction({
+          user_id: parseInt(userId),
+          type: 'close_position',
+          amount: order.margin + profit,
+          balance: newBalance,
+          order_id: positionId,
+          description: `平仓 ${order.symbol} ${order.side} ${order.quantity} @ ${closePrice.toFixed(2)}`,
+        });
+      } catch (error) {
+        console.error('[Close Position API] Failed to create transaction:', error);
+        // 交易流水失败不影响平仓操作
+      }
     }
 
     return NextResponse.json({
