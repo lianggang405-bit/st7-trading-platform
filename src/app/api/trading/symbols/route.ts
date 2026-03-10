@@ -95,15 +95,26 @@ export async function GET() {
       let category = 'forex';
       const symbol = pair.symbol.toUpperCase();
 
+      // 加密货币
       if (symbol.includes('BTC') || symbol.includes('ETH') || symbol.includes('LTC') ||
           symbol.includes('SOL') || symbol.includes('XRP') || symbol.includes('DOGE')) {
         category = 'crypto';
-      } else if (symbol.includes('XAU') || symbol.includes('GOLD') || symbol.includes('XAG') || symbol.includes('SILVER')) {
+      }
+      // 贵金属（黄金、白银）
+      else if (symbol.includes('XAU') || symbol.includes('GOLD') || symbol.includes('XAG') || symbol.includes('SILVER')) {
         category = 'gold';
-      } else if (symbol.includes('USOIL') || symbol.includes('UKOIL') || symbol.includes('NGAS')) {
-        category = 'forex'; // 能源类归为外汇
-      } else if (symbol.includes('US500') || symbol.includes('ND25') || symbol.includes('AUS200')) {
-        category = 'forex'; // 指数类归为外汇
+      }
+      // 能源（原油、天然气）
+      else if (symbol.includes('USOIL') || symbol.includes('UKOIL') || symbol.includes('NGAS')) {
+        category = 'energy';
+      }
+      // 指数（CFD）
+      else if (symbol.includes('US500') || symbol.includes('ND25') || symbol.includes('AUS200')) {
+        category = 'cfd';
+      }
+      // 其他为外汇
+      else {
+        category = 'forex';
       }
 
       // ✅ 从 market-service 获取实时价格，如果失败则使用默认价格

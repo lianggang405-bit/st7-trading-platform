@@ -68,12 +68,14 @@ export default function MarketPage() {
     let filtered: any[] = [];
 
     if (categoryFilter === 'Forex') {
-      // Forex 显示所有交易对
-      filtered = symbols.map(s => ({
-        symbol: s.symbol,
-        price: s.price,
-        change: s.change,
-      }));
+      // Forex 显示外汇类交易对
+      filtered = symbols
+        .filter(s => s.category === 'forex')
+        .map(s => ({
+          symbol: s.symbol,
+          price: s.price,
+          change: s.change,
+        }));
     } else if (categoryFilter === 'Metal') {
       // Metal 显示贵金属
       filtered = symbols
@@ -93,20 +95,18 @@ export default function MarketPage() {
           change: s.change,
         }));
     } else if (categoryFilter === 'Energy') {
-      // Energy 显示能源（根据品种代码过滤）
-      const energySymbols = ['NGAS', 'UKOIL', 'USOIL'];
+      // Energy 显示能源
       filtered = symbols
-        .filter(s => energySymbols.includes(s.symbol))
+        .filter(s => s.category === 'energy')
         .map(s => ({
           symbol: s.symbol,
           price: s.price,
           change: s.change,
         }));
     } else if (categoryFilter === 'CFD') {
-      // CFD 显示指数（根据品种代码过滤）
-      const cfdSymbols = ['US500', 'ND25', 'AUS200'];
+      // CFD 显示指数（CFD）
       filtered = symbols
-        .filter(s => cfdSymbols.includes(s.symbol))
+        .filter(s => s.category === 'cfd')
         .map(s => ({
           symbol: s.symbol,
           price: s.price,

@@ -65,15 +65,15 @@ export const mockSymbols: TradingSymbol[] = [
   { symbol: 'XRPUSD', price: getSymbolPrice('XRPUSD'), change: 0.89, category: 'crypto' },
   { symbol: 'DOGEUSD', price: getSymbolPrice('DOGEUSD'), change: -1.23, category: 'crypto' },
 
-  // Energy (CFD)
-  { symbol: 'NGAS', price: getSymbolPrice('NGAS'), change: 0.56, category: 'forex' },
-  { symbol: 'UKOIL', price: getSymbolPrice('UKOIL'), change: -0.34, category: 'forex' },
-  { symbol: 'USOIL', price: getSymbolPrice('USOIL'), change: 0.23, category: 'forex' },
+  // Energy
+  { symbol: 'NGAS', price: getSymbolPrice('NGAS'), change: 0.56, category: 'energy' },
+  { symbol: 'UKOIL', price: getSymbolPrice('UKOIL'), change: -0.34, category: 'energy' },
+  { symbol: 'USOIL', price: getSymbolPrice('USOIL'), change: 0.23, category: 'energy' },
 
-  // Indices (CFD)
-  { symbol: 'US500', price: getSymbolPrice('US500'), change: 0.67, category: 'forex' },
-  { symbol: 'ND25', price: getSymbolPrice('ND25'), change: -0.45, category: 'forex' },
-  { symbol: 'AUS200', price: getSymbolPrice('AUS200'), change: 0.12, category: 'forex' },
+  // CFD (Indices)
+  { symbol: 'US500', price: getSymbolPrice('US500'), change: 0.67, category: 'cfd' },
+  { symbol: 'ND25', price: getSymbolPrice('ND25'), change: -0.45, category: 'cfd' },
+  { symbol: 'AUS200', price: getSymbolPrice('AUS200'), change: 0.12, category: 'cfd' },
 ];
 
 // 热门交易（前 4 个）

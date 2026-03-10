@@ -21,7 +21,7 @@ export interface TradingSymbol {
   symbol: string;
   price: number;
   change: number;
-  category: 'forex' | 'gold' | 'crypto';
+  category: 'forex' | 'gold' | 'crypto' | 'energy' | 'cfd';
 }
 
 interface MarketState {
