@@ -19,50 +19,6 @@ export default function WalletAuthorizePage() {
   const { balance, syncFromBackend } = useAssetStore();
 
   const [wallets, setWallets] = useState<Wallet[]>([]);
-  const [newWalletAddress, setNewWalletAddress] = useState('');
-  const [selectedChain, setSelectedChain] = useState('ETH');
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [error, setError] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-
-  const handleConnect = () => {
-    setError('');
-
-    if (!newWalletAddress) {
-      setError('请输入钱包地址');
-      return;
-    }
-
-    if (!/^0x[a-fA-F0-9]{40}$/.test(newWalletAddress)) {
-      setError('无效的钱包地址格式');
-      return;
-    }
-
-    const isAlreadyConnected = wallets.some(
-      (w) => w.address.toLowerCase() === newWalletAddress.toLowerCase()
-    );
-    if (isAlreadyConnected) {
-      setError('该钱包地址已连接');
-      return;
-    }
-
-    setIsConnecting(true);
-
-    setTimeout(() => {
-      const newWallet: Wallet = {
-        address: newWalletAddress,
-        chain: selectedChain,
-        connectedAt: new Date().toISOString(),
-      };
-
-      setWallets([...wallets, newWallet]);
-      setNewWalletAddress('');
-      setIsConnecting(false);
-      setShowAddModal(false);
-
-      console.log(`[Wallet] Connected wallet: ${newWalletAddress} on ${selectedChain}`);
-    }, 1000);
-  };
 
   const handleDisconnect = (address: string) => {
     setWallets(wallets.filter((w) => w.address !== address));
@@ -135,7 +91,7 @@ export default function WalletAuthorizePage() {
               {/* 添加数字货币地址按钮 - 居中显示 */}
               <div className="flex justify-center">
                 <button
-                  onClick={() => setShowAddModal(true)}
+                  onClick={() => router.push('/wallet/bind')}
                   className="flex items-center justify-center gap-2 rounded-2xl border-2 border-white/30 bg-gradient-to-b from-blue-100/85 to-blue-200/85 px-8 py-4 shadow-xl shadow-blue-300/50 backdrop-blur-md hover:from-blue-200/85 hover:to-blue-300/85 hover:shadow-2xl hover:shadow-blue-400/50 transition-all duration-300"
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-300/80 shadow-md">
@@ -194,85 +150,7 @@ export default function WalletAuthorizePage() {
             </div>
           </div>
 
-          {/* 添加钱包弹窗 */}
-          {showAddModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-              <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-gray-900">添加数字货币地址</h3>
-                  <button
-                    onClick={() => {
-                      setShowAddModal(false);
-                      setError('');
-                      setNewWalletAddress('');
-                    }}
-                    className="rounded-md p-1.5 hover:bg-gray-100 transition-colors"
-                  >
-                    <svg
-                      className="h-4 w-4 text-gray-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <label htmlFor="chain" className="mb-1.5 block text-xs font-medium text-gray-700">
-                      选择链
-                    </label>
-                    <select
-                      id="chain"
-                      value={selectedChain}
-                      onChange={(e) => setSelectedChain(e.target.value)}
-                      className="block w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-xs shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-                    >
-                      <option value="ETH">Ethereum (ETH)</option>
-                      <option value="BSC">BSC</option>
-                      <option value="POLYGON">Polygon</option>
-                      <option value="SOL">Solana</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label htmlFor="walletAddress" className="mb-1.5 block text-xs font-medium text-gray-700">
-                      钱包地址
-                    </label>
-                    <input
-                      id="walletAddress"
-                      type="text"
-                      value={newWalletAddress}
-                      onChange={(e) => setNewWalletAddress(e.target.value)}
-                      placeholder="0x1234567890abcdef1234567890abcdef12345678"
-                      className="block w-full rounded-md border border-gray-300 px-2.5 py-1.5 font-mono text-xs shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {error && (
-                    <div className="rounded-md bg-red-50 p-2.5">
-                      <p className="text-xs text-red-800">{error}</p>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleConnect}
-                    disabled={isConnecting}
-                    className="w-full rounded-md bg-blue-600 px-3 py-1.5 text-xs text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {isConnecting ? '连接中...' : '连接钱包'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </AuthGuard>
     </PageShell>
