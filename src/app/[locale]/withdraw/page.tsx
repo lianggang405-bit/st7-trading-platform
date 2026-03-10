@@ -199,45 +199,54 @@ export default function WithdrawPage() {
     e.preventDefault();
     setError('');
 
-    // 檢查是否為模擬賬戶
-    if (user?.accountType === 'demo') {
-      toast.error('模擬賬戶不支持此操作，請註冊正式用戶！');
+    console.log('[Withdraw Page] Submit called');
+    console.log('[Withdraw Page] user:', user);
+    console.log('[Withdraw Page] user.accountType:', user?.accountType);
+    console.log('[Withdraw Page] user.userType:', user?.userType);
+
+    // 檢查是否為模擬賬戶（检查多个可能的字段）
+    const isDemo = user?.accountType === 'demo' || user?.userType === 'demo';
+    console.log('[Withdraw Page] isDemo:', isDemo);
+
+    if (isDemo) {
+      console.log('[Withdraw Page] Demo account detected, showing error');
+      toast.error(t('error.demoAccount'));
       return;
     }
 
     if (!selectedCrypto) {
-      setError('請選擇數位貨幣');
+      setError(t('error.selectCrypto'));
       return;
     }
 
     if (!withdrawAddress.trim()) {
-      setError('請輸入提幣地址');
+      setError(t('error.enterAddress'));
       return;
     }
 
     const amount = parseFloat(withdrawAmount);
     if (!withdrawAmount || isNaN(amount) || amount <= 0) {
-      setError('請輸入有效的提幣數量');
+      setError(t('error.enterValidAmount'));
       return;
     }
 
     if (amount < selectedCrypto.minAmount) {
-      setError(`最低提幣數量為 ${selectedCrypto.minAmount}`);
+      setError(t('error.minAmount', { min: selectedCrypto.minAmount }));
       return;
     }
 
     if (amount > selectedCrypto.maxAmount) {
-      setError(`最高提幣數量為 ${selectedCrypto.maxAmount}`);
+      setError(t('error.maxAmount', { max: selectedCrypto.maxAmount }));
       return;
     }
 
     if (amount > userBalance.usdt) {
-      setError('餘額不足');
+      setError(t('error.insufficientBalance'));
       return;
     }
 
     if (arrivalAmount <= 0) {
-      setError('扣除手續費後預計到賬數量必須大於 0');
+      setError(t('error.arrivalAmountMustBePositive'));
       return;
     }
 
@@ -267,21 +276,21 @@ export default function WithdrawPage() {
       });
 
       if (!response.ok) {
-        setError('網絡錯誤，請稍後重試');
+        setError(t('error.networkError'));
         return;
       }
 
       const data = await response.json();
 
       if (data.success) {
-        toast.success('出金申請已提交，等待審核通過');
+        toast.success(t('submitSuccess'));
         router.back();
       } else {
-        setError(data.error || '提交失敗');
+        setError(data.error || t('error.submitFailed'));
       }
     } catch (err) {
       console.error('Withdraw error:', err);
-      setError('網絡錯誤，請稍後重試');
+      setError(t('error.networkError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -300,12 +309,12 @@ export default function WithdrawPage() {
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
-              <h1 className="text-lg font-medium text-gray-900">出金</h1>
+              <h1 className="text-lg font-medium text-gray-900">{t('title')}</h1>
               <div
                 className="text-sm text-gray-500 cursor-pointer hover:text-blue-600"
                 onClick={() => setActiveTab(activeTab === 'apply' ? 'records' : 'apply')}
               >
-                {activeTab === 'apply' ? '出金記錄' : '申請出金'}
+                {activeTab === 'apply' ? t('records') : t('apply')}
               </div>
             </div>
 

@@ -284,14 +284,14 @@ export default function DepositPage() {
 
       if (data.success) {
         // 彈出窗口提醒
-        alert('申請成功！系統會在審核後盡快為您入金，如有需要請聯繫客服');
+        alert(t('error.applicationSuccess'));
         router.back();
       } else {
-        setError(data.error || '提交失敗');
+        setError(data.error || t('error.submitFailed'));
       }
     } catch (err) {
       console.error('Deposit error:', err);
-      setError('網絡錯誤，請稍後重試');
+      setError(t('error.networkError'));
     } finally {
       setIsSubmitting(false);
     }
