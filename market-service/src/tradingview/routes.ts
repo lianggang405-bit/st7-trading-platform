@@ -1,6 +1,7 @@
 import express from 'express';
 import { getSupabase } from '../config/database';
 import { getCachedKlines, isRedisEnabled } from '../config/redis';
+import { aggregateCandles } from '../engine/kline-engine';
 
 const router = express.Router();
 
@@ -134,12 +135,73 @@ router.get('/history', async (req, res) => {
     }
 
     console.log(
-      `[TradingView API] Fetching history: ${symbol} -> ${dbSymbol}, interval: ${interval}, ` +
+      `[TradingView API] Fetching history: ${symbol} -> ${dbSymbol}, resolution: ${resolution}, ` +
       `from: ${fromTimestamp} (${new Date(fromTimestamp).toISOString()}), to: ${toTimestamp} (${new Date(toTimestamp).toISOString()})`
     );
 
     let data: any[] | null = null;
     let error: any = null;
+
+    // 📊 K线聚合策略：如果请求的不是 1m，则从 1m 聚合
+    if (resolution !== '1') {
+      console.log(`[TradingView API] 🔄 Need to aggregate from 1m to ${interval}`);
+
+      // 🔍 查询更多 1m K 线（需要聚合，所以查询数量要多一些）
+      // 例如：请求 100 根 5m K 线，需要查询 500 根 1m K 线
+      const aggregationCount = getAggregationCount(resolution);
+      const queryLimit = MAX_BARS * aggregationCount;
+
+      console.log(`[TradingView API] 📊 Querying ${queryLimit} 1m candles for aggregation`);
+
+      const supabase = getSupabase();
+      const result = await supabase
+        .from('klines')
+        .select('*')
+        .eq('symbol', dbSymbol)
+        .eq('interval', '1m')
+        .gte('open_time', fromTimestamp - (aggregationCount * 60000)) // 扩大时间范围，确保有足够的数据聚合
+        .lte('open_time', toTimestamp)
+        .order('open_time', { ascending: true }) // 必须升序，聚合需要
+        .limit(queryLimit);
+
+      data = result.data;
+      error = result.error;
+
+      console.log(`[TradingView API] Query result: error=${!!error}, 1m data.length=${data?.length || 0}`);
+
+      if (error || !data || data.length === 0) {
+        console.log('[TradingView API] No 1m data found for aggregation');
+        return res.json({
+          s: 'no_data',
+          nextTime: Math.floor(Date.now() / 1000)
+        });
+      }
+
+      // ✅ 聚合 K 线
+      const aggregated = aggregateCandles(data, interval as any);
+
+      if (aggregated.length === 0) {
+        console.log('[TradingView API] No aggregated data');
+        return res.json({
+          s: 'no_data',
+          nextTime: Math.floor(Date.now() / 1000)
+        });
+      }
+
+      // 过滤时间范围
+      const filteredAggregated = aggregated.filter((c: any) => {
+        const candleTime = c.time * 1000; // 转换为毫秒
+        return candleTime >= fromTimestamp && candleTime <= toTimestamp;
+      });
+
+      console.log(`[TradingView API] ✅ Aggregated ${filteredAggregated.length} ${interval} candles`);
+
+      // 转换为 TradingView 格式
+      return formatTradingViewResponse(filteredAggregated, res);
+    }
+
+    // 📊 如果是 1m K 线，直接查询
+    console.log(`[TradingView API] 📊 Querying 1m candles directly`);
 
     // 先尝试从 Redis 缓存查询
     if (isRedisEnabled()) {
@@ -186,7 +248,6 @@ router.get('/history', async (req, res) => {
 
       // 计算 nextTime（建议从当前时间开始）
       const currentTime = Math.floor(Date.now() / 1000); // 秒级时间戳
-      const intervalMs = getIntervalMs(interval);
 
       return res.json({
         s: 'no_data',
@@ -197,37 +258,8 @@ router.get('/history', async (req, res) => {
     // 反转数据为升序（TradingView 需要升序）
     const ascendingData = data.reverse();
 
-    // 转换数据格式（TradingView 需要的格式）
-    const t: number[] = [];
-    const o: number[] = [];
-    const h: number[] = [];
-    const l: number[] = [];
-    const c: number[] = [];
-    const v: number[] = [];
-
-    ascendingData.forEach((kline) => {
-      // open_time 已经是毫秒时间戳，直接转换为秒
-      t.push(Math.floor(kline.open_time / 1000));
-      o.push(parseFloat(kline.open));
-      h.push(parseFloat(kline.high));
-      l.push(parseFloat(kline.low));
-      c.push(parseFloat(kline.close));
-      v.push(parseFloat(kline.volume) || 0);
-    });
-
-    console.log(
-      `[TradingView API] ✅ Fetched ${data.length} candles for ${symbol}`
-    );
-
-    res.json({
-      s: 'ok',
-      t,
-      o,
-      h,
-      l,
-      c,
-      v
-    });
+    // 转换为 TradingView 格式
+    return formatTradingViewResponse(ascendingData, res);
   } catch (error) {
     console.error('[TradingView API] Error in /history:', error);
     res.status(500).json({
@@ -309,6 +341,67 @@ function getIntervalMs(interval: string): number {
   };
 
   return intervalMap[interval] || 60 * 1000; // 默认 1 分钟
+}
+
+/**
+ * 辅助函数：获取聚合系数（1m → targetInterval）
+ * @param resolution TradingView 分辨率（5, 15, 60, 240, 1D）
+ * @returns 需要聚合的 1m K 线数量
+ */
+function getAggregationCount(resolution: string): number {
+  const resolutionMap: Record<string, number> = {
+    '5': 5,      // 5 分钟 = 5 根 1m
+    '15': 15,    // 15 分钟 = 15 根 1m
+    '30': 30,    // 30 分钟 = 30 根 1m
+    '60': 60,    // 1 小时 = 60 根 1m
+    '240': 240,  // 4 小时 = 240 根 1m
+    '1D': 1440,  // 1 天 = 1440 根 1m (24 * 60)
+  };
+
+  return resolutionMap[resolution] || 1;
+}
+
+/**
+ * 辅助函数：转换为 TradingView 格式
+ * @param candles K 线数据数组
+ * @param res Express Response 对象
+ */
+function formatTradingViewResponse(
+  candles: Array<{ time: number; open: number; high: number; low: number; close: number; volume: number } | { open_time: string; open: number; high: number; low: number; close: number; volume: number }>,
+  res: any
+): void {
+  const t: number[] = [];
+  const o: number[] = [];
+  const h: number[] = [];
+  const l: number[] = [];
+  const c: number[] = [];
+  const v: number[] = [];
+
+  candles.forEach((kline) => {
+    // 判断是聚合后的数据还是原始数据
+    const time = 'time' in kline ? kline.time : Math.floor(new Date(kline.open_time).getTime() / 1000);
+
+    t.push(time);
+    o.push(parseFloat(kline.open));
+    h.push(parseFloat(kline.high));
+    l.push(parseFloat(kline.low));
+    c.push(parseFloat(kline.close));
+    v.push(parseFloat(kline.volume) || 0);
+  });
+
+  console.log(
+    `[TradingView API] ✅ Formatted ${candles.length} candles for TradingView`
+  );
+
+  res.json({
+    s: 'ok',
+    t,
+    o,
+    h,
+    l,
+    c,
+    v
+  });
 }
 
 export default router;

@@ -200,6 +200,88 @@ export function getLastPrice(symbol: string): number | undefined {
 }
 
 /**
+ * K线聚合（从 1m 聚合到其他时间周期）
+ *
+ * 聚合规则：
+ * - open  = 第一根 1m K 线的 open
+ * - close = 最后一根 1m K 线的 close
+ * - high  = 所有 1m K 线的最大 high
+ * - low   = 所有 1m K 线的最小 low
+ * - volume = 所有 1m K 线的 volume 总和
+ *
+ * @param candles 1m K 线数据数组（必须按时间升序排列）
+ * @param targetInterval 目标时间周期（5m, 15m, 1h, 1d）
+ * @returns 聚合后的 K 线数据数组
+ */
+export function aggregateCandles(
+  candles: Array<{ open_time: string; open: number; high: number; low: number; close: number; volume: number }>,
+  targetInterval: '5m' | '15m' | '1h' | '1d'
+): Array<{ time: number; open: number; high: number; low: number; close: number; volume: number }> {
+  if (!candles || candles.length === 0) {
+    console.log(`[KlineEngine] 📊 No candles to aggregate for ${targetInterval}`);
+    return [];
+  }
+
+  // 计算需要聚合的 1m K 线数量
+  const aggregationCount = getAggregationCount(targetInterval);
+
+  console.log(`[KlineEngine] 📊 Aggregating ${candles.length} 1m candles to ${targetInterval} (${candles.length / aggregationCount} target candles expected)`);
+
+  const result: Array<{ time: number; open: number; high: number; low: number; close: number; volume: number }> = [];
+
+  // 按时间窗口分组聚合
+  for (let i = 0; i < candles.length; i += aggregationCount) {
+    // 获取当前窗口的 K 线切片
+    const slice = candles.slice(i, i + aggregationCount);
+
+    if (slice.length === 0) continue;
+
+    // 计算聚合 K 线
+    const open = slice[0].open;
+    const close = slice[slice.length - 1].close;
+    const high = Math.max(...slice.map(c => c.high));
+    const low = Math.min(...slice.map(c => c.low));
+    const volume = slice.reduce((sum, c) => sum + c.volume, 0);
+
+    // 获取时间戳（使用第一根 K 线的时间）
+    const time = Math.floor(new Date(slice[0].open_time).getTime() / 1000); // 转换为秒级
+
+    result.push({
+      time,
+      open,
+      high,
+      low,
+      close,
+      volume,
+    });
+  }
+
+  console.log(`[KlineEngine] ✅ Aggregated ${result.length} ${targetInterval} candles`);
+
+  return result;
+}
+
+/**
+ * 获取聚合系数
+ * @param targetInterval 目标时间周期
+ * @returns 需要聚合的 1m K 线数量
+ */
+function getAggregationCount(targetInterval: '5m' | '15m' | '1h' | '1d'): number {
+  switch (targetInterval) {
+    case '5m':
+      return 5;
+    case '15m':
+      return 15;
+    case '1h':
+      return 60;
+    case '1d':
+      return 1440; // 24 * 60
+    default:
+      return 1;
+  }
+}
+
+/**
  * 获取所有最后成交价格
  */
 export function getAllLastPrices(): Record<string, number> {
