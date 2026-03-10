@@ -13,7 +13,7 @@ interface Subscription {
 /**
  * 客户端会话
  */
-interface ClientSession extends WebSocketType {
+interface ClientSession extends WebSocket {
   subscriptions: Set<string>;
   isAlive: boolean;
 }

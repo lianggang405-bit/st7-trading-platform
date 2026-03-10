@@ -78,11 +78,12 @@ export class MetalsDataCollector {
       // 解析返回的汇率
       const rates: MetalsRate[] = [];
       for (const [symbol, rate] of Object.entries(data.rates)) {
-        const price = convertRateToPrice(symbol, rate);
+        const rateValue = rate as number;
+        const price = convertRateToPrice(symbol, rateValue);
 
         const metalRate: MetalsRate = {
           symbol: metalsSymbolToSystemSymbol(symbol),
-          rate,
+          rate: rateValue,
           price,
           timestamp: data.timestamp || Date.now(),
         };
