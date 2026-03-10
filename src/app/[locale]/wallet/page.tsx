@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
 import { useAuthStore } from '../../../stores/authStore';
@@ -15,6 +15,7 @@ export interface Wallet {
 
 export default function WalletAuthorizePage() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, logout, isHydrated } = useAuthStore();
   const { balance, syncFromBackend } = useAssetStore();
 
@@ -91,7 +92,7 @@ export default function WalletAuthorizePage() {
               {/* 添加数字货币地址按钮 - 居中显示 */}
               <div className="flex justify-center">
                 <button
-                  onClick={() => router.push('./bind')}
+                  onClick={() => router.push(`${pathname}/bind`)}
                   className="flex items-center justify-center gap-2 rounded-2xl border-2 border-white/30 bg-gradient-to-b from-blue-100/85 to-blue-200/85 px-8 py-4 shadow-xl shadow-blue-300/50 backdrop-blur-md hover:from-blue-200/85 hover:to-blue-300/85 hover:shadow-2xl hover:shadow-blue-400/50 transition-all duration-300"
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-300/80 shadow-md">
