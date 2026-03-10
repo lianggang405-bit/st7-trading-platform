@@ -115,11 +115,11 @@ export default function WalletAuthorizePage() {
             <h1 className="text-xl font-bold text-gray-700">錢包</h1>
           </div>
 
-          {/* 主要内容 */}
-          <div className="flex min-h-screen items-center justify-center p-4">
+          {/* 主要内容 - 顶部布局 */}
+          <div className="min-h-screen p-4 pt-20">
             <div className="w-full max-w-2xl">
-              {/* 余额显示 */}
-              <div className="mb-6">
+              {/* 左上角余额显示 */}
+              <div className="mb-4">
                 <div className="flex items-start gap-3">
                   <div className="flex-1">
                     <div className="mb-1">
