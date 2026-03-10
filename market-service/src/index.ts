@@ -4,10 +4,12 @@ dotenv.config();
 // 调试：打印环境变量
 console.log('[Debug] SUPABASE_URL:', process.env.SUPABASE_URL ? 'SET' : 'NOT SET');
 console.log('[Debug] SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'NOT SET');
+console.log('[Debug] REDIS_URL:', process.env.REDIS_URL || 'redis://localhost:6379');
 
 import express from 'express';
 import cors from 'cors';
 import { testConnection } from './config/database';
+import { initRedisCache } from './cache/redis-cache';
 import { aggregatedDataSource } from './collectors/aggregated-data-source';
 import { flushCandles, getCachedCandlesCount, generateFlatCandles } from './engine/kline-engine';
 import { getCacheSize } from './cache/market-cache';
@@ -36,14 +38,20 @@ async function main() {
 
   console.log('');
 
+  // 初始化 Redis 缓存
+  console.log('2. Initializing Redis Cache...');
+  await initRedisCache();
+
+  console.log('');
+
   // 启动 Ticker Engine（24h 统计）
-  console.log('2. Starting Ticker Engine (24h statistics)...');
+  console.log('3. Starting Ticker Engine (24h statistics)...');
   await tickerEngine.loadFromDatabase();
 
   console.log('');
 
   // 启动聚合数据源收集器（交易所级架构）
-  console.log('3. Starting Aggregated Data Source (Crypto/Gold/Forex/Oil)...');
+  console.log('4. Starting Aggregated Data Source (Crypto/Gold/Forex/Oil)...');
   console.log('   - Crypto   → Binance WebSocket (Real-time)');
   console.log('   - Gold     → Gold API (10s)');
   console.log('   - Forex    → Exchange Rate API (30s)');
@@ -55,7 +63,7 @@ async function main() {
 
   // 启动 K 线刷新定时任务（每 5 秒检查一次）
   // 新版本 K 线引擎支持同时更新 1m、5m、15m，无需单独的聚合引擎
-  console.log('4. Starting K-line flush timer (every 5s) with 1m/5m/15m support...');
+  console.log('5. Starting K-line flush timer (every 5s) with 1m/5m/15m support...');
   setInterval(async () => {
     // 先生成平盘K线，确保所有交易对都有连续的K线数据
     generateFlatCandles();
@@ -69,7 +77,7 @@ async function main() {
   console.log('');
 
   // 启动 Express HTTP 服务器（TradingView API + Ticker API）
-  console.log('4. Starting HTTP server (TradingView API)...');
+  console.log('6. Starting HTTP server (TradingView API)...');
   const app = express();
   const port = 3000;
 
@@ -148,18 +156,26 @@ async function main() {
     console.log(`[Market Cache] 📊 Cached markets: ${cacheSize}`);
   }, 30000);
 
+  // 显示 Redis 缓存状态（每 60 秒）
+  setInterval(async () => {
+    const { getCacheStats } = await import('./cache/redis-cache');
+    const stats = await getCacheStats();
+    console.log(`[Redis Cache] 📊 Stats: ${stats.ticker} tickers, ${stats.orderbook} orderbooks, ${stats.market} markets (total: ${stats.total})`);
+  }, 60000);
+
   console.log('');
   console.log('✅ Market Collector Service is running!');
   console.log('📊 Aggregated Data Source (Crypto/Gold/Forex/Oil)');
   console.log('📈 Ticker Engine active (24h statistics)');
   console.log('📚 OrderBook Engine active (depth data)');
   console.log('🕯️  K-line engine active (1m/5m/15m intervals with flat candle generation)');
+  console.log('💾 Redis Cache active (ticker/orderbook/market)');
+  console.log('💾 Market cache active (in-memory)');
   console.log('📡 WebSocket server running on port 8081');
   console.log('🌐 HTTP server running on port 3000');
   console.log('📊 TradingView API available at http://localhost:3000/tv');
   console.log('📊 Ticker API available at http://localhost:3000/ticker/24hr');
   console.log('📚 OrderBook API available at http://localhost:3000/orderbook');
-  console.log('💾 Market cache active');
   console.log('');
   console.log('🔄 Data Source Refresh Rates:');
   console.log('   - Crypto (Binance WS):  Real-time');
