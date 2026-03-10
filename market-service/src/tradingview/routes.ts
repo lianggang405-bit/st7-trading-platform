@@ -127,7 +127,8 @@ router.get('/history', async (req, res) => {
     const toTimestamp = Number(to) * 1000;
 
     // ✅ 转换交易对格式：XAUUSDT → XAUUSD, EURUSDT → EURUSD
-    let dbSymbol = symbol.toUpperCase();
+    const symbolStr = symbol as string;
+    let dbSymbol = symbolStr.toUpperCase();
     if (dbSymbol.endsWith('USDT')) {
       dbSymbol = dbSymbol.replace('USDT', 'USD');
     }

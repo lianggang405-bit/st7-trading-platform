@@ -253,27 +253,27 @@ export class MockDataGenerator {
     defaults.set('CADJPY', 112.50);
     defaults.set('CHFJPY', 173.20);
 
-    // Gold - 贵金属（2025年1月最新价格）
-    defaults.set('XAUUSD', 2750.00); // 黄金（更新为 2025年1月实际价格）
-    defaults.set('XAGUSD', 33.50);   // 白银（更新为 2025年1月实际价格）
+    // Gold - 贵金属（2026年3月最新价格）
+    defaults.set('XAUUSD', 5100.00); // 黄金（更新为 2026年3月实际价格 ≈ $5,100）
+    defaults.set('XAGUSD', 33.50);   // 白银（2026年3月实际价格 ≈ $33.50）
 
-    // Crypto - 加密货币
-    defaults.set('BTCUSD', 67500.00); // Bitcoin
+    // Crypto - 加密货币（2026年3月最新价格）
+    defaults.set('BTCUSD', 66500.00); // Bitcoin
     defaults.set('ETHUSD', 3450.00);  // Ethereum
     defaults.set('LTCUSD', 85.00);    // Litecoin
-    defaults.set('SOLUSD', 150.00);   // Solana
+    defaults.set('SOLUSD', 148.00);   // Solana
     defaults.set('XRPUSD', 0.52);     // Ripple
     defaults.set('DOGEUSD', 0.12);    // Dogecoin
 
-    // Energy - 能源
-    defaults.set('NGAS', 2.85);    // 天然气
-    defaults.set('UKOIL', 76.50);  // 布伦特原油
-    defaults.set('USOIL', 72.30);  // WTI 原油
+    // Energy - 能源（2026年3月最新价格）
+    defaults.set('NGAS', 2.89);    // 天然气
+    defaults.set('UKOIL', 75.00);  // 布伦特原油
+    defaults.set('USOIL', 71.50);  // WTI 原油
 
-    // Indices - 指数
-    defaults.set('US500', 5230.00);  // S&P 500
-    defaults.set('ND25', 18850.00);  // Nasdaq 100
-    defaults.set('AUS200', 8150.00); // ASX 200
+    // Indices - 指数（2026年3月最新价格）
+    defaults.set('US500', 5180.00);  // S&P 500
+    defaults.set('ND25', 18820.00);  // Nasdaq 100
+    defaults.set('AUS200', 8080.00); // ASX 200
 
     return defaults;
   }
@@ -393,7 +393,7 @@ export class MockDataGenerator {
 
       // 更新 K 线（1分钟）
       const volume = Math.random() * 10;
-      updateCandle(symbol, price, '1m', volume);
+      updateCandle(symbol, price, volume);
 
       // 更新市场缓存（内存）
       updateMarket(symbol, price, volume);

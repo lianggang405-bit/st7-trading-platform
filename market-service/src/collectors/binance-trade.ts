@@ -118,7 +118,7 @@ export class BinanceTradeCollector {
       const volume = parseFloat(message.q);
 
       // 更新 K线
-      updateCandle(symbol, price, '1m', volume);
+      updateCandle(symbol, price, volume);
 
       // 更新市场缓存
       updateMarket(symbol, price, volume);

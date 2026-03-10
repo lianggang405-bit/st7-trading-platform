@@ -65,7 +65,8 @@ class MarketWebSocketServer {
    * 处理客户端连接
    */
   private handleConnection(ws: ClientSession): void {
-    const clientIp = ws.remoteAddress || 'unknown';
+    // const clientIp = ws.remoteAddress || 'unknown';
+    const clientIp = 'unknown';
     console.log(`[WebSocket] Client connected: ${clientIp}`);
 
     // 初始化会话

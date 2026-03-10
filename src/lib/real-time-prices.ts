@@ -179,20 +179,20 @@ export const realTimePrices: RealTimePrice[] = [
     updateTime: '2024-03-05'
   },
 
-  // 贵金属（LME - 2024年3月）
+  // 贵金属（LME - 2026年3月）
   {
     symbol: 'XAUUSD',
-    price: 2345.67,
+    price: 5100.00,
     change: 0.45,
     source: 'LME',
-    updateTime: '2024-03-05'
+    updateTime: '2026-03-10'
   },
   {
     symbol: 'XAGUSD',
-    price: 28.45,
+    price: 33.50,
     change: -0.23,
     source: 'LME',
-    updateTime: '2024-03-05'
+    updateTime: '2026-03-10'
   },
 
   // 能源（NYMEX - 2024年3月）

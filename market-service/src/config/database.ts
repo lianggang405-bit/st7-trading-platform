@@ -29,11 +29,11 @@ export async function testConnection(): Promise<boolean> {
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from('symbols')
-      .select('count')
-      .limit(1);
+      .select('symbol', { count: 'exact', head: true });
 
     if (error) {
       console.error('[Database] Connection test failed:', error.message);
+      console.error('[Database] Full error:', error);
       return false;
     }
 
