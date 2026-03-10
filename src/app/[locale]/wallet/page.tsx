@@ -117,7 +117,7 @@ export default function WalletAuthorizePage() {
 
           {/* 主要内容 - 顶部布局 */}
           <div className="min-h-screen p-4 pt-20">
-            <div className="w-full max-w-2xl">
+            <div className="w-full">
               {/* 左上角余额显示 */}
               <div className="mb-4">
                 <div className="flex items-start gap-3">
@@ -132,11 +132,11 @@ export default function WalletAuthorizePage() {
                 </div>
               </div>
 
-              {/* 添加数字货币地址按钮 */}
-              <div className="space-y-3">
+              {/* 添加数字货币地址按钮 - 居中显示 */}
+              <div className="flex justify-center">
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="mx-auto flex w-auto items-center justify-center gap-2 rounded-lg border-2 border-gray-300 px-8 py-4 hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-center gap-2 rounded-lg border-2 border-gray-300 px-8 py-4 hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
                     <svg
@@ -155,42 +155,42 @@ export default function WalletAuthorizePage() {
                   </div>
                   <span className="text-sm text-gray-700">添加數字貨幣地址</span>
                 </button>
+              </div>
 
-                {/* 已连接的钱包列表 */}
-                {wallets.length > 0 && (
-                  <div className="mt-6 space-y-2">
-                    <h2 className="text-xs font-medium text-gray-600">已连接的钱包</h2>
-                    {wallets.map((wallet, index) => (
-                      <div
-                        key={wallet.address}
-                        className="flex items-center justify-between rounded-lg border border-gray-200 p-3 hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-                            <span className="text-xs font-semibold text-blue-600">
-                              {index + 1}
-                            </span>
+              {/* 已连接的钱包列表 */}
+              {wallets.length > 0 && (
+                <div className="mt-6 max-w-2xl mx-auto space-y-2">
+                  <h2 className="text-xs font-medium text-gray-600">已连接的钱包</h2>
+                  {wallets.map((wallet, index) => (
+                    <div
+                      key={wallet.address}
+                      className="flex items-center justify-between rounded-lg border border-gray-200 p-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
+                          <span className="text-xs font-semibold text-blue-600">
+                            {index + 1}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-mono text-xs font-medium text-gray-900">
+                            {formatAddress(wallet.address)}
                           </div>
-                          <div>
-                            <div className="font-mono text-xs font-medium text-gray-900">
-                              {formatAddress(wallet.address)}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {wallet.chain} • {new Date(wallet.connectedAt).toLocaleDateString()}
-                            </div>
+                          <div className="text-xs text-gray-500">
+                            {wallet.chain} • {new Date(wallet.connectedAt).toLocaleDateString()}
                           </div>
                         </div>
-                        <button
-                          onClick={() => handleDisconnect(wallet.address)}
-                          className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors"
-                        >
-                          断开连接
-                        </button>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      <button
+                        onClick={() => handleDisconnect(wallet.address)}
+                        className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors"
+                      >
+                        断开连接
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
