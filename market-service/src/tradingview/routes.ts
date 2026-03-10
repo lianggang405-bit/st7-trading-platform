@@ -1,7 +1,11 @@
 import express from 'express';
 import { getSupabase } from '../config/database';
-import { getCachedKlines, isRedisEnabled } from '../config/redis';
+import { isRedisEnabled } from '../config/redis';
 import { aggregateCandles } from '../engine/kline-engine';
+import {
+  getAggregatedKlinesFromRedis,
+  setAggregatedKlinesToRedis
+} from '../cache/redis-cache';
 
 const router = express.Router();
 
@@ -139,101 +143,138 @@ router.get('/history', async (req, res) => {
       `from: ${fromTimestamp} (${new Date(fromTimestamp).toISOString()}), to: ${toTimestamp} (${new Date(toTimestamp).toISOString()})`
     );
 
-    let data: any[] | null = null;
-    let error: any = null;
-
     // 📊 K线聚合策略：如果请求的不是 1m，则从 1m 聚合
     if (resolution !== '1') {
       console.log(`[TradingView API] 🔄 Need to aggregate from 1m to ${interval}`);
 
-      // 🔍 查询更多 1m K 线（需要聚合，所以查询数量要多一些）
-      // 例如：请求 100 根 5m K 线，需要查询 500 根 1m K 线
-      const aggregationCount = getAggregationCount(resolution);
-      const queryLimit = MAX_BARS * aggregationCount;
+      // ✅ 先尝试从 Redis 缓存读取聚合数据
+      let aggregated: any[] | null = null;
 
-      console.log(`[TradingView API] 📊 Querying ${queryLimit} 1m candles for aggregation`);
+      if (isRedisEnabled()) {
+        const cached = await getAggregatedKlinesFromRedis(dbSymbol, resolution);
+        if (cached && cached.length > 0) {
+          console.log(
+            `[TradingView API] ✅ Got ${cached.length} cached ${interval} candles from Redis`
+          );
 
-      const supabase = getSupabase();
-      const result = await supabase
-        .from('klines')
-        .select('*')
-        .eq('symbol', dbSymbol)
-        .eq('interval', '1m')
-        .gte('open_time', fromTimestamp - (aggregationCount * 60000)) // 扩大时间范围，确保有足够的数据聚合
-        .lte('open_time', toTimestamp)
-        .order('open_time', { ascending: true }) // 必须升序，聚合需要
-        .limit(queryLimit);
+          // 过滤时间范围
+          aggregated = cached.filter((c: any) => {
+            const candleTime = c.open_time; // 毫秒时间戳
+            return candleTime >= fromTimestamp && candleTime <= toTimestamp;
+          });
 
-      data = result.data;
-      error = result.error;
-
-      console.log(`[TradingView API] Query result: error=${!!error}, 1m data.length=${data?.length || 0}`);
-
-      if (error || !data || data.length === 0) {
-        console.log('[TradingView API] No 1m data found for aggregation');
-        return res.json({
-          s: 'no_data',
-          nextTime: Math.floor(Date.now() / 1000)
-        });
+          console.log(
+            `[TradingView API] 📊 Filtered ${aggregated.length} ${interval} candles in time range`
+          );
+        }
       }
 
-      // ✅ 聚合 K 线
-      const aggregated = aggregateCandles(data, interval as any);
+      // 如果缓存未命中或数据不足，实时聚合
+      if (!aggregated || aggregated.length === 0) {
+        console.log(`[TradingView API] 🔍 Cache miss, aggregating from 1m...`);
 
-      if (aggregated.length === 0) {
-        console.log('[TradingView API] No aggregated data');
-        return res.json({
-          s: 'no_data',
-          nextTime: Math.floor(Date.now() / 1000)
-        });
+        // 🔍 查询更多 1m K 线（需要聚合，所以查询数量要多一些）
+        // 例如：请求 100 根 5m K 线，需要查询 500 根 1m K 线
+        const aggregationCount = getAggregationCount(resolution);
+        const queryLimit = MAX_BARS * aggregationCount;
+
+        console.log(`[TradingView API] 📊 Querying ${queryLimit} 1m candles for aggregation`);
+
+        const supabase = getSupabase();
+        const result = await supabase
+          .from('klines')
+          .select('*')
+          .eq('symbol', dbSymbol)
+          .eq('interval', '1m')
+          .gte('open_time', fromTimestamp - (aggregationCount * 60000)) // 扩大时间范围，确保有足够的数据聚合
+          .lte('open_time', toTimestamp)
+          .order('open_time', { ascending: true }) // 必须升序，聚合需要
+          .limit(queryLimit);
+
+        const data = result.data;
+        const error = result.error;
+
+        console.log(
+          `[TradingView API] Query result: error=${!!error}, 1m data.length=${data?.length || 0}`
+        );
+
+        if (error || !data || data.length === 0) {
+          console.log('[TradingView API] No 1m data found for aggregation');
+          return res.json({
+            s: 'no_data',
+            nextTime: Math.floor(Date.now() / 1000)
+          });
+        }
+
+        // ✅ 聚合 K 线
+        aggregated = aggregateCandles(data, interval as any);
+
+        if (aggregated.length === 0) {
+          console.log('[TradingView API] No aggregated data');
+          return res.json({
+            s: 'no_data',
+            nextTime: Math.floor(Date.now() / 1000)
+          });
+        }
+
+        console.log(`[TradingView API] ✅ Aggregated ${aggregated.length} ${interval} candles`);
+
+        // ✅ 缓存聚合结果到 Redis
+        if (isRedisEnabled()) {
+          const cacheData = aggregated.map((c: any) => ({
+            open_time: c.time * 1000, // 转换为毫秒
+            open: c.open,
+            high: c.high,
+            low: c.low,
+            close: c.close,
+            volume: c.volume
+          }));
+
+          await setAggregatedKlinesToRedis(dbSymbol, resolution, cacheData);
+        }
+      } else {
+        console.log(`[TradingView API] 📦 Using cached aggregated data (${aggregated.length} candles)`);
       }
 
-      // 过滤时间范围
+      // 过滤时间范围（如果是缓存的，可能需要再次过滤）
       const filteredAggregated = aggregated.filter((c: any) => {
         const candleTime = c.time * 1000; // 转换为毫秒
         return candleTime >= fromTimestamp && candleTime <= toTimestamp;
       });
 
-      console.log(`[TradingView API] ✅ Aggregated ${filteredAggregated.length} ${interval} candles`);
+      if (filteredAggregated.length === 0) {
+        console.log('[TradingView API] No aggregated data in time range');
+        return res.json({
+          s: 'no_data',
+          nextTime: Math.floor(Date.now() / 1000)
+        });
+      }
+
+      console.log(`[TradingView API] ✅ Returning ${filteredAggregated.length} ${interval} candles`);
 
       // 转换为 TradingView 格式
       return formatTradingViewResponse(filteredAggregated, res);
     }
 
-    // 📊 如果是 1m K 线，直接查询
+    // 📊 如果是 1m K 线，直接查询数据库
     console.log(`[TradingView API] 📊 Querying 1m candles directly`);
 
-    // 先尝试从 Redis 缓存查询
-    if (isRedisEnabled()) {
-      console.log(`[TradingView API] 🔍 Trying Redis cache...`);
-      data = await getCachedKlines(dbSymbol, interval, MAX_BARS);
+    // 查询数据库
+    const supabase = getSupabase();
+    const result = await supabase
+      .from('klines')
+      .select('*')
+      .eq('symbol', dbSymbol)
+      .eq('interval', interval)
+      .gte('open_time', fromTimestamp)
+      .lte('open_time', toTimestamp)
+      .order('open_time', { ascending: false }) // DESC 查询，性能更好
+      .limit(MAX_BARS);
 
-      if (data && data.length > 0) {
-        console.log(`[TradingView API] ✅ Got ${data.length} candles from Redis cache`);
-      } else {
-        console.log(`[TradingView API] ℹ️ No data in Redis cache, fallback to database`);
-        data = null;
-      }
-    }
+    const data = result.data;
+    const error = result.error;
 
-    // 如果 Redis 没有数据或 Redis 未启用，查询数据库
-    if (!data || data.length === 0) {
-      const supabase = getSupabase();
-      const result = await supabase
-        .from('klines')
-        .select('*')
-        .eq('symbol', dbSymbol)
-        .eq('interval', interval)
-        .gte('open_time', fromTimestamp)
-        .lte('open_time', toTimestamp)
-        .order('open_time', { ascending: false }) // DESC 查询，性能更好
-        .limit(MAX_BARS);
-
-      data = result.data;
-      error = result.error;
-
-      console.log(`[TradingView API] Query result: error=${!!error}, data.length=${data?.length || 0}`);
-    }
+    console.log(`[TradingView API] Query result: error=${!!error}, data.length=${data?.length || 0}`);
 
     if (error) {
       console.error('[TradingView API] Error fetching history:', error);

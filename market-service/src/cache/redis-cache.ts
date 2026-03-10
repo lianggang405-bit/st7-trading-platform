@@ -48,6 +48,157 @@ export async function initRedisCache(): Promise<void> {
   }
 }
 
+// ==================== K 线聚合缓存 ====================
+
+/**
+ * 缓存键前缀
+ */
+const KLINE_KEY_PREFIX = 'kline';
+
+/**
+ * 缓存过期时间（秒）
+ */
+const KLINE_CACHE_TTL = 60; // 60 秒
+
+/**
+ * 构建 K 线聚合缓存键
+ * 格式：kline:{symbol}:{resolution}
+ */
+function buildAggregatedKlineKey(symbol: string, resolution: string): string {
+  return `${KLINE_KEY_PREFIX}:${symbol.toUpperCase()}:${resolution}`;
+}
+
+/**
+ * 聚合 K 线数据接口
+ */
+export interface AggregatedCandle {
+  open_time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+/**
+ * 设置聚合 K 线数据到 Redis
+ * @param symbol 交易对
+ * @param resolution 时间周期
+ * @param candles K 线数据
+ */
+export async function setAggregatedKlinesToRedis(
+  symbol: string,
+  resolution: string,
+  candles: AggregatedCandle[]
+): Promise<void> {
+  if (!redisAvailable) return;
+
+  try {
+    const redis = getRedisClient();
+    const key = buildAggregatedKlineKey(symbol, resolution);
+    const value = JSON.stringify(candles);
+
+    await redis.setex(key, KLINE_CACHE_TTL, value);
+    console.log(
+      `[RedisCache] ✅ Cached ${candles.length} aggregated klines: ${symbol} ${resolution}`
+    );
+  } catch (error) {
+    console.error(
+      `[RedisCache] ❌ Error setting aggregated klines ${symbol} ${resolution}:`,
+      error
+    );
+    redisAvailable = false;
+  }
+}
+
+/**
+ * 从 Redis 获取聚合 K 线数据
+ * @param symbol 交易对
+ * @param resolution 时间周期
+ * @returns K 线数据或 null
+ */
+export async function getAggregatedKlinesFromRedis(
+  symbol: string,
+  resolution: string
+): Promise<AggregatedCandle[] | null> {
+  if (!redisAvailable) return null;
+
+  try {
+    const redis = getRedisClient();
+    const key = buildAggregatedKlineKey(symbol, resolution);
+    const value = await redis.get(key);
+
+    if (!value) {
+      return null;
+    }
+
+    const candles = JSON.parse(value) as AggregatedCandle[];
+    console.log(
+      `[RedisCache] 📦 Retrieved ${candles.length} cached klines: ${symbol} ${resolution}`
+    );
+
+    return candles;
+  } catch (error) {
+    console.error(
+      `[RedisCache] ❌ Error getting cached klines ${symbol} ${resolution}:`,
+      error
+    );
+    return null;
+  }
+}
+
+/**
+ * 使指定交易对的所有聚合缓存失效
+ * @param symbol 交易对
+ */
+export async function invalidateAggregatedCache(symbol: string): Promise<void> {
+  if (!redisAvailable) return;
+
+  try {
+    const redis = getRedisClient();
+    const pattern = `${KLINE_KEY_PREFIX}:${symbol.toUpperCase()}:*`;
+    const keys = await redis.keys(pattern);
+
+    if (keys.length > 0) {
+      await redis.del(...keys);
+      console.log(
+        `[RedisCache] 🗑️  Invalidated ${keys.length} cache entries for ${symbol}`
+      );
+    }
+  } catch (error) {
+    console.error(`[RedisCache] ❌ Error invalidating cache for ${symbol}:`, error);
+  }
+}
+
+/**
+ * 批量设置多个交易对的聚合 K 线数据
+ * @param entries K 线数据数组
+ */
+export async function setAggregatedKlinesBatch(
+  entries: Array<{ symbol: string; resolution: string; candles: AggregatedCandle[] }>
+): Promise<void> {
+  if (!redisAvailable || entries.length === 0) return;
+
+  try {
+    const redis = getRedisClient();
+    const pipeline = redis.pipeline();
+
+    for (const entry of entries) {
+      const key = buildAggregatedKlineKey(entry.symbol, entry.resolution);
+      const value = JSON.stringify(entry.candles);
+      pipeline.setex(key, KLINE_CACHE_TTL, value);
+    }
+
+    await pipeline.exec();
+    console.log(
+      `[RedisCache] ✅ Batch cached ${entries.length} aggregated kline entries`
+    );
+  } catch (error) {
+    console.error('[RedisCache] ❌ Error batch caching aggregated klines:', error);
+    redisAvailable = false;
+  }
+}
+
 /**
  * 构建 Ticker 缓存键
  */

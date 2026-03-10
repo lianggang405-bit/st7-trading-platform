@@ -1,6 +1,11 @@
 import { getSupabase } from '../config/database';
 import { broadcastKline } from '../ws/market-server';
-import { cacheKlines, isRedisEnabled } from '../config/redis';
+import { isRedisEnabled } from '../config/redis';
+import {
+  getAggregatedKlinesFromRedis,
+  setAggregatedKlinesToRedis,
+  invalidateAggregatedCache
+} from '../cache/redis-cache';
 
 export type Interval = '1m' | '5m' | '15m';
 
@@ -161,10 +166,10 @@ export async function flushCandles() {
 
     console.log(`[KlineEngine] ✅ Flushed ${data.length} candles to database`);
 
-    // 写入 Redis 缓存
-    if (isRedisEnabled()) {
-      await cacheKlines(candles);
-      console.log(`[KlineEngine] ✅ Cached ${data.length} candles to Redis`);
+    // 使聚合缓存失效（主动更新缓存策略）
+    const uniqueSymbols = [...new Set(candles.map(c => c.symbol))];
+    for (const symbol of uniqueSymbols) {
+      await invalidateAggregatedCache(symbol);
     }
 
     // 打印部分 K 线信息（最多 5 个）
