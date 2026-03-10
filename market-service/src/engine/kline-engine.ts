@@ -7,6 +7,9 @@ import {
   invalidateAggregatedCache
 } from '../cache/redis-cache';
 
+// 转换 Interval 类型用于广播
+type BroadcastInterval = '1m' | '5m' | '15m' | '1h' | '1d';
+
 export type Interval = '1m' | '5m' | '15m';
 
 /**
@@ -452,6 +455,20 @@ export function updateAggregatedCandle(symbol: string, candle: Candle): void {
         `O=${state.open.toFixed(2)} H=${state.high.toFixed(2)} ` +
         `L=${state.low.toFixed(2)} C=${state.close.toFixed(2)} V=${state.volume.toFixed(2)}`
       );
+
+      // ✅ 推送聚合 K 线更新到订阅的客户端
+      broadcastKline(symbol, interval as BroadcastInterval, {
+        symbol,
+        open: state.open,
+        high: state.high,
+        low: state.low,
+        close: state.close,
+        volume: state.volume,
+        openTime: state.openTime,
+        closeTime: state.closeTime,
+        interval: interval as BroadcastInterval,
+        isAggregated: true, // 标记为聚合 K 线
+      });
     }
   });
 }
