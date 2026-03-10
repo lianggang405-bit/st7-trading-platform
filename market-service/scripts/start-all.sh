@@ -4,13 +4,16 @@
 # 用途：启动 Redis 和 Market Service
 #
 
+# 获取脚本所在目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 echo "🚀 Starting all services..."
 
 # 启动 Redis
-bash /workspace/projects/market-service/scripts/start-redis.sh
+bash "$SCRIPT_DIR/start-redis.sh"
 
 # 启动 Market Service
-bash /workspace/projects/market-service/scripts/start-market-service.sh
+bash "$SCRIPT_DIR/start-market-service.sh"
 
 echo ""
 echo "✅ All services started successfully!"

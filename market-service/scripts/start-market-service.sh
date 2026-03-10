@@ -4,10 +4,14 @@
 # 用途：启动 Market Collector Service
 #
 
+# 获取脚本所在目录和项目根目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 echo "🚀 Starting Market Service..."
 
 # 进入项目目录
-cd /workspace/projects/market-service
+cd "$PROJECT_ROOT"
 
 # 检查是否已经在运行
 if pgrep -f "tsx src/index.ts" > /dev/null; then
