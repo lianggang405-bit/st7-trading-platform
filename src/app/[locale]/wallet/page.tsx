@@ -136,11 +136,11 @@ export default function WalletAuthorizePage() {
               <div className="flex justify-center">
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="flex items-center justify-center gap-2 rounded-2xl border-2 border-white/30 bg-gradient-to-b from-blue-50/80 to-blue-100/80 px-8 py-4 shadow-xl shadow-blue-200/50 backdrop-blur-md hover:from-blue-100/80 hover:to-blue-150/80 hover:shadow-2xl hover:shadow-blue-300/50 transition-all duration-300"
+                  className="flex items-center justify-center gap-2 rounded-2xl border-2 border-white/30 bg-gradient-to-b from-blue-100/85 to-blue-200/85 px-8 py-4 shadow-xl shadow-blue-300/50 backdrop-blur-md hover:from-blue-200/85 hover:to-blue-300/85 hover:shadow-2xl hover:shadow-blue-400/50 transition-all duration-300"
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-200/80 shadow-md">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-300/80 shadow-md">
                     <svg
-                      className="h-5 w-5 text-blue-700"
+                      className="h-5 w-5 text-blue-800"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -153,7 +153,7 @@ export default function WalletAuthorizePage() {
                       />
                     </svg>
                   </div>
-                  <span className="text-sm font-medium text-blue-800">添加數字貨幣地址</span>
+                  <span className="text-sm font-medium text-blue-900">添加數字貨幣地址</span>
                 </button>
               </div>
 
