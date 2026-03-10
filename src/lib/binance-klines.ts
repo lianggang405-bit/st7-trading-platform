@@ -14,6 +14,99 @@ export interface KlineResponse {
 }
 
 /**
+ * 生成模拟K线数据
+ * 用于在API返回空数据时提供默认数据
+ * @param symbol 交易对
+ * @param interval 时间周期（如 1M, 5M, 15M, 1H）
+ * @param count K线数量（默认80）
+ * @returns 模拟K线数据数组
+ */
+export function generateMockKlines(
+  symbol: string,
+  interval: string,
+  count: number = 80
+): KlineResponse[] {
+  console.log(`[Klines] 生成模拟K线数据: ${symbol} ${interval} ${count}条`);
+
+  // 获取时间周期对应的秒数
+  const intervalSeconds = getIntervalSeconds(interval);
+
+  // 获取基础价格（根据交易对）
+  const basePrice = getBasePrice(symbol);
+
+  // 生成当前时间作为结束时间
+  const now = Math.floor(Date.now() / 1000);
+  const endTime = now - (now % intervalSeconds); // 向下对齐到周期边界
+
+  const klines: KlineResponse[] = [];
+
+  // 从后往前生成数据
+  for (let i = 0; i < count; i++) {
+    const time = endTime - ((count - 1 - i) * intervalSeconds);
+
+    // 使用正弦波模拟价格波动
+    const trend = Math.sin(i / 10) * 0.01; // 1% 的趋势波动
+    const noise = (Math.random() - 0.5) * 0.002; // 0.2% 的随机噪声
+
+    const priceChange = basePrice * (trend + noise);
+
+    const open = basePrice + priceChange;
+    const high = open * (1 + Math.abs(noise));
+    const low = open * (1 - Math.abs(noise));
+    const close = open + (Math.random() - 0.5) * (high - low);
+
+    klines.push({
+      time,
+      open,
+      high,
+      low,
+      close,
+      volume: Math.random() * 1000,
+    });
+  }
+
+  return klines;
+}
+
+/**
+ * 获取交易对的基础价格
+ * @param symbol 交易对
+ * @returns 基础价格
+ */
+function getBasePrice(symbol: string): number {
+  const priceMap: Record<string, number> = {
+    // 加密货币
+    'BTCUSD': 65000,
+    'ETHUSD': 3500,
+    'SOLUSD': 150,
+    'BNBUSD': 600,
+    'XRPUSD': 0.5,
+
+    // 贵金属
+    'XAUUSD': 5000,
+    'XAGUSD': 30,
+
+    // 外汇
+    'EURUSD': 1.08,
+    'GBPUSD': 1.27,
+    'USDJPY': 150,
+    'USDCHF': 0.90,
+
+    // 能源
+    'USOIL': 75,
+    'UKOIL': 80,
+    'NGAS': 2.8,
+
+    // 指数
+    'US500': 5200,
+    'ND25': 19000,
+    'AUS200': 8000,
+  };
+
+  return priceMap[symbol] || 100;
+}
+
+/**
  * 补全缺失的 K 线数据
  * 确保返回的数据是连续的，避免 TradingView 显示异常
  * @param klines K线数据数组
@@ -109,10 +202,10 @@ export async function fetchBinanceKlines(
       throw new Error(`API error: ${data.error || 'Unknown error'}`);
     }
 
-    // ✅ 如果返回空数组，抛出错误以触发模拟数据生成
+    // ✅ 如果返回空数组，返回空数组而不是抛出错误
     if (!data.data || data.data.length === 0) {
-      console.warn(`[Klines] API 返回空数据，将使用模拟数据`);
-      throw new Error(`No data available for ${symbol} ${interval}`);
+      console.warn(`[Klines] API 返回空数据: ${symbol} ${interval}`);
+      return [];
     }
 
     console.log(`[Klines] 成功获取 ${data.data.length} 条K线数据`);
