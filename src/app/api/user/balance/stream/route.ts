@@ -2,9 +2,16 @@ import { NextRequest } from 'next/server';
 
 /**
  * GET - 余额实时推送（SSE）
- * 
+ *
  * 使用 Server-Sent Events 实时推送用户资产变动
  */
+
+interface BalanceSnapshot {
+  balance: number;
+  equity: number;
+  floatingProfit: number;
+}
+
 export async function GET(request: NextRequest) {
   // 从 URL 参数获取 token（EventSource 不支持自定义 header）
   const searchParams = request.nextUrl.searchParams;
@@ -35,7 +42,7 @@ export async function GET(request: NextRequest) {
       controller.enqueue(encoder.encode(`data: ${data}\n\n`));
 
       // 轮询检查余额变动（每 2 秒）
-      let lastBalance = null;
+      let lastBalance: BalanceSnapshot | null = null;
       let requestCount = 0;
       const maxRequests = 1800; // 1 小时（每 2 秒一次请求）
 
