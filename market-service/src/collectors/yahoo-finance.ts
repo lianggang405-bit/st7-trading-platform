@@ -1,20 +1,29 @@
 /**
  * Yahoo Finance 数据收集器
- * 用于获取免费的黄金、白银等贵金属价格
+ * 用于获取免费的黄金、白银等贵金属价格，以及原油等能源价格
  *
  * 参考资料:
  * - https://finance.yahoo.com/quote/GC=F (黄金期货)
  * - https://finance.yahoo.com/quote/SI=F (白银期货)
+ * - https://finance.yahoo.com/quote/CL=F (WTI原油)
+ * - https://finance.yahoo.com/quote/BZ=F (布伦特原油)
+ * - https://finance.yahoo.com/quote/NG=F (天然气)
  */
 
 /**
  * Yahoo Finance 股票代码映射
  */
 const YAHOO_SYMBOLS: Record<string, string> = {
+  // 贵金属
   'XAUUSD': 'GC=F', // 黄金期货
   'XAGUSD': 'SI=F', // 白银期货
   'XPTUSD': 'PL=F', // 铂金期货
   'XPDUSD': 'PA=F', // 钯金期货
+
+  // 能源
+  'USOIL': 'CL=F',  // WTI原油期货
+  'UKOIL': 'BZ=F',  // 布伦特原油期货
+  'NGAS': 'NG=F',   // 天然气期货
 };
 
 /**
@@ -26,6 +35,9 @@ export function yahooSymbolToSystemSymbol(yahooSymbol: string): string {
     'SI=F': 'XAGUSD',
     'PL=F': 'XPTUSD',
     'PA=F': 'XPDUSD',
+    'CL=F': 'USOIL',
+    'BZ=F': 'UKOIL',
+    'NG=F': 'NGAS',
   };
 
   return symbolMap[yahooSymbol] || yahooSymbol.replace('=', '');
@@ -112,6 +124,14 @@ export async function getYahooFinancePrices(symbols: string[]): Promise<Map<stri
  * 获取所有支持的贵金属价格
  */
 export async function getAllMetalsPrices(): Promise<Map<string, number>> {
-  const symbols = Object.keys(YAHOO_SYMBOLS);
-  return await getYahooFinancePrices(symbols);
+  const metalSymbols = ['XAUUSD', 'XAGUSD', 'XPTUSD', 'XPDUSD'];
+  return await getYahooFinancePrices(metalSymbols);
+}
+
+/**
+ * 获取所有支持的能源价格
+ */
+export async function getAllEnergyPrices(): Promise<Map<string, number>> {
+  const energySymbols = ['USOIL', 'UKOIL', 'NGAS'];
+  return await getYahooFinancePrices(energySymbols);
 }
