@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthGuard } from '../../../../components/auth-guard';
 import { PageShell } from '../../../../components/layout/page-shell';
@@ -12,11 +12,22 @@ export interface Wallet {
   connectedAt: string;
 }
 
-const CURRENCIES = [
-  { id: 'ETH', name: 'Ethereum', icon: '⟠' },
-  { id: 'BSC', name: 'BSC', icon: '⟠' },
-  { id: 'POLYGON', name: 'Polygon', icon: '⟠' },
-  { id: 'SOL', name: 'Solana', icon: '◎' },
+interface CurrencyOption {
+  id: string;
+  name: string;
+  protocol: string;
+  icon: string;
+  placeholder: string;
+}
+
+const CURRENCIES: CurrencyOption[] = [
+  { id: 'ETH', name: 'Ethereum', protocol: 'ERC20', icon: '⟠', placeholder: '0x开头的42位地址' },
+  { id: 'BSC', name: 'BSC', protocol: 'BEP20', icon: '⟠', placeholder: '0x开头的42位地址' },
+  { id: 'POLYGON', name: 'Polygon', protocol: 'MATIC', icon: '⟠', placeholder: '0x开头的42位地址' },
+  { id: 'SOL', name: 'Solana', protocol: 'SPL', icon: '◎', placeholder: 'Base58编码地址' },
+  { id: 'TRX', name: 'Tron', protocol: 'TRC20', icon: '◈', placeholder: 'T开头的34位地址' },
+  { id: 'BTC', name: 'Bitcoin', protocol: 'BTC', icon: '₿', placeholder: '比特币地址' },
+  { id: 'DOGE', name: 'Dogecoin', protocol: 'DOGE', icon: 'Ð', placeholder: '狗狗币地址' },
 ];
 
 export default function BindWalletPage() {
@@ -28,6 +39,37 @@ export default function BindWalletPage() {
   const [walletAddress, setWalletAddress] = useState('');
   const [error, setError] = useState('');
   const [isBinding, setIsBinding] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // 点击外部关闭下拉菜单
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const validateAddress = (address: string, currency: CurrencyOption): boolean => {
+    switch (currency.id) {
+      case 'ETH':
+      case 'BSC':
+      case 'POLYGON':
+        return /^0x[a-fA-F0-9]{40}$/.test(address);
+      case 'SOL':
+        return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
+      case 'TRX':
+        return /^T[A-Za-z1-9]{33}$/.test(address);
+      case 'BTC':
+      case 'DOGE':
+        return /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^(bc1)[a-z0-9]{11,71}$/.test(address);
+      default:
+        return address.length > 10;
+    }
+  };
 
   const handleBind = () => {
     setError('');
@@ -37,8 +79,8 @@ export default function BindWalletPage() {
       return;
     }
 
-    if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
-      setError('无效的钱包地址格式');
+    if (!validateAddress(walletAddress, selectedCurrency)) {
+      setError(`无效的${selectedCurrency.name}地址格式`);
       return;
     }
 
@@ -63,6 +105,13 @@ export default function BindWalletPage() {
       setIsBinding(false);
       router.push('..');
     }, 1000);
+  };
+
+  const handleSelectCurrency = (currency: CurrencyOption) => {
+    setSelectedCurrency(currency);
+    setWalletAddress(''); // 清空地址
+    setError('');
+    setShowDropdown(false);
   };
 
   return (
@@ -97,21 +146,24 @@ export default function BindWalletPage() {
           {/* 主要内容 */}
           <div className="min-h-screen flex items-center justify-center p-4 pt-20">
             <div className="w-full max-w-md space-y-4">
-              {/* 货币选择栏 */}
-              <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-                <span className="text-sm text-gray-700">貨幣</span>
-                <button
-                  className="flex items-center gap-2 text-sm text-gray-600"
-                  onClick={() => {
-                    // 简单的货币切换逻辑
-                    const currentIndex = CURRENCIES.findIndex(c => c.id === selectedCurrency.id);
-                    const nextIndex = (currentIndex + 1) % CURRENCIES.length;
-                    setSelectedCurrency(CURRENCIES[nextIndex]);
-                  }}
+              {/* 货币选择下拉菜单 */}
+              <div className="relative" ref={dropdownRef}>
+                <label className="block text-sm text-gray-700 mb-2">貨幣</label>
+                <div
+                  className="flex items-center justify-between border-b border-gray-200 pb-3 cursor-pointer"
+                  onClick={() => setShowDropdown(!showDropdown)}
                 >
-                  <span className="text-gray-900">{selectedCurrency.name}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{selectedCurrency.icon}</span>
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{selectedCurrency.name}</div>
+                      <div className="text-xs text-gray-500">{selectedCurrency.protocol}</div>
+                    </div>
+                  </div>
                   <svg
-                    className="h-4 w-4"
+                    className={`h-4 w-4 text-gray-400 transition-transform ${
+                      showDropdown ? 'rotate-180' : ''
+                    }`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -120,21 +172,43 @@ export default function BindWalletPage() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M9 5l7 7-7 7"
+                      d="M19 9l-7 7-7-7"
                     />
                   </svg>
-                </button>
+                </div>
+
+                {/* 下拉菜单列表 */}
+                {showDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                    {CURRENCIES.map((currency) => (
+                      <div
+                        key={currency.id}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => handleSelectCurrency(currency)}
+                      >
+                        <span className="text-xl">{currency.icon}</span>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{currency.name}</div>
+                          <div className="text-xs text-gray-500">{currency.protocol}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* 钱包地址输入框 */}
-              <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-                <span className="text-sm text-gray-700">錢包地址</span>
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">錢包地址</label>
                 <input
                   type="text"
                   value={walletAddress}
-                  onChange={(e) => setWalletAddress(e.target.value)}
-                  placeholder="錢包地址"
-                  className="flex-1 text-right text-sm text-gray-600 outline-none placeholder:text-gray-400"
+                  onChange={(e) => {
+                    setWalletAddress(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder={selectedCurrency.placeholder}
+                  className="w-full px-3 py-2 text-sm border-b border-gray-200 outline-none focus:border-blue-500 transition-colors placeholder:text-gray-400"
                 />
               </div>
 
