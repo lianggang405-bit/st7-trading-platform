@@ -29,8 +29,7 @@ import { OilPriceCollector } from './oil-price-api';
 import { getSupabase } from '../config/database';
 import { updateCandle } from '../engine/kline-engine';
 import { updateMarket } from '../cache/market-cache';
-// import * as TickerEngineModule from '../engine/ticker-engine';
-// const tickerEngine = TickerEngineModule.tickerEngine;
+import { tickerEngine } from '../engine/ticker-engine';
 import { orderBookEngine } from '../engine/orderbook-engine';
 
 /**
@@ -118,10 +117,9 @@ export class AggregatedDataSourceCollector {
     this.binanceCollector = new BinanceWebSocketCollector(cryptoSymbols);
 
     // 设置价格更新回调
-    // TODO: 修复 tickerEngine 调用问题后重新启用
-    // this.binanceCollector.setPriceUpdateCallback((symbol, price) => {
-    //   this.updatePrice(symbol, price, DataSourceType.BINANCE_WS);
-    // });
+    this.binanceCollector.setPriceUpdateCallback((symbol, price) => {
+      this.updatePrice(symbol, price, DataSourceType.BINANCE_WS);
+    });
 
     await this.binanceCollector.start();
   }
@@ -136,15 +134,14 @@ export class AggregatedDataSourceCollector {
     await this.goldCollector.start();
 
     // 定时同步到缓存
-    // TODO: 修复 tickerEngine 调用问题后重新启用
-    // setInterval(async () => {
-    //   const prices = this.goldCollector?.getAllPrices();
-    //   if (prices) {
-    //     for (const [symbol, price] of prices) {
-    //       this.updatePrice(symbol, price, DataSourceType.GOLD_API);
-    //     }
-    //   }
-    // }, 10000); // 每 10 秒同步一次
+    setInterval(async () => {
+      const prices = this.goldCollector?.getAllPrices();
+      if (prices) {
+        for (const [symbol, price] of prices) {
+          this.updatePrice(symbol, price, DataSourceType.GOLD_API);
+        }
+      }
+    }, 10000); // 每 10 秒同步一次
   }
 
   /**
@@ -157,15 +154,14 @@ export class AggregatedDataSourceCollector {
     await this.exchangeRateCollector.start();
 
     // 定时同步到缓存
-    // TODO: 修复 tickerEngine 调用问题后重新启用
-    // setInterval(async () => {
-    //   const rates = this.exchangeRateCollector?.getAllRates();
-    //   if (rates) {
-    //     for (const [symbol, rate] of rates) {
-    //       this.updatePrice(symbol, rate, DataSourceType.EXCHANGE_RATE_API);
-    //     }
-    //   }
-    // }, 30000); // 每 30 秒同步一次
+    setInterval(async () => {
+      const rates = this.exchangeRateCollector?.getAllRates();
+      if (rates) {
+        for (const [symbol, rate] of rates) {
+          this.updatePrice(symbol, rate, DataSourceType.EXCHANGE_RATE_API);
+        }
+      }
+    }, 30000); // 每 30 秒同步一次
   }
 
   /**
@@ -178,45 +174,46 @@ export class AggregatedDataSourceCollector {
     await this.oilPriceCollector.start();
 
     // 定时同步到缓存
-    // TODO: 修复 tickerEngine 调用问题后重新启用
-    // setInterval(async () => {
-    //   const prices = this.oilPriceCollector?.getAllPrices();
-    //   if (prices) {
-    //     for (const [symbol, price] of prices) {
-    //       this.updatePrice(symbol, price, DataSourceType.OIL_API);
-    //     }
-    //   }
-    // }, 60000); // 每 60 秒同步一次
+    setInterval(async () => {
+      const prices = this.oilPriceCollector?.getAllPrices();
+      if (prices) {
+        for (const [symbol, price] of prices) {
+          this.updatePrice(symbol, price, DataSourceType.OIL_API);
+        }
+      }
+    }, 60000); // 每 60 秒同步一次
   }
 
   /**
    * 更新价格并同步到各个组件
    */
   private updatePrice(symbol: string, price: number, source: DataSourceType): void {
+    // 确保价格是数字
+    const numPrice = typeof price === 'number' ? price : parseFloat(String(price));
+    if (isNaN(numPrice)) {
+      console.error('[AggregatedDS] Invalid price:', price, typeof price);
+      return;
+    }
+
     // 更新缓存
     this.priceCache.set(symbol, {
       symbol,
-      price,
+      price: numPrice,
       source,
       timestamp: Date.now()
     });
 
     // 更新 K 线引擎
-    updateCandle(symbol, price);
+    updateCandle(symbol, numPrice);
 
     // 更新市场缓存
-    updateMarket(symbol, {
-      price,
-      change: 0, // 需要单独计算 24h 涨跌幅
-      volume: Math.random() * 1000,
-    });
+    updateMarket(symbol, numPrice, Math.random() * 1000);
 
     // 更新 Ticker Engine（使用 updateTrade 方法）
-    // TODO: 修复 tickerEngine 调用问题
-    // tickerEngine.updateTrade(symbol, price, Math.random() * 10, price * Math.random() * 10);
+    tickerEngine.updateTrade(symbol, numPrice, Math.random() * 10, numPrice * Math.random() * 10);
 
     // 生成模拟 OrderBook
-    this.generateMockOrderBook(symbol, price);
+    this.generateMockOrderBook(symbol, numPrice);
 
     // 打印日志（仅部分价格）
     if (Math.random() < 0.1) {

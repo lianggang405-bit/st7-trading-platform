@@ -292,6 +292,14 @@ export class TickerEngine {
     }
     console.log('[TickerEngine] Stopped');
   }
+
+  /**
+   * 兼容方法：updatePrice -> updateTrade
+   * 为了保持向后兼容性，提供 updatePrice 方法
+   */
+  public updatePrice(symbol: string, price: number): void {
+    this.updateTrade(symbol, price, Math.random() * 10, price * Math.random() * 10);
+  }
 }
 
 // 导出单例

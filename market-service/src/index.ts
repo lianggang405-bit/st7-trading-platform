@@ -49,8 +49,7 @@ async function main() {
   console.log('   - Forex    → Exchange Rate API (30s)');
   console.log('   - Oil      → Oil Price API (60s)');
   console.log('   - Fallback → Database');
-  // TODO: 修复 tickerEngine 调用问题后重新启用
-  // await aggregatedDataSource.start();
+  await aggregatedDataSource.start();
 
   console.log('');
 

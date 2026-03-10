@@ -227,6 +227,17 @@ export class OrderBookEngine {
       symbols: Array.from(this.orderBooks.keys()),
     };
   }
+
+  /**
+   * 兼容方法：setOrderBook -> updateOrderBook
+   * 为了保持向后兼容性，提供 setOrderBook 方法
+   */
+  public setOrderBook(
+    symbol: string,
+    orderBook: { bids: [number, number][]; asks: [number, number][] }
+  ): void {
+    this.updateOrderBook(symbol, orderBook.bids, orderBook.asks, Date.now());
+  }
 }
 
 // 导出单例实例
