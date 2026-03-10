@@ -1,6 +1,6 @@
 import { getSupabase } from '../config/database';
 import { broadcastKline } from '../ws/market-server';
-import { isRedisEnabled } from '../config/redis';
+import { isRedisEnabled, getRedisClient } from '../config/redis';
 import {
   getAggregatedKlinesFromRedis,
   setAggregatedKlinesToRedis,
@@ -8,6 +8,11 @@ import {
 } from '../cache/redis-cache';
 
 export type Interval = '1m' | '5m' | '15m';
+
+/**
+ * 聚合周期类型（用于增量聚合）
+ */
+export type AggregationInterval = '5m' | '15m' | '1h' | '1d';
 
 export interface Candle {
   symbol: string;
@@ -21,8 +26,27 @@ export interface Candle {
   interval: Interval;
 }
 
+/**
+ * 增量聚合状态
+ */
+interface AggregationState {
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  openTime: number;
+  closeTime: number;
+}
+
 const candleCache: Record<string, Candle> = {};
 const lastPrices: Record<string, number> = {};
+
+/**
+ * 增量聚合状态缓存
+ * key: symbol_resolution (例如: XAUUSD_5m)
+ */
+const aggregationStateCache: Record<string, AggregationState> = {};
 
 function getIntervalMs(interval: Interval) {
   switch (interval) {
@@ -85,6 +109,11 @@ export function updateCandle(symbol: string, price: number, volume = 0) {
 
     // 实时推送 K 线更新到前端
     broadcastKline(symbol, interval, candle);
+
+    // ✅ 如果是 1m K 线更新，触发增量聚合
+    if (interval === '1m') {
+      updateAggregatedCandle(symbol, candle);
+    }
   });
 }
 
@@ -321,4 +350,182 @@ export function clearLastPrices(): void {
     delete lastPrices[key];
   }
   console.log('[KlineEngine] 🧹 Last prices cleared');
+}
+
+// ==================== 增量聚合引擎 ====================
+
+/**
+ * 获取聚合周期的毫秒数
+ */
+function getAggregationIntervalMs(interval: AggregationInterval): number {
+  switch (interval) {
+    case '5m':
+      return 5 * 60_000;
+    case '15m':
+      return 15 * 60_000;
+    case '1h':
+      return 60 * 60_000;
+    case '1d':
+      return 24 * 60 * 60_000;
+  }
+}
+
+/**
+ * 获取聚合周期的开盘时间
+ */
+function getAggregationOpenTime(timestamp: number, interval: AggregationInterval): number {
+  const ms = getAggregationIntervalMs(interval);
+  return Math.floor(timestamp / ms) * ms;
+}
+
+/**
+ * 构建聚合状态缓存键
+ */
+function getAggregationStateKey(symbol: string, interval: AggregationInterval): string {
+  return `${symbol.toUpperCase()}_${interval}`;
+}
+
+/**
+ * 增量更新聚合 K 线
+ * 当新的 1m K 线到达时，自动更新所有聚合周期的 K 线
+ *
+ * @param symbol 交易对
+ * @param candle 新的 1m K 线数据
+ */
+export function updateAggregatedCandle(symbol: string, candle: Candle): void {
+  const intervals: AggregationInterval[] = ['5m', '15m', '1h', '1d'];
+
+  intervals.forEach((interval) => {
+    const stateKey = getAggregationStateKey(symbol, interval);
+    const openTime = getAggregationOpenTime(candle.openTime, interval);
+    const closeTime = openTime + getAggregationIntervalMs(interval);
+
+    let state = aggregationStateCache[stateKey];
+
+    if (!state) {
+      // 初始化新的聚合周期
+      state = {
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close,
+        volume: candle.volume,
+        openTime,
+        closeTime,
+      };
+
+      aggregationStateCache[stateKey] = state;
+
+      console.log(
+        `[Aggregation] 🆕 New ${interval} candle for ${symbol}: ` +
+        `open=${state.open.toFixed(2)} @${new Date(openTime).toLocaleTimeString()}`
+      );
+    } else if (state.openTime !== openTime) {
+      // 新的聚合周期开始，保存上一个周期并开始新周期
+      saveAggregatedCandle(symbol, interval, state);
+
+      state = {
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close,
+        volume: candle.volume,
+        openTime,
+        closeTime,
+      };
+
+      aggregationStateCache[stateKey] = state;
+
+      console.log(
+        `[Aggregation] 🔄 New ${interval} period for ${symbol}: ` +
+        `open=${state.open.toFixed(2)} @${new Date(openTime).toLocaleTimeString()}`
+      );
+    } else {
+      // 同一个聚合周期，更新数据
+      state.high = Math.max(state.high, candle.high);
+      state.low = Math.min(state.low, candle.low);
+      state.close = candle.close;
+      state.volume += candle.volume;
+
+      console.log(
+        `[Aggregation] 📊 Updated ${interval} candle for ${symbol}: ` +
+        `O=${state.open.toFixed(2)} H=${state.high.toFixed(2)} ` +
+        `L=${state.low.toFixed(2)} C=${state.close.toFixed(2)} V=${state.volume.toFixed(2)}`
+      );
+    }
+  });
+}
+
+/**
+ * 保存聚合 K 线到 Redis
+ */
+async function saveAggregatedCandle(
+  symbol: string,
+  interval: AggregationInterval,
+  state: AggregationState
+): Promise<void> {
+  if (!isRedisEnabled()) return;
+
+  try {
+    const redis = getRedisClient();
+    const key = `kline:${symbol.toUpperCase()}:${interval}`;
+
+    // 使用 Redis List 存储聚合 K 线（最新的在前面）
+    const candleData = {
+      time: Math.floor(state.openTime / 1000), // 秒级时间戳
+      open: state.open,
+      high: state.high,
+      low: state.low,
+      close: state.close,
+      volume: state.volume,
+    };
+
+    // LPUT - 保留最近 1000 根 K 线
+    await redis.lpush(key, JSON.stringify(candleData));
+    await redis.ltrim(key, 0, 999); // 保留前 1000 个元素
+    await redis.expire(key, 86400); // 24 小时过期
+
+    console.log(
+      `[Aggregation] 💾 Saved ${interval} candle to Redis: ${symbol} ` +
+      `@${new Date(state.openTime).toLocaleTimeString()}`
+    );
+  } catch (error) {
+    console.error(`[Aggregation] ❌ Error saving ${interval} candle for ${symbol}:`, error);
+  }
+}
+
+/**
+ * 获取聚合 K 线列表（从 Redis）
+ * @param symbol 交易对
+ * @param interval 时间周期
+ * @param limit 数量限制
+ */
+export async function getAggregatedKlineList(
+  symbol: string,
+  interval: AggregationInterval,
+  limit = 1000
+): Promise<Array<{ time: number; open: number; high: number; low: number; close: number; volume: number }>> {
+  if (!isRedisEnabled()) return [];
+
+  try {
+    const redis = getRedisClient();
+    const key = `kline:${symbol.toUpperCase()}:${interval}`;
+
+    const data = await redis.lrange(key, 0, limit - 1);
+
+    return data.map((item) => JSON.parse(item));
+  } catch (error) {
+    console.error(`[Aggregation] ❌ Error getting ${interval} candles for ${symbol}:`, error);
+    return [];
+  }
+}
+
+/**
+ * 强制刷新所有聚合状态（用于测试或重置）
+ */
+export function flushAggregationStates(): void {
+  for (const key in aggregationStateCache) {
+    delete aggregationStateCache[key];
+  }
+  console.log('[Aggregation] 🧹 All aggregation states flushed');
 }

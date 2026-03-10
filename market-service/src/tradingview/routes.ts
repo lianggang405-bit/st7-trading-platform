@@ -6,6 +6,7 @@ import {
   getAggregatedKlinesFromRedis,
   setAggregatedKlinesToRedis
 } from '../cache/redis-cache';
+import { getAggregatedKlineList } from '../engine/kline-engine';
 
 const router = express.Router();
 
@@ -147,10 +148,35 @@ router.get('/history', async (req, res) => {
     if (resolution !== '1') {
       console.log(`[TradingView API] 🔄 Need to aggregate from 1m to ${interval}`);
 
-      // ✅ 先尝试从 Redis 缓存读取聚合数据
+      // ✅ 优先从增量聚合的 Redis 列表读取（O(1) 复杂度）
       let aggregated: any[] | null = null;
 
       if (isRedisEnabled()) {
+        const incrementalCandles = await getAggregatedKlineList(
+          dbSymbol,
+          resolution as any,
+          MAX_BARS
+        );
+
+        if (incrementalCandles && incrementalCandles.length > 0) {
+          console.log(
+            `[TradingView API] ⚡ Got ${incrementalCandles.length} incremental ${interval} candles from Redis`
+          );
+
+          // 过滤时间范围（注意：增量聚合返回的是秒级时间戳）
+          aggregated = incrementalCandles.filter((c: any) => {
+            const candleTime = c.time * 1000; // 转换为毫秒
+            return candleTime >= fromTimestamp && candleTime <= toTimestamp;
+          });
+
+          console.log(
+            `[TradingView API] 📊 Filtered ${aggregated.length} ${interval} candles in time range`
+          );
+        }
+      }
+
+      // 如果增量聚合未命中，尝试从缓存读取
+      if ((!aggregated || aggregated.length === 0) && isRedisEnabled()) {
         const cached = await getAggregatedKlinesFromRedis(dbSymbol, resolution);
         if (cached && cached.length > 0) {
           console.log(
