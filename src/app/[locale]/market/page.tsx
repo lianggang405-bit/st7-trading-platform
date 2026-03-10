@@ -15,7 +15,6 @@ export default function MarketPage() {
   const pathname = usePathname();
   const marketState = useMarketStore();
   const symbols = marketState?.symbols ?? [];
-  const tick = marketState?.tick;
   const setSymbols = marketState?.setSymbols;
   const { isHydrated, isLogin } = useAuthStore();
   const [categoryFilter, setCategoryFilter] = useState('Forex');
@@ -117,16 +116,8 @@ export default function MarketPage() {
     setFilteredSymbols(filtered);
   }, [symbols, categoryFilter]);
 
-  // 模擬价格刷新
-  useEffect(() => {
-    if (!tick) return;
-
-    const interval = setInterval(() => {
-      tick();
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [tick]);
+  // ✅ 禁用实时价格刷新，因为没有可靠的实时价格源
+  // 未来应该通过 WebSocket 或 API 获取真实实时价格
 
   const handleSymbolClick = (symbol: string) => {
     // 点击品种跳转到交易页面

@@ -22,7 +22,6 @@ export default function PositionPage() {
   const { user, logout, isHydrated, isLogin } = useAuthStore();
   const marketState = useMarketStore();
   const symbols = marketState?.symbols ?? [];
-  const tick = marketState?.tick;
   const { positions, closePosition, updatePositions, syncFromBackend } = usePositionStore();
   const { updateFloatingProfit, onClosePosition, equity, usedMargin, balance, freeMargin } = useAssetStore();
   const { marginLevel, warning, danger, updateRisk, checkAndForceClose } = useRiskControlStore();

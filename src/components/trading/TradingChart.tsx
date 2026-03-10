@@ -9,7 +9,6 @@ import {
   CandlestickSeries
 } from 'lightweight-charts'
 
-import { useMarketStore } from '@/stores/marketStore'
 import { getKlinesWithCache, fetchBinanceKlines, clearKlineCache } from '@/lib/binance-klines'
 
 interface TradingChartProps {
@@ -55,17 +54,12 @@ export default function TradingChart({
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const { symbols } = useMarketStore()
-
   // ✅ 使用外部传入的 timeframe，如果没有则使用内部默认值
   const [internalTimeframe, setInternalTimeframe] = useState<Timeframe>(externalTimeframe || '1M')
   const timeframe = externalTimeframe || internalTimeframe
 
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [actualHeight, setActualHeight] = useState<number>(height)
-
-  const currentSymbol = symbols?.find((s: any) => s.symbol === symbol)
-  const currentPrice = currentSymbol?.price || 0
 
   // ✅ 监听交易对变化，清除缓存并重置状态
   useEffect(() => {
@@ -90,10 +84,6 @@ export default function TradingChart({
     setInternalTimeframe(timeframe)
   }, [timeframe])
 
-  useEffect(() => {
-    priceRef.current = currentPrice
-  }, [currentPrice])
-
   // ✅ 响应式高度：手机端缩小一半
 
   useEffect(() => {
@@ -117,43 +107,7 @@ export default function TradingChart({
     return TIMEFRAMES.find(t => t.value === timeframe)?.interval || 60
   }
 
-  // ✅ 生成模拟历史数据（当 API 失败时使用）
-  const generateMockHistory = (basePrice: number, count: number = 200): KlineData[] => {
-    if (!basePrice || basePrice <= 0) {
-      basePrice = 100 // 默认价格
-    }
 
-    const now = Math.floor(Date.now() / 1000)
-    const interval = getInterval()
-
-    const history: KlineData[] = []
-    let price = basePrice
-
-    console.log(`[TradingChart] 生成模拟历史数据: symbol=${symbol}, basePrice=${basePrice}, count=${count}`)
-
-    for (let i = count; i > 0; i--) {
-      const time = now - (i * interval)
-      const volatility = price * 0.001 // 0.1% 波动（更真实）
-
-      const open = price
-      const change = (Math.random() - 0.5) * volatility
-      price = price + change
-
-      const high = Math.max(open, price) + Math.random() * volatility * 0.5
-      const low = Math.min(open, price) - Math.random() * volatility * 0.5
-
-      history.push({
-        time: time as Time,
-        open: Number(open.toFixed(2)),
-        high: Number(high.toFixed(2)),
-        low: Number(low.toFixed(2)),
-        close: Number(price.toFixed(2)),
-      })
-    }
-
-    console.log(`[TradingChart] 模拟数据生成完成: ${history.length} 条K线`)
-    return history
-  }
 
   // ✅ 从Binance API获取真实历史数据
   const loadHistory = async (
@@ -175,17 +129,10 @@ export default function TradingChart({
 
       console.log(`[TradingChart] 从Binance API获取到 ${history.length} 条K线`)
 
-      // ✅ 如果API返回空数据，自动生成模拟数据
+      // ✅ 如果API返回空数据，返回空数组，不再生成假数据
       if (!history || history.length === 0) {
-        console.warn('[TradingChart] API 返回空数据，生成模拟历史数据')
-        let basePrice = currentPrice;
-        if (!basePrice || basePrice <= 0) {
-          basePrice = await getInitialPriceForSymbol(symbol);
-        }
-        if (!basePrice || basePrice <= 0) {
-          basePrice = 100;
-        }
-        return generateMockHistory(basePrice, 200)
+        console.warn('[TradingChart] API 返回空数据，无法加载K线图表')
+        return []
       }
 
       // 转换为图表格式
@@ -204,52 +151,15 @@ export default function TradingChart({
 
       return klineData
     } catch (error) {
-      console.warn('[TradingChart] 获取K线数据异常，使用模拟历史数据:', error)
-
-      // ✅ 如果发生异常，基于当前价格生成模拟历史数据
-      let basePrice = currentPrice;
-      if (!basePrice || basePrice <= 0) {
-        // 从 market-service 获取实时价格
-        basePrice = await getInitialPriceForSymbol(symbol);
-      }
-
-      if (!basePrice || basePrice <= 0) {
-        basePrice = 100 // 默认价格
-      }
-
-      const mockHistory = generateMockHistory(basePrice, 200)
-
-      return mockHistory
+      console.error('[TradingChart] 获取K线数据异常:', error)
+      // ✅ 不再生成假数据，返回空数组
+      return []
     } finally {
       // ✅ 只在组件仍然挂载时更新状态
       if (mountedFlag.current) {
         setIsLoading(false)
       }
     }
-  }
-
-  // ✅ 获取交易对初始价格（从 market-service 获取实时价格）
-  const getInitialPriceForSymbol = async (sym: string): Promise<number> => {
-    try {
-      // 从 market-service 获取实时价格
-      const response = await fetch(`http://localhost:3000/ticker/24hr?symbol=${encodeURIComponent(sym)}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data.lastPrice) {
-          return data.lastPrice;
-        }
-      }
-    } catch (error) {
-      console.warn(`[TradingChart] Failed to fetch price for ${sym} from market-service:`, error);
-    }
-
-    // 降级：使用当前价格
-    if (currentPrice && currentPrice > 0) {
-      return currentPrice;
-    }
-
-    // 最终降级：返回默认价格
-    return 100;
   }
 
   useEffect(() => {
@@ -314,18 +224,7 @@ export default function TradingChart({
 
     // ✅ 异步初始化价格和图表数据
     const initChart = async () => {
-      // 获取初始价格
-      let effectivePrice = priceRef.current
-      if (!effectivePrice || effectivePrice <= 0) {
-        effectivePrice = await getInitialPriceForSymbol(symbol)
-        console.log(`[TradingChart] 使用默认价格: ${symbol} = ${effectivePrice}`)
-      }
-
-      if (!isMounted.current) return;
-
-      priceRef.current = effectivePrice
-
-      console.log(`[TradingChart] 初始化图表: symbol=${symbol}, price=${effectivePrice}`)
+      console.log(`[TradingChart] 初始化图表: symbol=${symbol}`)
 
       // 从Binance API加载真实历史数据
       if (!isMounted.current) return
@@ -340,28 +239,17 @@ export default function TradingChart({
 
       if (history.length > 0) {
         try {
-          // ✅ 关键修复：校正最后一根K线的close等于当前价格
-          // 确保历史数据和实时价格一致，避免出现巨大跳空
-          // 注意：只修改close，不修改high/low，保持历史数据不可变原则
+          // ✅ 关键修复：直接使用历史K线的最后一根close作为价格基准
+          // 不再依赖外部价格源，确保历史数据和实时价格一致
           const lastCandle = history[history.length - 1]
-          const priceDiff = Math.abs(lastCandle.close - effectivePrice)
-          const tolerance = effectivePrice * 0.001 // 0.1% 容差
-
-          if (priceDiff > tolerance) {
-            console.log(`[TradingChart] 价格差异过大 (${priceDiff.toFixed(2)})，校正最后一根K线的close`)
-            console.log(`[TradingChart] 历史close: ${lastCandle.close} -> 实时price: ${effectivePrice}`)
-
-            // ✅ 只修改close，保持历史high/low不变（交易所级最佳实践）
-            history[history.length - 1] = {
-              ...lastCandle,
-              close: effectivePrice
-            }
-          }
+          const lastPrice = lastCandle.close
 
           series.setData(history)
-          lastCandleRef.current = history[history.length - 1]
-          // ✅ 使用 K 线最后一根的收盘价，避免初始化跳动
-          lastPriceRef.current = history[history.length - 1].close
+          lastCandleRef.current = lastCandle
+          // ✅ 将价格引用设置为最后一根K线的close，确保实时更新基于真实数据
+          priceRef.current = lastPrice
+          lastPriceRef.current = lastPrice
+          console.log(`[TradingChart] 初始化完成，价格基准: ${lastPrice}`)
           chart.timeScale().fitContent()
         } catch (error) {
           console.warn('[TradingChart] setData error:', error)
@@ -371,94 +259,9 @@ export default function TradingChart({
 
     initChart()
 
-    intervalRef.current = setInterval(() => {
-
-      const price = priceRef.current
-
-      if (!price) return
-
-      // ✅ 检查组件是否仍然挂载
-      if (!isMounted.current || !chartInstance.current || !seriesRef.current) return
-
-      const interval = getInterval()
-
-      const now = Math.floor(Date.now() / 1000)
-
-      // ✅ 对齐到时间周期的开始时间（确保时间戳唯一性）
-      const candleTime = Math.floor(now / interval) * interval
-
-      const lastCandle = lastCandleRef.current
-
-      if (!lastCandle) return
-
-      const lastTime =
-        typeof lastCandle.time === 'number'
-          ? lastCandle.time
-          : Number(lastCandle.time)
-
-      // ✅ 价格限制保护：防止异常价格和闪崩（交易所级保护）
-      const MAX_DEVIATION = 0.02 // 2% 容差
-      const priceDeviation = Math.abs(price - lastCandle.close) / lastCandle.close
-
-      if (priceDeviation > MAX_DEVIATION) {
-        console.warn(`[TradingChart] 异常价格跳过: price=${price}, deviation=${(priceDeviation * 100).toFixed(2)}%`)
-        return
-      }
-
-      if (candleTime > lastTime) {
-
-        // ✅ 关键修复：新K线的open使用当前价格，而不是历史K线的close
-        // 这样可以避免出现巨大的跳空K线
-        const newCandle = {
-          time: candleTime as Time,
-          open: price,  // ✅ 使用当前价格，而不是 lastCandle.close
-          high: price,
-          low: price,
-          close: price,
-          volume: 0  // ✅ 添加volume字段，避免undefined
-        }
-
-        try {
-          series.update(newCandle)
-        } catch (error) {
-          console.warn('[TradingChart] update new candle error:', error)
-          return
-        }
-
-        lastCandleRef.current = newCandle
-
-      } else {
-
-        // ✅ 时间戳唯一性保护：确保不会出现双线
-        // TradingView中如果时间重复会出现两条线
-        const updated = {
-          time: lastTime as Time,
-          open: lastCandle.open,
-          high: Math.max(lastCandle.high, price),
-          low: Math.min(lastCandle.low, price),
-          close: price,
-          volume: 0  // ✅ 添加volume字段
-        }
-
-        try {
-          series.update(updated)
-        } catch (error) {
-          console.warn('[TradingChart] update candle error:', error)
-          return
-        }
-
-        lastCandleRef.current = updated
-      }
-
-      lastPriceRef.current = price
-
-      try {
-        chart.timeScale().scrollToRealTime()
-      } catch (error) {
-        console.warn('[TradingChart] scrollToRealTime error:', error)
-      }
-
-    }, 1000)
+    // ✅ 暂时禁用实时更新，因为没有可靠的实时价格源
+    // 未来将通过 WebSocket 或定期刷新 Binance API 实现实时更新
+    // 这样可以避免出现双线和价格不一致的问题
 
     const handleResize = () => {
 

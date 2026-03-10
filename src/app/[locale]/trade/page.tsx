@@ -31,7 +31,6 @@ export default function TradePage() {
   const currentSymbol = marketState?.currentSymbol;
   const setCurrentSymbol = marketState?.setCurrentSymbol;
   const setSymbols = marketState?.setSymbols;
-  const tick = marketState?.tick;
   const { positions, openPosition, closePosition, updatePositions } = usePositionStore();
   const { freeMargin, onOpenPosition, equity, usedMargin, balance } = useAssetStore();
   const { marginLevel, warning, danger, updateRisk } = useRiskControlStore();
@@ -235,16 +234,8 @@ export default function TradePage() {
     }
   }, [symbols, currentSymbol]);
 
-  // ✅ 实时价格刷新：调用 marketStore 的 tick 方法更新所有交易对价格
-  useEffect(() => {
-    if (!tick) return;
-
-    const interval = setInterval(() => {
-      tick();
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [tick]);
+  // ✅ 禁用实时价格刷新，因为没有可靠的实时价格源
+  // 未来应该通过 WebSocket 或 API 获取真实实时价格
 
   const handleSubmit = async (side: 'buy' | 'sell') => {
     if (!currentSymbol) {
