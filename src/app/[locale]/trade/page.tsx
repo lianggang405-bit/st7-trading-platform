@@ -466,7 +466,12 @@ export default function TradePage() {
 
         {/* K线图区域 */}
         {currentSymbol && (
-          <TradingChart symbol={currentSymbol} height={500} />
+          <TradingChart
+            symbol={currentSymbol}
+            height={500}
+            timeframe={timeframe}
+            onTimeframeChange={setTimeframe}
+          />
         )}
 
         {/* 交易操作区 - 中间 */}

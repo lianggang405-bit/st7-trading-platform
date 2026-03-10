@@ -15,15 +15,18 @@ import { getKlinesWithCache, fetchBinanceKlines, clearKlineCache } from '@/lib/b
 interface TradingChartProps {
   symbol?: string
   height?: number
+  timeframe?: Timeframe
+  onTimeframeChange?: (timeframe: Timeframe) => void
 }
 
-type Timeframe = '1M' | '5M' | '15M' | '1H'
+type Timeframe = '1M' | '5M' | '15M' | '1H' | '1D'
 
 const TIMEFRAMES = [
   { value: '1M', interval: 60 },
   { value: '5M', interval: 300 },
   { value: '15M', interval: 900 },
-  { value: '1H', interval: 3600 }
+  { value: '1H', interval: 3600 },
+  { value: '1D', interval: 86400 }
 ]
 
 interface KlineData {
@@ -36,7 +39,9 @@ interface KlineData {
 
 export default function TradingChart({
   symbol = 'BTCUSD',
-  height = 500
+  height = 500,
+  timeframe: externalTimeframe,
+  onTimeframeChange
 }: TradingChartProps) {
 
   const chartRef = useRef<HTMLDivElement>(null)
@@ -52,7 +57,10 @@ export default function TradingChart({
 
   const { symbols } = useMarketStore()
 
-  const [timeframe, setTimeframe] = useState<Timeframe>('1M')
+  // ✅ 使用外部传入的 timeframe，如果没有则使用内部默认值
+  const [internalTimeframe, setInternalTimeframe] = useState<Timeframe>(externalTimeframe || '1M')
+  const timeframe = externalTimeframe || internalTimeframe
+
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [actualHeight, setActualHeight] = useState<number>(height)
 
@@ -77,6 +85,9 @@ export default function TradingChart({
     setIsLoading(true)
     lastCandleRef.current = null
     lastPriceRef.current = 0
+
+    // 更新内部状态
+    setInternalTimeframe(timeframe)
   }, [timeframe])
 
   useEffect(() => {
@@ -451,27 +462,6 @@ export default function TradingChart({
 
   return (
     <div className="relative">
-
-      <div className="absolute top-2 left-2 z-10 flex gap-1">
-
-        {TIMEFRAMES.map(tf => (
-
-          <button
-            key={tf.value}
-            onClick={() => setTimeframe(tf.value as Timeframe)}
-            className={`px-3 py-1 text-xs rounded ${
-              timeframe === tf.value
-                ? 'bg-blue-500 text-white'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            {tf.value}
-          </button>
-
-        ))}
-
-      </div>
-
       {/* 加载指示器 */}
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-20">
@@ -487,7 +477,6 @@ export default function TradingChart({
           height: `${actualHeight}px`
         }}
       />
-
     </div>
   )
 }
