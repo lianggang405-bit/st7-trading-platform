@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // 转换交易对格式（XAUUSD → XAUUSDT, BTCUSD → BTCUSDT）
+    // 转换交易对格式
     let tradingViewSymbol = symbol;
 
     // 检查是否是加密货币（BTC, ETH, SOL 等）
@@ -38,24 +38,46 @@ export async function GET(request: NextRequest) {
     const isCrypto = cryptoSymbols.some(crypto => symbol.startsWith(crypto));
 
     if (isCrypto) {
-      // 加密货币使用 USDT 结尾
+      // 加密货币使用 USDT 结尾（BTCUSD → BTCUSDT）
       if (symbol.endsWith('USD')) {
         tradingViewSymbol = symbol.replace('USD', 'USDT');
       }
-    } else {
-      // 其他交易对（外汇、贵金属等）
-      // XAUUSD → XAUUSDT, EURUSD → EURUSDT
-      if (symbol.endsWith('USD')) {
-        tradingViewSymbol = symbol + 'T';
+    }
+    // 贵金属、外汇、能源、指数等保持原样（XAUUSD, XAGUSD, EURUSD 等）
+    // 不添加 'T' 后缀
+
+    // ⚠️ 从数据库获取该交易对的最新时间戳
+    let latestKlineTime = 0;
+    try {
+      const dbSymbol = tradingViewSymbol; // 使用转换后的 symbol
+      const dbUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/klines?select=open_time&symbol=eq.${dbSymbol}&interval=eq.1m&order=open_time.desc&limit=1`;
+
+      const dbResponse = await fetch(dbUrl, {
+        headers: {
+          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY || ''}`,
+          'Content-Type': 'application/json',
+        },
+      } as RequestInit);
+
+      if (dbResponse.ok) {
+        const dbData = await dbResponse.json();
+        if (dbData && dbData.length > 0) {
+          latestKlineTime = Math.floor(dbData[0].open_time / 1000);
+          console.log(`[Klines API] Latest kline time from DB (${dbSymbol}): ${latestKlineTime}`);
+        } else {
+          console.log(`[Klines API] No data found in DB for symbol: ${dbSymbol}`);
+        }
       }
+    } catch (error) {
+      console.error('[Klines API] Failed to fetch latest time from DB:', error);
     }
 
     // 转换时间周期
     const tvInterval = INTERVAL_MAP[interval] || '1';
 
-    // 计算时间范围
-    // 为了获取最近的数据，我们需要设置合理的时间范围
-    const now = Math.floor(Date.now() / 1000);
+    // 使用数据库最新时间作为基准，如果没有则使用当前系统时间
+    const baseTime = latestKlineTime > 0 ? latestKlineTime : Math.floor(Date.now() / 1000);
 
     // 根据时间周期计算时间跨度
     let timeSpan = 0;
@@ -82,9 +104,9 @@ export async function GET(request: NextRequest) {
         timeSpan = 60 * limit;
     }
 
-    // 设置更大的时间范围以确保获取到数据
-    const from = now - (timeSpan * 2); // 扩大2倍时间范围
-    const to = now + 86400; // 包含未来1天（避免边界问题）
+    // 设置时间范围：从数据库最新时间往前推，或从系统时间往前推
+    const from = baseTime - (timeSpan * 2); // 扩大2倍时间范围
+    const to = baseTime + 86400; // 包含未来1天（避免边界问题）
 
     // 构建请求 URL
     const url = `${MARKET_SERVICE_URL}/tv/history?symbol=${tradingViewSymbol}&resolution=${tvInterval}&from=${from}&to=${to}`;
