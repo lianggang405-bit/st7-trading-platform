@@ -40,6 +40,7 @@ export default function BindWalletPage() {
   const [error, setError] = useState('');
   const [isBinding, setIsBinding] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // 点击外部关闭下拉菜单
@@ -103,8 +104,13 @@ export default function BindWalletPage() {
 
       setWallets([...wallets, newWallet]);
       setIsBinding(false);
-      router.push('..');
+      setShowSuccessModal(true); // 显示成功弹窗
     }, 1000);
+  };
+
+  const handleSuccessConfirm = () => {
+    setShowSuccessModal(false);
+    router.push('..');
   };
 
   const handleSelectCurrency = (currency: CurrencyOption) => {
@@ -229,6 +235,52 @@ export default function BindWalletPage() {
               </button>
             </div>
           </div>
+
+          {/* 绑定成功弹窗 */}
+          {showSuccessModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+              <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+                {/* 成功图标 */}
+                <div className="flex justify-center mb-4">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                    <svg
+                      className="h-8 w-8 text-green-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* 成功标题 */}
+                <h3 className="text-center text-lg font-semibold text-gray-900 mb-2">
+                  綁定成功
+                </h3>
+
+                {/* 成功信息 */}
+                <div className="text-center text-sm text-gray-600 mb-6">
+                  <p>您的 {selectedCurrency.name} 钱包地址</p>
+                  <p className="font-mono mt-1">{walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}</p>
+                  <p className="mt-2">已成功綁定</p>
+                </div>
+
+                {/* 确认按钮 */}
+                <button
+                  onClick={handleSuccessConfirm}
+                  className="w-full rounded-lg bg-blue-500 py-3 text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                >
+                  確定
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </AuthGuard>
     </PageShell>
