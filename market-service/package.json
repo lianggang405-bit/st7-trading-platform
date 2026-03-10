@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "npx tsx src/index.ts",
+    "dev:compiled": "npx tsc && node dist/index.js",
     "build": "tsc",
     "start": "node dist/index.js",
     "collector:binance": "npx tsx src/collectors/binance.ts",

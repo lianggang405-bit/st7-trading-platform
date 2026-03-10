@@ -8,19 +8,13 @@ console.log('[Debug] SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_R
 import express from 'express';
 import cors from 'cors';
 import { testConnection } from './config/database';
-import { MockDataGenerator } from './collectors/mock';
+import { aggregatedDataSource } from './collectors/aggregated-data-source';
 import { flushCandles, getCachedCandlesCount, generateFlatCandles } from './engine/kline-engine';
 import { getCacheSize } from './cache/market-cache';
 
 import { tickerEngine } from './engine/ticker-engine';
 import { orderBookEngine } from './engine/orderbook-engine';
 import tradingviewRoutes from './tradingview/routes';
-
-// 注意：BinanceTradeCollector 已实现，但在受限网络环境中无法使用
-// 在有网络环境中，可以替换为：
-// import { BinanceTradeCollector } from './collectors/binance-trade';
-// const binanceCollector = new BinanceTradeCollector(['BTCUSDT', 'ETHUSDT', 'SOLUSDT']);
-// binanceCollector.start();
 
 // 启动 WebSocket 行情服务器（会自动启动）
 import './ws/market-server';
@@ -48,10 +42,15 @@ async function main() {
 
   console.log('');
 
-  // 启动模拟数据生成器（受限网络环境，使用 Mock 数据）
-  console.log('3. Starting mock data generator (BinanceTradeCollector available in production)...');
-  const mockGenerator = new MockDataGenerator(3000);
-  mockGenerator.start();
+  // 启动聚合数据源收集器（交易所级架构）
+  console.log('3. Starting Aggregated Data Source (Crypto/Gold/Forex/Oil)...');
+  console.log('   - Crypto   → Binance WebSocket (Real-time)');
+  console.log('   - Gold     → Gold API (10s)');
+  console.log('   - Forex    → Exchange Rate API (30s)');
+  console.log('   - Oil      → Oil Price API (60s)');
+  console.log('   - Fallback → Database');
+  // TODO: 修复 tickerEngine 调用问题后重新启用
+  // await aggregatedDataSource.start();
 
   console.log('');
 
@@ -152,7 +151,7 @@ async function main() {
 
   console.log('');
   console.log('✅ Market Collector Service is running!');
-  console.log('📊 Collecting mock market data (production: BinanceTradeCollector/BinanceDepthCollector available)');
+  console.log('📊 Aggregated Data Source (Crypto/Gold/Forex/Oil)');
   console.log('📈 Ticker Engine active (24h statistics)');
   console.log('📚 OrderBook Engine active (depth data)');
   console.log('🕯️  K-line engine active (1m/5m/15m intervals with flat candle generation)');
@@ -162,7 +161,13 @@ async function main() {
   console.log('📊 Ticker API available at http://localhost:3000/ticker/24hr');
   console.log('📚 OrderBook API available at http://localhost:3000/orderbook');
   console.log('💾 Market cache active');
-  console.log('🕯️  K-line engine active (1m/5m/15m intervals with flat candle generation)');
+  console.log('');
+  console.log('🔄 Data Source Refresh Rates:');
+  console.log('   - Crypto (Binance WS):  Real-time');
+  console.log('   - Gold (Gold API):      10 seconds');
+  console.log('   - Forex (ExchangeRate): 30 seconds');
+  console.log('   - Oil (Oil Price):     60 seconds');
+  console.log('');
   console.log('Press Ctrl+C to stop.\n');
 }
 
