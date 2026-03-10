@@ -193,16 +193,19 @@ export async function fetchBinanceKlines(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`API error: ${response.status} - ${errorData.error || 'Unknown error'}`);
+      console.warn(`[Klines] API 返回错误 (${response.status}): ${errorData.error || 'Unknown error'}，将使用模拟数据`);
+      // ✅ API 失败时返回空数组，让调用者决定是否生成模拟数据
+      return [];
     }
 
     const data = await response.json();
 
     if (!data.success) {
-      throw new Error(`API error: ${data.error || 'Unknown error'}`);
+      console.warn(`[Klines] API 返回失败: ${data.error || 'Unknown error'}，将使用模拟数据`);
+      return [];
     }
 
-    // ✅ 如果返回空数组，返回空数组而不是抛出错误
+    // ✅ 如果返回空数组，返回空数组
     if (!data.data || data.data.length === 0) {
       console.warn(`[Klines] API 返回空数据: ${symbol} ${interval}`);
       return [];
@@ -212,8 +215,9 @@ export async function fetchBinanceKlines(
 
     return data.data;
   } catch (error) {
-    console.error('[Klines] 获取K线数据失败:', error);
-    throw error;
+    // ✅ 网络错误或其他异常，返回空数组而不是抛出错误
+    console.warn(`[Klines] 获取K线数据异常: ${error instanceof Error ? error.message : 'Unknown error'}，将使用模拟数据`);
+    return [];
   }
 }
 

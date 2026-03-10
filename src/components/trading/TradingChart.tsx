@@ -175,6 +175,19 @@ export default function TradingChart({
 
       console.log(`[TradingChart] 从Binance API获取到 ${history.length} 条K线`)
 
+      // ✅ 如果API返回空数据，自动生成模拟数据
+      if (!history || history.length === 0) {
+        console.warn('[TradingChart] API 返回空数据，生成模拟历史数据')
+        let basePrice = currentPrice;
+        if (!basePrice || basePrice <= 0) {
+          basePrice = await getInitialPriceForSymbol(symbol);
+        }
+        if (!basePrice || basePrice <= 0) {
+          basePrice = 100;
+        }
+        return generateMockHistory(basePrice, 200)
+      }
+
       // 转换为图表格式
       const klineData: KlineData[] = history.map(k => ({
         time: k.time as Time,
@@ -191,9 +204,9 @@ export default function TradingChart({
 
       return klineData
     } catch (error) {
-      console.warn('[TradingChart] Binance API 失败，使用模拟历史数据:', error)
+      console.warn('[TradingChart] 获取K线数据异常，使用模拟历史数据:', error)
 
-      // ✅ 如果API失败，基于当前价格生成模拟历史数据
+      // ✅ 如果发生异常，基于当前价格生成模拟历史数据
       let basePrice = currentPrice;
       if (!basePrice || basePrice <= 0) {
         // 从 market-service 获取实时价格
