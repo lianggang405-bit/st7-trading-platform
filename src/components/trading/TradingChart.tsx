@@ -259,9 +259,86 @@ export default function TradingChart({
 
     initChart()
 
-    // ✅ 暂时禁用实时更新，因为没有可靠的实时价格源
-    // 未来将通过 WebSocket 或定期刷新 Binance API 实现实时更新
-    // 这样可以避免出现双线和价格不一致的问题
+    // ✅ 连接 WebSocket 接收实时K线更新
+    const wsUrl = `ws://localhost:8081`
+    let ws: WebSocket | null = null
+
+    const connectWebSocket = () => {
+      if (!isMounted.current) return
+
+      console.log(`[TradingChart] 连接 WebSocket: ${wsUrl}`)
+      ws = new WebSocket(wsUrl)
+
+      ws.onopen = () => {
+        console.log('[TradingChart] WebSocket 连接成功')
+
+        // 订阅当前交易对
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'subscribe',
+            symbol: symbol
+          }))
+        }
+      }
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data)
+
+          // 处理K线更新
+          if (message.type === 'kline_update' && message.symbol === symbol) {
+            const kline = message.data
+
+            // 转换时间戳为秒
+            const time = Math.floor(new Date(kline.openTime).getTime() / 1000) as Time
+
+            // 更新图表
+            const updated = {
+              time,
+              open: Number(kline.open),
+              high: Number(kline.high),
+              low: Number(kline.low),
+              close: Number(kline.close),
+              volume: Number(kline.volume) || 0
+            }
+
+            if (chartInstance.current && seriesRef.current) {
+              try {
+                seriesRef.current.update(updated)
+
+                // 更新最后一根K线引用
+                lastCandleRef.current = updated
+                priceRef.current = updated.close
+              } catch (error) {
+                console.warn('[TradingChart] WebSocket update error:', error)
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[TradingChart] WebSocket message error:', error)
+        }
+      }
+
+      ws.onerror = (error) => {
+        console.error('[TradingChart] WebSocket error:', error)
+      }
+
+      ws.onclose = () => {
+        console.log('[TradingChart] WebSocket 连接关闭')
+
+        // 自动重连（5秒后）
+        if (isMounted.current) {
+          setTimeout(() => {
+            if (isMounted.current) {
+              console.log('[TradingChart] 尝试重新连接 WebSocket...')
+              connectWebSocket()
+            }
+          }, 5000)
+        }
+      }
+    }
+
+    connectWebSocket()
 
     const handleResize = () => {
 
@@ -283,6 +360,12 @@ export default function TradingChart({
 
       // ✅ 标记组件已卸载
       isMounted.current = false
+
+      // 关闭 WebSocket 连接
+      if (ws) {
+        ws.close()
+        ws = null
+      }
 
       // 清除定时器
       if (intervalRef.current) {

@@ -73,7 +73,7 @@ export async function getGoldApiPrice(symbol: string): Promise<number | null> {
       return null;
     }
 
-    const data: GoldApiResponse = await response.json();
+    const data = await response.json() as GoldApiResponse;
 
     if (!data.price || isNaN(data.price)) {
       console.warn(`[GoldAPI] Invalid price for ${symbol}:`, data);

@@ -53,11 +53,12 @@ function systemSymbolToBinance(symbol: string): string {
  */
 export class BinanceWebSocketCollector {
   private ws: WebSocket | null = null;
-  private symbols: string[];
+  private symbols: Set<string> = new Set(); // 使用 Set 避免重复
   private prices: Map<string, number> = new Map();
   private reconnectInterval: number = 5000; // 重连间隔 5 秒
   private reconnectTimer: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
+  private pendingReconnect: boolean = false;
 
   /**
    * 价格更新回调函数
@@ -66,7 +67,10 @@ export class BinanceWebSocketCollector {
 
   constructor(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'AVAX', 'LINK', 'DOT']) {
     // 转换为 Binance 格式（添加 USDT 后缀）
-    this.symbols = symbols.map(s => s.endsWith('USDT') ? s : `${s}USDT`);
+    symbols.forEach(s => {
+      const symbolWithUSDT = s.endsWith('USDT') ? s : `${s}USDT`;
+      this.symbols.add(symbolWithUSDT);
+    });
   }
 
   /**
@@ -86,7 +90,7 @@ export class BinanceWebSocketCollector {
     }
 
     console.log('[BinanceWS] Starting...');
-    console.log(`[BinanceWS] Symbols: ${this.symbols.join(', ')}`);
+    console.log(`[BinanceWS] Symbols: ${Array.from(this.symbols).join(', ')}`);
 
     this.isRunning = true;
     await this.connect();
@@ -98,7 +102,7 @@ export class BinanceWebSocketCollector {
   private async connect(): Promise<void> {
     try {
       // 构建订阅流
-      const streams = this.symbols.map(s => `${s.toLowerCase()}@trade`).join('/');
+      const streams = Array.from(this.symbols).map(s => `${s.toLowerCase()}@trade`).join('/');
 
       const url = `${BINANCE_WS_URL}/${streams}`;
 
@@ -204,6 +208,55 @@ export class BinanceWebSocketCollector {
    */
   public getAllPrices(): Map<string, number> {
     return new Map(this.prices);
+  }
+
+  /**
+   * 添加交易对订阅
+   */
+  public addSymbol(symbol: string): void {
+    const binanceSymbol = symbol.endsWith('USDT') ? symbol : `${symbol}USDT`;
+
+    if (this.symbols.has(binanceSymbol)) {
+      console.log(`[BinanceWS] Symbol already subscribed: ${binanceSymbol}`);
+      return;
+    }
+
+    this.symbols.add(binanceSymbol);
+    console.log(`[BinanceWS] Added symbol: ${binanceSymbol}`);
+
+    // 如果正在运行，重新连接以应用新订阅
+    if (this.isRunning && this.ws && this.ws.readyState === WebSocket.OPEN) {
+      console.log('[BinanceWS] Reconnecting to apply new subscription...');
+      this.ws.close();
+    }
+  }
+
+  /**
+   * 移除交易对订阅
+   */
+  public removeSymbol(symbol: string): void {
+    const binanceSymbol = symbol.endsWith('USDT') ? symbol : `${symbol}USDT`;
+
+    if (!this.symbols.has(binanceSymbol)) {
+      console.log(`[BinanceWS] Symbol not subscribed: ${binanceSymbol}`);
+      return;
+    }
+
+    this.symbols.delete(binanceSymbol);
+    console.log(`[BinanceWS] Removed symbol: ${binanceSymbol}`);
+
+    // 如果正在运行，重新连接以应用移除
+    if (this.isRunning && this.ws && this.ws.readyState === WebSocket.OPEN) {
+      console.log('[BinanceWS] Reconnecting to apply removal...');
+      this.ws.close();
+    }
+  }
+
+  /**
+   * 获取订阅的交易对列表（系统符号格式）
+   */
+  public getSymbols(): string[] {
+    return Array.from(this.symbols).map(s => binanceSymbolToSystem(s));
   }
 
   /**

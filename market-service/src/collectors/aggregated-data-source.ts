@@ -79,7 +79,7 @@ export class AggregatedDataSourceCollector {
   ]);
   private oilSymbols: Set<string> = new Set(['USOIL', 'UKOIL', 'NGAS']);
 
-  constructor() {
+  constructor(private skipBinance: boolean = false) {
     console.log('[AggregatedDS] Initializing aggregated data source collector...');
   }
 
@@ -90,8 +90,13 @@ export class AggregatedDataSourceCollector {
     console.log('[AggregatedDS] 🚀 Starting all data sources...');
 
     // 1. 启动 Binance WebSocket（加密货币 - 实时）
-    console.log('[AggregatedDS] 1. Starting Binance WebSocket...');
-    await this.startBinanceWebSocket();
+    // 注意：如果skipBinance=true，则跳过Binance WebSocket（由MarketDataEngine负责）
+    if (!this.skipBinance) {
+      console.log('[AggregatedDS] 1. Starting Binance WebSocket...');
+      await this.startBinanceWebSocket();
+    } else {
+      console.log('[AggregatedDS] 1. Skipping Binance WebSocket (handled by MarketDataEngine)...');
+    }
 
     // 2. 启动 Gold API（贵金属 - 10秒）
     console.log('[AggregatedDS] 2. Starting Gold API (10s interval)...');
@@ -354,5 +359,6 @@ export class AggregatedDataSourceCollector {
 
 /**
  * 导出单例
+ * skipBinance=true: 跳过Binance WebSocket，由MarketDataEngine负责
  */
-export const aggregatedDataSource = new AggregatedDataSourceCollector();
+export const aggregatedDataSource = new AggregatedDataSourceCollector(true);
