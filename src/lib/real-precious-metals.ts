@@ -143,8 +143,13 @@ export async function fetchGoldAPIKlines(
 
   const apiKey = process.env.NEXT_PUBLIC_GOLDAPI_KEY || 'goldapi-445bbsmmle9lsi-io'
 
+  console.log(`[GoldAPI Klines] 开始请求: ${metal}/${goldapiInterval} (limit: ${limit})`)
+
   try {
     const url = `https://api.goldapi.io/api/${metal}/USD/${goldapiInterval}`
+    console.log(`[GoldAPI Klines] 请求 URL: ${url}`)
+    console.log(`[GoldAPI Klines] API 密钥: ${apiKey.substring(0, 10)}...`)
+
     const response = await fetch(url, {
       headers: {
         'x-access-token': apiKey,
@@ -154,12 +159,16 @@ export async function fetchGoldAPIKlines(
       signal: AbortSignal.timeout(5000)
     })
 
+    console.log(`[GoldAPI Klines] HTTP 状态: ${response.status} ${response.statusText}`)
+
     if (!response.ok) {
-      console.error(`[GoldAPI Klines] HTTP ${response.status}: ${response.statusText}`)
+      const errorText = await response.text()
+      console.error(`[GoldAPI Klines] HTTP 错误响应:`, errorText)
       return []
     }
 
     const data = await response.json()
+    console.log(`[GoldAPI Klines] 响应类型: ${Array.isArray(data) ? '数组' : typeof data}`)
 
     // GoldAPI 历史K线数据格式
     // 可能是数组格式，每个元素包含：
@@ -174,6 +183,8 @@ export async function fetchGoldAPIKlines(
     // }
 
     if (Array.isArray(data) && data.length > 0) {
+      console.log(`[GoldAPI Klines] 成功获取 ${data.length} 条K线数据`)
+
       const klines = data.map((k: any) => {
         // 尝试多种可能的字段名
         const open = Number(k.open || k.open_price) || Number(k.price) || 0
@@ -200,18 +211,27 @@ export async function fetchGoldAPIKlines(
       klines.sort((a, b) => a.time - b.time)
 
       // 取最近 N 条数据
-      return klines.slice(-limit)
+      const result = klines.slice(-limit)
+      console.log(`[GoldAPI Klines] 返回 ${result.length} 条K线数据`)
+
+      return result
     }
 
     // 如果是单个对象（只有当前价格），返回空数组
     if (data.price && !Array.isArray(data)) {
       console.log('[GoldAPI Klines] 仅返回当前价格，无历史数据')
+      console.log('[GoldAPI Klines] 当前价格:', data.price)
       return []
     }
 
+    console.log('[GoldAPI Klines] 返回数据格式不匹配:', data)
     return []
   } catch (error) {
     console.error('[GoldAPI Klines] 请求失败:', error)
+    if (error instanceof Error) {
+      console.error('[GoldAPI Klines] 错误详情:', error.message)
+      console.error('[GoldAPI Klines] 错误堆栈:', error.stack)
+    }
     return []
   }
 }
