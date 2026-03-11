@@ -46,10 +46,8 @@ export class MarketDataEngine {
   ];
 
   constructor() {
-    // 移除 USDT 后缀，转换为系统符号
-    const systemSymbols = this.symbols.map(s => s.replace('USDT', 'USD'));
-
-    this.binanceWS = new BinanceWebSocketCollector(systemSymbols);
+    // 直接使用Binance格式符号，不再转换
+    this.binanceWS = new BinanceWebSocketCollector(this.symbols);
 
     // 设置价格更新回调
     this.binanceWS.setPriceUpdateCallback((symbol, price) => {

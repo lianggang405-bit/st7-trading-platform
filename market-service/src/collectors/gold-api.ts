@@ -22,10 +22,11 @@ const GOLD_API_BASE_URL = 'https://api.gold-api.com';
  * Gold API 返回的数据格式
  */
 interface GoldApiResponse {
-  price: number;
-  symbol: string;
+  price?: number;
+  symbol?: string;
   currency?: string;
   timestamp?: number;
+  price_gram_24k?: number;
 }
 
 /**

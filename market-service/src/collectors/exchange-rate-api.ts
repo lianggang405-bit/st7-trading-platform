@@ -19,10 +19,10 @@ const EXCHANGE_RATE_API_BASE_URL = 'https://open.er-api.com/v6/latest';
  * Exchange Rate API 返回的数据格式
  */
 interface ExchangeRateApiResponse {
-  result: string;
-  time_last_update_unix: number;
-  base_code: string;
-  rates: Record<string, number>;
+  result?: string;
+  time_last_update_unix?: number;
+  base_code?: string;
+  rates?: Record<string, number>;
 }
 
 /**

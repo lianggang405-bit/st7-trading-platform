@@ -259,18 +259,20 @@ export default function TradingChart({
 
     initChart()
 
-    // ✅ 连接 WebSocket 接收实时K线更新
+    // ✅ 尝试连接 WebSocket 接收实时K线更新
     const wsUrl = `ws://localhost:8081`
     let ws: WebSocket | null = null
+    let isWsConnected = false
 
     const connectWebSocket = () => {
       if (!isMounted.current) return
 
-      console.log(`[TradingChart] 连接 WebSocket: ${wsUrl}`)
+      console.log(`[TradingChart] 尝试连接 WebSocket: ${wsUrl}`)
       ws = new WebSocket(wsUrl)
 
       ws.onopen = () => {
-        console.log('[TradingChart] WebSocket 连接成功')
+        console.log('[TradingChart] ✅ WebSocket 连接成功')
+        isWsConnected = true
 
         // 订阅当前交易对
         if (ws && ws.readyState === WebSocket.OPEN) {
@@ -320,17 +322,18 @@ export default function TradingChart({
       }
 
       ws.onerror = (error) => {
-        console.error('[TradingChart] WebSocket error:', error)
+        console.error('[TradingChart] ⚠️ WebSocket 连接失败，将使用API定期刷新')
+        isWsConnected = false
       }
 
       ws.onclose = () => {
         console.log('[TradingChart] WebSocket 连接关闭')
+        isWsConnected = false
 
         // 自动重连（5秒后）
         if (isMounted.current) {
           setTimeout(() => {
             if (isMounted.current) {
-              console.log('[TradingChart] 尝试重新连接 WebSocket...')
               connectWebSocket()
             }
           }, 5000)
@@ -338,7 +341,47 @@ export default function TradingChart({
       }
     }
 
+    // 尝试连接WebSocket
     connectWebSocket()
+
+    // ✅ 降级处理：如果WebSocket连接失败，定期刷新Binance API获取最新价格
+    const pollInterval = setInterval(() => {
+      if (!isMounted.current || !chartInstance.current || !seriesRef.current) {
+        return
+      }
+
+      // 只有在WebSocket未连接时才轮询
+      if (!isWsConnected) {
+        // 每5秒刷新一次
+        fetchBinanceKlines(symbol, timeframe, 1)
+          .then((klines) => {
+            if (klines && klines.length > 0) {
+              const latest = klines[klines.length - 1]
+              const time = latest.time as Time
+
+              const updated = {
+                time,
+                open: Number(latest.open),
+                high: Number(latest.high),
+                low: Number(latest.low),
+                close: Number(latest.close),
+                volume: Number(latest.volume) || 0
+              }
+
+              try {
+                seriesRef.current.update(updated)
+                lastCandleRef.current = updated
+                priceRef.current = updated.close
+              } catch (error) {
+                console.warn('[TradingChart] API update error:', error)
+              }
+            }
+          })
+          .catch((error) => {
+            // 静默失败，避免刷屏
+          })
+      }
+    }, 5000)
 
     const handleResize = () => {
 
@@ -371,6 +414,11 @@ export default function TradingChart({
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
         intervalRef.current = null
+      }
+
+      // 清除轮询定时器
+      if (pollInterval) {
+        clearInterval(pollInterval)
       }
 
       // 移除事件监听
