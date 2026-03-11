@@ -9,25 +9,26 @@ export interface RealPriceData {
   timestamp: number
 }
 
+// 数据源配置（包含名称）
+const dataSourceConfigs = [
+  { name: 'GoldAPI', fn: fetchFromGoldAPI },
+  { name: 'MetalsLive', fn: fetchFromMetalsLive },
+  { name: 'ExchangeRatesAPI', fn: fetchFromExchangeRatesAPI }
+]
+
 /**
  * 从 GoldAPI 获取实时贵金属价格
  */
 export async function getRealPreciousMetalPrice(symbol: string): Promise<RealPriceData | null> {
-  const sources = [
-    fetchFromGoldAPI,
-    fetchFromMetalsLive,
-    fetchFromExchangeRatesAPI
-  ]
-
-  for (const source of sources) {
+  for (const config of dataSourceConfigs) {
     try {
-      const data = await source(symbol)
+      const data = await config.fn(symbol)
       if (data) {
-        console.log(`[RealPreciousMetals] 成功从 ${source.name} 获取 ${symbol} 价格: ${data.price}`)
+        console.log(`[RealPreciousMetals] 成功从 ${config.name} 获取 ${symbol} 价格: ${data.price}`)
         return data
       }
     } catch (error) {
-      console.error(`[RealPreciousMetals] ${source.name} 失败:`, error)
+      console.error(`[RealPreciousMetals] ${config.name} 失败:`, error)
       continue
     }
   }
@@ -74,12 +75,29 @@ async function fetchFromGoldAPI(symbol: string): Promise<RealPriceData | null> {
 
     const data = await response.json()
 
-    // GoldAPI 返回格式：{ price: 5200.99, high_price: 5223.085, low_price: 5183.17, ... }
+    // GoldAPI 返回格式：
+    // {
+    //   "date": "2026-03-04T10:30:00.000Z",
+    //   "timestamp": 1772620200000,
+    //   "metal": "XAU",
+    //   "exchange": "LBMA",
+    //   "currency": "USD",
+    //   "price": 5183.7,
+    //   "prev_close_price": 5267.6,
+    //   "ch": -83.9,
+    //   "chp": -1.6185,
+    //   "price_gram_24k": 166.6598,
+    //   ...
+    // }
+
     if (data.price) {
+      // 转换时间戳（毫秒 -> 秒）
+      const timestamp = data.timestamp ? Math.floor(data.timestamp / 1000) : Math.floor(Date.now() / 1000)
+
       return {
         symbol,
         price: parseFloat(data.price),
-        timestamp: data.timestamp ? Math.floor(data.timestamp) : Math.floor(Date.now() / 1000)
+        timestamp
       }
     }
 
@@ -89,8 +107,6 @@ async function fetchFromGoldAPI(symbol: string): Promise<RealPriceData | null> {
     return null
   }
 }
-
-fetchFromGoldAPI.name = 'GoldAPI'
 
 /**
  * 从 GoldAPI 获取历史K线数据
@@ -145,24 +161,33 @@ export async function fetchGoldAPIKlines(
 
     const data = await response.json()
 
-    // GoldAPI 返回格式：{ symbol: "XAU", currency: "USD", price: 5200.99, ts: 1678767600, ... }
-    // 需要检查是否有历史数据
-    if (data.price) {
-      // 如果只有当前价格，返回空数组（让其他数据源处理）
-      console.log('[GoldAPI Klines] 仅返回当前价格，无历史数据')
-      return []
-    }
+    // GoldAPI 历史K线数据格式
+    // 可能是数组格式，每个元素包含：
+    // {
+    //   "date": "2026-03-04T10:30:00.000Z",
+    //   "timestamp": 1772620200000,
+    //   "price": 5183.7,
+    //   "open": 5190,
+    //   "high": 5223,
+    //   "low": 5183,
+    //   ...
+    // }
 
-    // 如果有历史数据数组
-    if (Array.isArray(data)) {
-      return data.map((k: any) => {
-        const open = Number(k.open) || 0
-        const high = Number(k.high) || 0
-        const low = Number(k.low) || 0
-        const close = Number(k.close) || 0
+    if (Array.isArray(data) && data.length > 0) {
+      const klines = data.map((k: any) => {
+        // 尝试多种可能的字段名
+        const open = Number(k.open || k.open_price) || Number(k.price) || 0
+        const close = Number(k.price) || 0
+        const high = Number(k.high || k.high_price) || Math.max(open, close)
+        const low = Number(k.low || k.low_price) || Math.min(open, close)
+
+        // 转换时间戳（毫秒 -> 秒）
+        const time = k.timestamp ? Math.floor(k.timestamp / 1000) :
+                    k.date ? Math.floor(new Date(k.date).getTime() / 1000) :
+                    Math.floor(Date.now() / 1000)
 
         return {
-          time: Number(k.time || k.ts) || Math.floor(Date.now() / 1000),
+          time,
           open,
           high: Math.max(high, open, close),
           low: Math.min(low, open, close),
@@ -170,6 +195,18 @@ export async function fetchGoldAPIKlines(
           volume: Number(k.volume) || 0
         }
       })
+
+      // 按时间排序（从旧到新）
+      klines.sort((a, b) => a.time - b.time)
+
+      // 取最近 N 条数据
+      return klines.slice(-limit)
+    }
+
+    // 如果是单个对象（只有当前价格），返回空数组
+    if (data.price && !Array.isArray(data)) {
+      console.log('[GoldAPI Klines] 仅返回当前价格，无历史数据')
+      return []
     }
 
     return []
@@ -215,8 +252,6 @@ async function fetchFromMetalsLive(symbol: string): Promise<RealPriceData | null
   }
 }
 
-fetchFromMetalsLive.name = 'Metals Live API'
-
 /**
  * 从 exchange-rates API 获取价格
  */
@@ -261,8 +296,6 @@ async function fetchFromExchangeRatesAPI(symbol: string): Promise<RealPriceData 
   }
 }
 
-fetchFromExchangeRatesAPI.name = 'Exchange Rates API'
-
 /**
  * 从 commodity API 获取价格（备用）
  */
@@ -270,5 +303,3 @@ async function fetchFromCommodityAPI(symbol: string): Promise<RealPriceData | nu
   // 这里可以添加其他免费API
   return null
 }
-
-fetchFromCommodityAPI.name = 'Commodity API'

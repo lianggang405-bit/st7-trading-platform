@@ -272,6 +272,17 @@ export async function generateMockKlines(
       kline.high = Number((kline.high * correctionFactor).toFixed(5))
       kline.low = Number((kline.low * correctionFactor).toFixed(5))
     }
+
+    // ✅ 安全验证：确保 high >= max(open, close) 且 low <= min(open, close)
+    const maxOC = Math.max(kline.open, kline.close)
+    const minOC = Math.min(kline.open, kline.close)
+
+    if (kline.high < maxOC) {
+      kline.high = maxOC
+    }
+    if (kline.low > minOC) {
+      kline.low = minOC
+    }
   }
 
   return klines
