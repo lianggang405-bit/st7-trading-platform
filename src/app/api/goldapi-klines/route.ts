@@ -19,6 +19,7 @@ export async function GET(request: Request) {
 
     console.log(`[GoldAPI Proxy] 获取到 ${klines.length} 条K线数据`)
 
+    // 如果获取到数据，返回成功
     return NextResponse.json({
       success: true,
       symbol,
@@ -27,10 +28,17 @@ export async function GET(request: Request) {
       klines
     })
   } catch (error) {
-    console.error('[GoldAPI Proxy] 错误:', error)
+    // 即使发生错误也返回成功，但 klines 为空
+    // 这样调用方可以根据 klines.length === 0 判断是否需要降级
+    console.error('[GoldAPI Proxy] 请求失败（将降级到模拟数据）:', error)
+
     return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+      success: true,  // 返回 true，但 klines 为空
+      symbol,
+      interval,
+      count: 0,
+      klines: [],
+      fallback: 'simulated'  // 标记需要降级
+    })
   }
 }
