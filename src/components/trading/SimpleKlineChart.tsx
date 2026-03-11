@@ -60,7 +60,6 @@ export default function SimpleKlineChart({
         borderColor: "#374151",
         timeVisible: true,
         secondsVisible: interval === "1m" || interval === "5m",
-        timeVisible: true,
       }
     })
 
