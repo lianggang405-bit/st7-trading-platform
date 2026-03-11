@@ -97,25 +97,25 @@ export function getIntervalSeconds(interval: string): number {
  * 使用更接近真实市场的价格
  */
 export function getBasePrice(symbol: string): number {
-  // 加密货币
-  if (symbol.includes('BTC')) return 95000
-  if (symbol.includes('ETH')) return 3500
-  if (symbol.includes('SOL')) return 150
-  if (symbol.includes('BNB')) return 600
-  if (symbol.includes('LTC')) return 95
-  if (symbol.includes('XRP')) return 2.5
-  if (symbol.includes('DOGE')) return 0.25
+  // 加密货币（2026年3月实时价格）
+  if (symbol.includes('BTC')) return 68000
+  if (symbol.includes('ETH')) return 1900
+  if (symbol.includes('SOL')) return 95
+  if (symbol.includes('BNB')) return 520
+  if (symbol.includes('LTC')) return 88
+  if (symbol.includes('XRP')) return 1.38
+  if (symbol.includes('DOGE')) return 0.15
 
-  // 黄金（XAUUSD = Gold/USD）- 接近真实市场价格
-  if (symbol.startsWith('XAU') || symbol.startsWith('GOLD')) return 2900
+  // 黄金（XAUUSD = Gold/USD）- 2026年实时价格（3月11日：5171美元）
+  if (symbol.startsWith('XAU') || symbol.startsWith('GOLD')) return 5170
 
-  // 白银（XAGUSD = Silver/USD）- 接近真实市场价格
-  if (symbol.startsWith('XAG')) return 32.5
+  // 白银（XAGUSD = Silver/USD）- 2026年实时价格（3月11日：89美元）
+  if (symbol.startsWith('XAG')) return 89
 
-  // 原油
-  if (symbol.includes('OIL') || symbol.includes('WTI')) return 75
-  if (symbol.includes('BRENT') || symbol.includes('UKOIL')) return 79
-  if (symbol.includes('USOIL')) return 75
+  // 原油（2026年3月11日：WTI原油85美元左右）
+  if (symbol.includes('OIL') || symbol.includes('WTI')) return 85
+  if (symbol.includes('BRENT') || symbol.includes('UKOIL')) return 88
+  if (symbol.includes('USOIL')) return 85
   if (symbol.includes('NGAS')) return 2.8
 
   // 外汇（更准确的价格）
@@ -155,29 +155,29 @@ export function generateMockKlines(
   const klines: KlineData[] = []
 
   // 根据交易对类别设置波动率参数
-  // 贵金属波动率较低（0.5%-1%），加密货币波动率较高（1%-2%）
+  // 贵金属波动率较低（0.3%-1%），加密货币波动率较高（1%-3%）
   const isPreciousMetal = category === 'gold'
-  const volatilityScale = isPreciousMetal ? 0.3 : 0.8  // 贵金属波动率缩放为0.3倍
-  const maxPriceDeviation = isPreciousMetal ? 0.03 : 0.05  // 贵金属最大偏离3%，加密货币5%
+  const volatilityScale = isPreciousMetal ? 0.5 : 1.0  // 贵金属波动率缩放为0.5倍
+  const maxPriceDeviation = isPreciousMetal ? 0.05 : 0.08  // 贵金属最大偏离5%，加密货币8%
 
   // 使用多个周期的正弦波组合 + 随机游走，模拟真实市场波动
-  let currentPrice = basePrice * (1 + (Math.random() - 0.5) * 0.005)  // 初始偏离仅0.5%
+  let currentPrice = basePrice * (1 + (Math.random() - 0.5) * 0.01)  // 初始偏离仅1%
 
   for (let i = 0; i < limit; i++) {
     const time = endTime - ((limit - 1 - i) * intervalSeconds)
 
     // 模拟价格走势（降低波动率，增加随机性）
-    const trend = Math.sin(i / 20) * 0.005 * volatilityScale           // 长期趋势：±0.5%
-    const swing = Math.sin(i / 5) * 0.003 * volatilityScale             // 中期波动：±0.3%
-    const noise = (Math.random() - 0.5) * 0.004 * volatilityScale       // 随机噪声：±0.4%
-    const jump = Math.random() > 0.99 ? (Math.random() - 0.5) * 0.008 * volatilityScale : 0  // 偶尔的小跳变：±0.8%
+    const trend = Math.sin(i / 20) * 0.008 * volatilityScale           // 长期趋势：±0.8%
+    const swing = Math.sin(i / 5) * 0.005 * volatilityScale             // 中期波动：±0.5%
+    const noise = (Math.random() - 0.5) * 0.006 * volatilityScale       // 随机噪声：±0.6%
+    const jump = Math.random() > 0.99 ? (Math.random() - 0.5) * 0.012 * volatilityScale : 0  // 偶尔的小跳变：±1.2%
 
     const priceChange = trend + swing + noise + jump
     const open = currentPrice
 
     // 生成 close, high, low
     const close = open * (1 + priceChange)
-    const volatility = Math.abs(priceChange) * 1.2 + Math.random() * 0.001 * volatilityScale
+    const volatility = Math.abs(priceChange) * 1.2 + Math.random() * 0.002 * volatilityScale
     const high = Math.max(open, close) * (1 + Math.random() * volatility)
     const low = Math.min(open, close) * (1 - Math.random() * volatility)
 
