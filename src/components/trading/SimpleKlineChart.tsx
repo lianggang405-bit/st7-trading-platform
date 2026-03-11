@@ -9,13 +9,15 @@ interface SimpleKlineChartProps {
   interval?: string
   limit?: number
   height?: number
+  onPriceUpdate?: (price: number) => void  // 新增：价格更新回调
 }
 
 export default function SimpleKlineChart({
   symbol = "BTCUSDT",
   interval = "1m",
   limit = 200,
-  height = 500
+  height = 500,
+  onPriceUpdate  // 新增
 }: SimpleKlineChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -125,6 +127,11 @@ export default function SimpleKlineChart({
             const lastCandle = chartData[chartData.length - 1]
             candleSeries.update(lastCandle)
             lastDataRef.current = chartData
+
+            // 通知父组件价格更新
+            if (onPriceUpdate && lastCandle.close) {
+              onPriceUpdate(lastCandle.close)
+            }
             return
           }
         }
@@ -132,6 +139,12 @@ export default function SimpleKlineChart({
         // 首次加载或时间戳变化，重新设置所有数据
         candleSeries.setData(chartData)
         lastDataRef.current = chartData
+
+        // 通知父组件价格更新
+        const lastCandle = chartData[chartData.length - 1]
+        if (onPriceUpdate && lastCandle.close) {
+          onPriceUpdate(lastCandle.close)
+        }
       } catch (error) {
         // 静默处理错误，避免控制台刷屏
       }

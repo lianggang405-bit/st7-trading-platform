@@ -37,6 +37,7 @@ export default function TradePage() {
   const currentSymbol = marketState?.currentSymbol;
   const setCurrentSymbol = marketState?.setCurrentSymbol;
   const setSymbols = marketState?.setSymbols;
+  const updateSymbolPrice = marketState?.updateSymbolPrice;
   const { positions, openPosition, closePosition, updatePositions } = usePositionStore();
   const { freeMargin, onOpenPosition, equity, usedMargin, balance } = useAssetStore();
   const { marginLevel, warning, danger, updateRisk } = useRiskControlStore();
@@ -184,6 +185,36 @@ export default function TradePage() {
   useEffect(() => {
     updateRisk({ equity, usedMargin });
   }, [equity, usedMargin, updateRisk]);
+
+  // ✅ 定期更新所有交易对的价格（每10秒）
+  useEffect(() => {
+    const updatePrices = async () => {
+      try {
+        // 重新获取所有交易对数据
+        const response = await fetch('/api/trading/symbols');
+        const data = await response.json();
+
+        if (data.success && data.symbols) {
+          // 更新 marketStore 中的价格
+          data.symbols.forEach((symbol: TradingSymbol) => {
+            setSymbols((prevSymbols: TradingSymbol[]) => {
+              return prevSymbols.map((s) =>
+                s.symbol === symbol.symbol
+                  ? { ...s, price: symbol.price, change: symbol.change }
+                  : s
+              );
+            });
+          });
+        }
+      } catch (error) {
+        console.error('[TradePage] 更新价格失败:', error);
+      }
+    };
+
+    // 每10秒更新一次价格
+    const interval = setInterval(updatePrices, 10000);
+    return () => clearInterval(interval);
+  }, [setSymbols]);
 
   // 监听价格变化，触发脉冲动画
   useEffect(() => {
@@ -354,6 +385,13 @@ export default function TradePage() {
     return price >= 1000 ? 2 : 4;
   };
 
+  // K线图价格更新回调
+  const handleKlinePriceUpdate = (price: number) => {
+    if (currentSymbol && updateSymbolPrice) {
+      updateSymbolPrice(currentSymbol, price);
+    }
+  };
+
   const currentSymbolData = currentSymbol ? symbols.find(s => s.symbol === currentSymbol) : null;
 
   const timeframes: Timeframe[] = ['1M', '5M', '15M', '1H', '1D'];
@@ -482,6 +520,7 @@ export default function TradePage() {
             interval={timeFrameToInterval(timeframe)}
             height={500}
             limit={200}
+            onPriceUpdate={handleKlinePriceUpdate}
           />
         )}
 

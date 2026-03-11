@@ -29,6 +29,7 @@ interface MarketState {
   currentSymbol: string | null;
   setCurrentSymbol: (symbol: string) => void;
   setSymbols: (symbols: TradingSymbol[]) => void;
+  updateSymbolPrice: (symbol: string, price: number, change?: number) => void;
   // ✅ 禁用 tick 函数，避免生成假行情
   // 未来应该通过 WebSocket 或 API 获取真实实时价格
   // tick: () => void;
@@ -48,6 +49,19 @@ export const useMarketStore = create<MarketState>((set, get) => ({
     set({
       symbols,
     });
+  },
+
+  /**
+   * 更新单个交易对的价格（用于实时价格更新）
+   */
+  updateSymbolPrice: (symbol: string, price: number, change?: number) => {
+    set((state) => ({
+      symbols: state.symbols.map((s) =>
+        s.symbol === symbol
+          ? { ...s, price, change: change ?? s.change }
+          : s
+      ),
+    }));
   },
 
   // ✅ 禁用 tick 函数，避免生成假行情
