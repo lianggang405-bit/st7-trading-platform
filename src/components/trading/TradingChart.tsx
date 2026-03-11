@@ -260,6 +260,7 @@ export default function TradingChart({
     initChart()
 
     // ✅ 尝试连接 WebSocket 接收实时K线更新
+    // 如果WebSocket连接失败，系统会自动降级到API轮询模式
     const wsUrl = `ws://localhost:8081`
     let ws: WebSocket | null = null
     let isWsConnected = false
@@ -267,11 +268,16 @@ export default function TradingChart({
     const connectWebSocket = () => {
       if (!isMounted.current) return
 
-      console.log(`[TradingChart] 尝试连接 WebSocket: ${wsUrl}`)
-      ws = new WebSocket(wsUrl)
+      try {
+        ws = new WebSocket(wsUrl)
+      } catch (error) {
+        // WebSocket创建失败，静默处理
+        isWsConnected = false
+        return
+      }
 
       ws.onopen = () => {
-        console.log('[TradingChart] ✅ WebSocket 连接成功')
+        // WebSocket连接成功
         isWsConnected = true
 
         // 订阅当前交易对
@@ -322,12 +328,13 @@ export default function TradingChart({
       }
 
       ws.onerror = (error) => {
-        console.error('[TradingChart] ⚠️ WebSocket 连接失败，将使用API定期刷新')
+        // 静默处理WebSocket错误，避免控制台刷屏
+        // 系统会自动降级到API轮询模式
         isWsConnected = false
       }
 
       ws.onclose = () => {
-        console.log('[TradingChart] WebSocket 连接关闭')
+        // 静默处理WebSocket关闭
         isWsConnected = false
 
         // 自动重连（5秒后）
