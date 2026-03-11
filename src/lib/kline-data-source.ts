@@ -41,6 +41,14 @@ function setCachedData(symbol: string, interval: string, limit: number, data: Kl
 }
 
 /**
+ * 清除所有缓存（用于模拟数据算法更新后强制刷新）
+ */
+export function clearKlineCache(): void {
+  klineCache.clear()
+  console.log('[KlineDataSource] 已清除所有 K 线数据缓存')
+}
+
+/**
  * 获取交易对类别
  */
 export function getSymbolCategory(symbol: string): SymbolCategory {
@@ -139,32 +147,47 @@ export function generateMockKlines(
 ): KlineData[] {
   const intervalSeconds = getIntervalSeconds(interval)
   const basePrice = getBasePrice(symbol)
+  const category = getSymbolCategory(symbol)
 
   const now = Math.floor(Date.now() / 1000)
   const endTime = now - (now % intervalSeconds)
 
   const klines: KlineData[] = []
 
-  // 使用多个周期的正弦波组合，模拟真实市场波动
-  let currentPrice = basePrice * (1 + (Math.random() - 0.5) * 0.01)
+  // 根据交易对类别设置波动率参数
+  // 贵金属波动率较低（0.5%-1%），加密货币波动率较高（1%-2%）
+  const isPreciousMetal = category === 'gold'
+  const volatilityScale = isPreciousMetal ? 0.3 : 0.8  // 贵金属波动率缩放为0.3倍
+  const maxPriceDeviation = isPreciousMetal ? 0.03 : 0.05  // 贵金属最大偏离3%，加密货币5%
+
+  // 使用多个周期的正弦波组合 + 随机游走，模拟真实市场波动
+  let currentPrice = basePrice * (1 + (Math.random() - 0.5) * 0.005)  // 初始偏离仅0.5%
 
   for (let i = 0; i < limit; i++) {
     const time = endTime - ((limit - 1 - i) * intervalSeconds)
 
-    // 模拟价格走势（多重周期组合）
-    const trend = Math.sin(i / 20) * 0.02                    // 长期趋势
-    const swing = Math.sin(i / 5) * 0.01                      // 中期波动
-    const noise = (Math.random() - 0.5) * 0.008               // 随机噪声
-    const jump = Math.random() > 0.98 ? (Math.random() - 0.5) * 0.015 : 0 // 偶尔的价格跳变
+    // 模拟价格走势（降低波动率，增加随机性）
+    const trend = Math.sin(i / 20) * 0.005 * volatilityScale           // 长期趋势：±0.5%
+    const swing = Math.sin(i / 5) * 0.003 * volatilityScale             // 中期波动：±0.3%
+    const noise = (Math.random() - 0.5) * 0.004 * volatilityScale       // 随机噪声：±0.4%
+    const jump = Math.random() > 0.99 ? (Math.random() - 0.5) * 0.008 * volatilityScale : 0  // 偶尔的小跳变：±0.8%
 
     const priceChange = trend + swing + noise + jump
     const open = currentPrice
 
     // 生成 close, high, low
     const close = open * (1 + priceChange)
-    const volatility = Math.abs(priceChange) * 1.5 + Math.random() * 0.003
+    const volatility = Math.abs(priceChange) * 1.2 + Math.random() * 0.001 * volatilityScale
     const high = Math.max(open, close) * (1 + Math.random() * volatility)
     const low = Math.min(open, close) * (1 - Math.random() * volatility)
+
+    // 限制价格偏离度（防止价格暴涨暴跌）
+    const priceDeviation = Math.abs(currentPrice - basePrice) / basePrice
+    if (priceDeviation > maxPriceDeviation) {
+      // 价格偏离过大时，强制回归基准价格
+      const correction = (basePrice - currentPrice) * 0.1
+      currentPrice = currentPrice + correction
+    }
 
     // 更新当前价格
     currentPrice = close
@@ -185,6 +208,18 @@ export function generateMockKlines(
   klines[klines.length - 1].close = Number(basePrice.toFixed(5))
   klines[klines.length - 1].high = Number((lastKline.high * (1 + lastPriceChange * 0.5)).toFixed(5))
   klines[klines.length - 1].low = Number((lastKline.low * (1 + lastPriceChange * 0.5)).toFixed(5))
+
+  // 最终验证：确保所有价格在合理范围内
+  for (const kline of klines) {
+    const deviation = Math.abs(kline.close - basePrice) / basePrice
+    if (deviation > maxPriceDeviation) {
+      // 强制修正超出的价格
+      const correctionFactor = 1 + (basePrice - kline.close) / kline.close * 0.5
+      kline.close = Number((kline.close * correctionFactor).toFixed(5))
+      kline.high = Number((kline.high * correctionFactor).toFixed(5))
+      kline.low = Number((kline.low * correctionFactor).toFixed(5))
+    }
+  }
 
   return klines
 }

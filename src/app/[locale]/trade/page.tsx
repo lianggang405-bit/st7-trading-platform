@@ -71,6 +71,15 @@ export default function TradePage() {
   const [pendingPrice, setPendingPrice] = useState(0);
   const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] = useState(false);
 
+  // 初始化时清除K线缓存（确保使用新的模拟数据算法）
+  useEffect(() => {
+    // 动态导入 clearKlineCache 函数
+    import('../../../lib/kline-data-source').then(({ clearKlineCache }) => {
+      clearKlineCache();
+      console.log('[TradePage] 已清除 K 线缓存');
+    });
+  }, []);
+
   // 定期檢查並觸發掛單
   useEffect(() => {
     const checkAndTriggerOrders = async () => {
