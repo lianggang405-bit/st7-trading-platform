@@ -754,10 +754,16 @@ export async function fetchKlines(
   if (category === 'crypto') {
     klines = await fetchBinanceKlines(symbol, interval, limit)
   }
-  // Gold (XAUUSD, XAGUSD): 优先使用 Finnhub API
+  // Gold (XAUUSD, XAGUSD): 优先使用 GoldAPI（真实数据）
   else if (category === 'gold') {
-    // 先尝试 Finnhub API（免费且支持贵金属历史数据）
-    klines = await fetchFinnhubKlines(symbol, interval, limit)
+    // 先尝试 GoldAPI（真实贵金属数据）
+    const { fetchGoldAPIKlines } = await import('./real-precious-metals')
+    klines = await fetchGoldAPIKlines(symbol, interval, limit)
+
+    // 如果 GoldAPI 失败，尝试 Finnhub API
+    if (klines.length === 0) {
+      klines = await fetchFinnhubKlines(symbol, interval, limit)
+    }
 
     // 如果 Finnhub 失败，尝试 Kraken API
     if (klines.length === 0) {
