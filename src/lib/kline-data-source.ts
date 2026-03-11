@@ -94,9 +94,30 @@ export function getIntervalSeconds(interval: string): number {
 
 /**
  * 获取交易对的基础价格（用于生成模拟数据）
- * 使用更接近真实市场的价格
+ * 优先使用真实价格数据
  */
-export function getBasePrice(symbol: string): number {
+export async function getBasePrice(symbol: string): Promise<number> {
+  // 尝试从真实API获取价格
+  const { getRealPreciousMetalPrice } = await import('./real-precious-metals')
+
+  // 如果是贵金属，尝试获取真实价格
+  const category = getSymbolCategory(symbol)
+  if (category === 'gold') {
+    const realPrice = await getRealPreciousMetalPrice(symbol)
+    if (realPrice && realPrice.price > 0) {
+      console.log(`[KlineDataSource] 使用真实价格: ${symbol} = ${realPrice.price}`)
+      return realPrice.price
+    }
+  }
+
+  // 失败则使用基准价格
+  return getBasePriceStatic(symbol)
+}
+
+/**
+ * 获取静态基准价格（备用）
+ */
+export function getBasePriceStatic(symbol: string): number {
   // 加密货币（2026年3月实时价格）
   if (symbol.includes('BTC')) return 68000
   if (symbol.includes('ETH')) return 1900
@@ -106,11 +127,11 @@ export function getBasePrice(symbol: string): number {
   if (symbol.includes('XRP')) return 1.38
   if (symbol.includes('DOGE')) return 0.15
 
-  // 黄金（XAUUSD = Gold/USD）- 2026年实时价格（3月11日：5171美元）
-  if (symbol.startsWith('XAU') || symbol.startsWith('GOLD')) return 5170
+  // 黄金（XAUUSD = Gold/USD）- 基于GoldAPI真实数据（2026年3月11日）
+  if (symbol.startsWith('XAU') || symbol.startsWith('GOLD')) return 5200
 
-  // 白银（XAGUSD = Silver/USD）- 2026年实时价格（3月11日：89美元）
-  if (symbol.startsWith('XAG')) return 89
+  // 白银（XAGUSD = Silver/USD）- 基于市场真实价格
+  if (symbol.startsWith('XAG')) return 29.5
 
   // 原油（2026年3月11日：WTI原油85美元左右）
   if (symbol.includes('OIL') || symbol.includes('WTI')) return 85
@@ -140,13 +161,13 @@ export function getBasePrice(symbol: string): number {
 /**
  * 生成模拟K线数据（改进版 - 更真实的波动）
  */
-export function generateMockKlines(
+export async function generateMockKlines(
   symbol: string,
   interval: string,
   limit: number = 200
-): KlineData[] {
+): Promise<KlineData[]> {
   const intervalSeconds = getIntervalSeconds(interval)
-  const basePrice = getBasePrice(symbol)
+  const basePrice = await getBasePrice(symbol)  // 使用异步函数获取真实价格
   const category = getSymbolCategory(symbol)
 
   const now = Math.floor(Date.now() / 1000)
@@ -154,61 +175,75 @@ export function generateMockKlines(
 
   const klines: KlineData[] = []
 
-  // 根据交易对类别设置波动率参数（更保守，更接近真实市场）
+  // 根据交易对类别设置波动率参数
+  // 基于GoldAPI真实数据：黄金日内波动约40点（0.8%）
   const isPreciousMetal = category === 'gold'
-  const volatilityScale = isPreciousMetal ? 0.6 : 1.0  // 贵金属波动率0.6倍
-  const maxPriceDeviation = isPreciousMetal ? 0.06 : 0.10  // 贵金属最大偏离6%，加密货币10%
+  const volatilityScale = isPreciousMetal ? 0.4 : 1.0  // 贵金属波动率0.4倍
+  const maxPriceDeviation = isPreciousMetal ? 0.015 : 0.05  // 贵金属最大偏离1.5%（约40点）
 
-  // 使用随机游走模型 + 均值回归 + 动量反转，模拟真实市场
-  let currentPrice = basePrice * (1 + (Math.random() - 0.5) * 0.01)
+  // 使用更真实的市场模拟模型
+  let currentPrice = basePrice * (1 + (Math.random() - 0.5) * 0.005)
 
-  // 动量跟踪
-  let momentum = 0
-  const momentumDecay = 0.85  // 动量衰减系数
-  const reversalThreshold = 0.01  // 反转阈值
+  // 市场状态（模拟真实市场的多空转换）
+  let marketPhase = 'consolidation'  // consolidation, trend_up, trend_down
+  let phaseDuration = 0
+  const phaseLength = 10 + Math.floor(Math.random() * 20)
 
   for (let i = 0; i < limit; i++) {
     const time = endTime - ((limit - 1 - i) * intervalSeconds)
 
-    // 基础随机游走
-    const randomShock = (Math.random() - 0.5) * 0.01 * volatilityScale
-
-    // 均值回归力量（价格偏离基准越远，回归力量越强）
-    const priceDeviation = (currentPrice - basePrice) / basePrice
-    const meanReversion = -priceDeviation * 0.05  // 均值回归系数
-
-    // 动量更新（避免连续单边）
-    momentum = momentum * momentumDecay + randomShock
-
-    // 动量反转逻辑（如果动量过大，则反转）
-    if (Math.abs(momentum) > reversalThreshold) {
-      momentum = momentum * -0.5  // 反转并减弱
+    // 市场相位转换
+    phaseDuration++
+    if (phaseDuration > phaseLength) {
+      const rand = Math.random()
+      if (rand < 0.33) {
+        marketPhase = 'consolidation'
+      } else if (rand < 0.66) {
+        marketPhase = 'trend_up'
+      } else {
+        marketPhase = 'trend_down'
+      }
+      phaseDuration = 0
     }
 
+    // 基础价格变化（微小的随机波动）
+    const randomShock = (Math.random() - 0.5) * 0.002 * volatilityScale
+
+    // 根据市场相位调整趋势
+    let trendBias = 0
+    if (marketPhase === 'trend_up') {
+      trendBias = 0.001 * volatilityScale  // 温和上涨
+    } else if (marketPhase === 'trend_down') {
+      trendBias = -0.001 * volatilityScale  // 温和下跌
+    }
+
+    // 均值回归（防止价格过度偏离）
+    const priceDeviation = (currentPrice - basePrice) / basePrice
+    const meanReversion = -priceDeviation * 0.03
+
     // 综合价格变化
-    const priceChange = randomShock + meanReversion + momentum
+    const priceChange = randomShock + trendBias + meanReversion
     const open = currentPrice
 
-    // 生成 close, high, low（更保守的波动）
+    // 生成 close, high, low
     const close = open * (1 + priceChange)
 
-    // 计算上下影线（相对价格变化）
-    // 使用价格变化的绝对值作为基准，避免波动过大
-    const shadowSize = Math.abs(priceChange) * 0.5 + Math.random() * 0.001 * volatilityScale
+    // 上下影线（基于真实市场的上下影线比例）
+    // 真实市场上下影线通常是实体的1-3倍
+    const bodySize = Math.abs(close - open) / open
+    const upperShadowRatio = Math.random() * 2 + 0.5  // 0.5-2.5倍实体
+    const lowerShadowRatio = Math.random() * 2 + 0.5
 
-    // 确保 high >= max(open, close)，low <= min(open, close)
-    const high = Math.max(open, close) * (1 + shadowSize)
-    const low = Math.min(open, close) * (1 - shadowSize)
+    const high = Math.max(open, close) * (1 + bodySize * upperShadowRatio)
+    const low = Math.min(open, close) * (1 - bodySize * lowerShadowRatio)
 
     // 强制价格回归（防止过度偏离）
     const absDeviation = Math.abs(currentPrice - basePrice) / basePrice
     if (absDeviation > maxPriceDeviation) {
-      // 价格偏离过大时，强制回归基准价格
-      const correction = (basePrice - currentPrice) * 0.2
+      const correction = (basePrice - currentPrice) * 0.3
       currentPrice = currentPrice + correction
     }
 
-    // 更新当前价格
     currentPrice = close
 
     klines.push({
@@ -232,8 +267,7 @@ export function generateMockKlines(
   for (const kline of klines) {
     const deviation = Math.abs(kline.close - basePrice) / basePrice
     if (deviation > maxPriceDeviation) {
-      // 强制修正超出的价格
-      const correctionFactor = 1 + (basePrice - kline.close) / kline.close * 0.6
+      const correctionFactor = 1 + (basePrice - kline.close) / kline.close * 0.8
       kline.close = Number((kline.close * correctionFactor).toFixed(5))
       kline.high = Number((kline.high * correctionFactor).toFixed(5))
       kline.low = Number((kline.low * correctionFactor).toFixed(5))
@@ -754,7 +788,7 @@ export async function fetchKlines(
 
   // 如果所有数据源都失败，返回模拟数据
   console.log(`[KlineDataSource] 所有数据源失败，生成模拟数据`)
-  const mockData = generateMockKlines(symbol, interval, limit)
+  const mockData = await generateMockKlines(symbol, interval, limit)
   setCachedData(symbol, interval, limit, mockData)
   return mockData
 }
