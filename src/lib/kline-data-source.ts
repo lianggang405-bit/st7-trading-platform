@@ -154,38 +154,54 @@ export function generateMockKlines(
 
   const klines: KlineData[] = []
 
-  // 根据交易对类别设置波动率参数
-  // 贵金属波动率较低（0.3%-1%），加密货币波动率较高（1%-3%）
+  // 根据交易对类别和真实市场数据设置波动率参数
+  // 基于2026年3月黄金真实波动数据（单日最大波动超4%，隐波38.77%）
   const isPreciousMetal = category === 'gold'
-  const volatilityScale = isPreciousMetal ? 0.5 : 1.0  // 贵金属波动率缩放为0.5倍
-  const maxPriceDeviation = isPreciousMetal ? 0.05 : 0.08  // 贵金属最大偏离5%，加密货币8%
+  const volatilityScale = isPreciousMetal ? 0.8 : 1.2  // 贵金属波动率缩放为0.8倍（考虑真实波动）
+  const maxPriceDeviation = isPreciousMetal ? 0.08 : 0.12  // 贵金属最大偏离8%（接近真实的7-8%），加密货币12%
 
-  // 使用多个周期的正弦波组合 + 随机游走，模拟真实市场波动
-  let currentPrice = basePrice * (1 + (Math.random() - 0.5) * 0.01)  // 初始偏离仅1%
+  // 使用多周期组合 + 随机游走 + 趋势反转，模拟真实市场波动
+  // 基于黄金真实波动特征调整参数
+  let currentPrice = basePrice * (1 + (Math.random() - 0.5) * 0.015)  // 初始偏离1.5%
+
+  // 趋势状态（模拟牛熊转换）
+  let trendDirection = Math.random() > 0.5 ? 1 : -1  // 1=上涨，-1=下跌
+  let trendStrength = Math.random() * 0.01  // 趋势强度
+  let trendCounter = 0  // 趋势持续计数器
+  const maxTrendDuration = 20 + Math.floor(Math.random() * 30)  // 趋势持续20-50根K线
 
   for (let i = 0; i < limit; i++) {
     const time = endTime - ((limit - 1 - i) * intervalSeconds)
 
-    // 模拟价格走势（降低波动率，增加随机性）
-    const trend = Math.sin(i / 20) * 0.008 * volatilityScale           // 长期趋势：±0.8%
-    const swing = Math.sin(i / 5) * 0.005 * volatilityScale             // 中期波动：±0.5%
-    const noise = (Math.random() - 0.5) * 0.006 * volatilityScale       // 随机噪声：±0.6%
-    const jump = Math.random() > 0.99 ? (Math.random() - 0.5) * 0.012 * volatilityScale : 0  // 偶尔的小跳变：±1.2%
+    // 趋势反转逻辑（模拟真实市场的趋势转换）
+    trendCounter++
+    if (trendCounter > maxTrendDuration || Math.random() > 0.95) {
+      trendDirection *= -1  // 反转趋势
+      trendStrength = Math.random() * 0.01  // 重新随机化趋势强度
+      trendCounter = 0  // 重置计数器
+    }
+
+    // 模拟价格走势（基于真实黄金波动特征）
+    // 黄金真实单日波动可达4%，隐波38.77%
+    const trend = Math.sin(i / 15) * 0.012 * volatilityScale * trendDirection  // 长期趋势：±1.2%
+    const swing = Math.sin(i / 5) * 0.008 * volatilityScale                     // 中期波动：±0.8%
+    const noise = (Math.random() - 0.5) * 0.01 * volatilityScale               // 随机噪声：±1%
+    const jump = Math.random() > 0.97 ? (Math.random() - 0.5) * 0.025 * volatilityScale : 0  // 偶尔的跳变：±2.5%（模拟突发的地缘事件）
 
     const priceChange = trend + swing + noise + jump
     const open = currentPrice
 
     // 生成 close, high, low
     const close = open * (1 + priceChange)
-    const volatility = Math.abs(priceChange) * 1.2 + Math.random() * 0.002 * volatilityScale
+    const volatility = Math.abs(priceChange) * 1.5 + Math.random() * 0.004 * volatilityScale
     const high = Math.max(open, close) * (1 + Math.random() * volatility)
     const low = Math.min(open, close) * (1 - Math.random() * volatility)
 
-    // 限制价格偏离度（防止价格暴涨暴跌）
+    // 限制价格偏离度（防止价格过度偏离）
     const priceDeviation = Math.abs(currentPrice - basePrice) / basePrice
     if (priceDeviation > maxPriceDeviation) {
-      // 价格偏离过大时，强制回归基准价格
-      const correction = (basePrice - currentPrice) * 0.1
+      // 价格偏离过大时，强制回归基准价格（模拟均值回归）
+      const correction = (basePrice - currentPrice) * 0.15
       currentPrice = currentPrice + correction
     }
 
@@ -214,7 +230,7 @@ export function generateMockKlines(
     const deviation = Math.abs(kline.close - basePrice) / basePrice
     if (deviation > maxPriceDeviation) {
       // 强制修正超出的价格
-      const correctionFactor = 1 + (basePrice - kline.close) / kline.close * 0.5
+      const correctionFactor = 1 + (basePrice - kline.close) / kline.close * 0.7
       kline.close = Number((kline.close * correctionFactor).toFixed(5))
       kline.high = Number((kline.high * correctionFactor).toFixed(5))
       kline.low = Number((kline.low * correctionFactor).toFixed(5))
