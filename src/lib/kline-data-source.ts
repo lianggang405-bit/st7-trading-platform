@@ -793,29 +793,45 @@ export async function fetchKlines(
       console.log('[KlineDataSource] GoldAPI 调用失败，尝试其他数据源:', error)
     }
 
-    // 如果 GoldAPI 失败，尝试 Finnhub API
+    // 如果 GoldAPI 失败，尝试代理 API（支持 Kraken 和 Yahoo Finance）
     if (klines.length === 0) {
-      klines = await fetchFinnhubKlines(symbol, interval, limit)
-    }
+      try {
+        const response = await fetch(`/api/market/klines?symbol=${symbol}&interval=${interval}&limit=${limit}&source=auto`, {
+          cache: 'no-store',
+          signal: AbortSignal.timeout(10000)
+        })
 
-    // 如果 Finnhub 失败，尝试 Kraken API
-    if (klines.length === 0) {
-      klines = await fetchKrakenKlines(symbol, interval, limit)
-    }
-
-    // 如果 Kraken 也失败，尝试 Twelve Data
-    if (klines.length === 0) {
-      klines = await fetchTwelveDataKlines(symbol, interval, limit)
-    }
-
-    // 如果 Twelve Data 也失败，尝试 Yahoo Finance
-    if (klines.length === 0) {
-      klines = await fetchYahooFinanceKlines(symbol, interval, limit)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.klines && data.klines.length > 0) {
+            klines = data.klines
+            console.log(`[KlineDataSource] 从代理 API 获取 ${klines.length} 条数据`)
+          }
+        }
+      } catch (error) {
+        console.log('[KlineDataSource] 代理 API 调用失败:', error)
+      }
     }
   }
-  // Forex, Oil: 使用 Yahoo Finance API
+  // Forex, Oil: 使用服务端代理 API（避免 CORS）
   else if (category === 'forex' || category === 'energy') {
-    klines = await fetchYahooFinanceKlines(symbol, interval, limit)
+    try {
+      // 通过服务端 API 代理调用数据源
+      const response = await fetch(`/api/market/klines?symbol=${symbol}&interval=${interval}&limit=${limit}&source=auto`, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10000)  // 10秒超时
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.klines && data.klines.length > 0) {
+          klines = data.klines
+          console.log(`[KlineDataSource] 从代理 API 获取 ${klines.length} 条数据`)
+        }
+      }
+    } catch (error) {
+      console.log('[KlineDataSource] 代理 API 调用失败:', error)
+    }
   }
 
   // 如果获取成功，缓存并返回真实数据

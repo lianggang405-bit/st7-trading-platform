@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * K线行情代理 API
- * 
+ *
  * 解决 CORS 问题，支持多个数据源：
  * - Kraken
  * - Yahoo Finance
- * - Finnhub
- * 
+ *
  * GET /api/market/klines?symbol=XAUUSD&interval=1h&source=kraken
  */
 
@@ -36,6 +35,16 @@ const KRAKEN_INTERVAL_MAP: { [key: string]: number } = {
   '1h': 60,
   '4h': 240,
   '1d': 1440,
+};
+
+// Yahoo Finance 时间间隔映射
+const YAHOO_INTERVAL_MAP: { [key: string]: string } = {
+  '1m': '1m',
+  '5m': '5m',
+  '15m': '15m',
+  '1h': '1h',
+  '4h': '1d',
+  '1d': '1d',
 };
 
 /**
@@ -89,6 +98,89 @@ async function fetchFromKraken(symbol: string, interval: string): Promise<KlineD
 }
 
 /**
+ * 从 Yahoo Finance 获取 K线数据
+ */
+async function fetchFromYahoo(symbol: string, interval: string, limit: number): Promise<KlineData[]> {
+  // 转换交易对格式为 Yahoo Finance 格式
+  let yahooSymbol = symbol;
+
+  // Forex: EURUSD -> EURUSD=X
+  if (!symbol.includes('=')) {
+    yahooSymbol = `${symbol}=X`;
+  }
+
+  // 转换时间周期为 Yahoo Finance 格式
+  const intervalYahoo = YAHOO_INTERVAL_MAP[interval] || '1h';
+
+  // 计算时间范围
+  const intervalSeconds = {
+    '1m': 60,
+    '5m': 300,
+    '15m': 900,
+    '1h': 3600,
+    '4h': 14400,
+    '1d': 86400,
+  }[interval] || 3600;
+
+  const to = Math.floor(Date.now() / 1000);
+  const from = to - (intervalSeconds * limit);
+
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=${intervalYahoo}&period1=${from}&period2=${to}`;
+
+  console.log('[Klines Proxy] 从 Yahoo Finance 获取:', { yahooSymbol, intervalYahoo, from, to });
+
+  try {
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!response.ok) {
+      console.warn('[Klines Proxy] Yahoo Finance 请求失败:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+
+    if (!data.chart?.result?.[0]?.timestamp) {
+      console.warn('[Klines Proxy] Yahoo Finance 无有效数据');
+      return [];
+    }
+
+    const result = data.chart.result[0];
+    const timestamps = result.timestamp;
+    const indicators = result.indicators;
+    const quote = indicators.quote?.[0] || {};
+
+    const klines: KlineData[] = [];
+
+    for (let i = 0; i < timestamps.length; i++) {
+      const open = quote.open?.[i];
+      const high = quote.high?.[i];
+      const low = quote.low?.[i];
+      const close = quote.close?.[i];
+      const volume = quote.volume?.[i] || 0;
+
+      if (open !== null && high !== null && low !== null && close !== null) {
+        klines.push({
+          time: timestamps[i],
+          open: Number(open),
+          high: Math.max(Number(high), Number(open), Number(close)),
+          low: Math.min(Number(low), Number(open), Number(close)),
+          close: Number(close),
+          volume: Number(volume),
+        });
+      }
+    }
+
+    console.log(`[Klines Proxy] Yahoo Finance 获取到 ${klines.length} 条数据`);
+    return klines;
+  } catch (error) {
+    console.error('[Klines Proxy] Yahoo Finance 错误:', error);
+    return [];
+  }
+}
+
+/**
  * GET - 获取 K线数据
  */
 export async function GET(request: NextRequest) {
@@ -96,7 +188,7 @@ export async function GET(request: NextRequest) {
   const symbol = searchParams.get('symbol') || 'XAUUSD';
   const interval = searchParams.get('interval') || '1h';
   const limit = parseInt(searchParams.get('limit') || '200', 10);
-  const source = searchParams.get('source') || 'kraken';
+  const source = searchParams.get('source') || 'auto';
 
   console.log('[Klines Proxy] 请求:', { symbol, interval, limit, source });
 
@@ -105,8 +197,15 @@ export async function GET(request: NextRequest) {
   // 根据数据源获取 K线
   if (source === 'kraken') {
     klines = await fetchFromKraken(symbol, interval);
+  } else if (source === 'yahoo') {
+    klines = await fetchFromYahoo(symbol, interval, limit);
+  } else if (source === 'auto') {
+    // 自动选择：优先 Yahoo Finance（外汇），失败则尝试 Kraken
+    klines = await fetchFromYahoo(symbol, interval, limit);
+    if (klines.length === 0) {
+      klines = await fetchFromKraken(symbol, interval);
+    }
   } else {
-    // 其他数据源（可以后续添加）
     klines = [];
   }
 
