@@ -14,6 +14,32 @@ export interface KlineData {
 
 export type SymbolCategory = 'forex' | 'gold' | 'crypto' | 'energy' | 'cfd'
 
+// 数据缓存
+const klineCache = new Map<string, { data: KlineData[]; timestamp: number }>()
+const CACHE_DURATION = 5 * 60 * 1000 // 缓存 5 分钟（减少 API 请求）
+
+/**
+ * 获取缓存的 K 线数据
+ */
+function getCachedData(symbol: string, interval: string, limit: number): KlineData[] | null {
+  const key = `${symbol}_${interval}_${limit}`
+  const cached = klineCache.get(key)
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    console.log(`[KlineDataSource] 使用缓存数据: ${symbol} ${interval} (${cached.data.length} 条)`)
+    return cached.data
+  }
+  return null
+}
+
+/**
+ * 设置缓存的 K 线数据
+ */
+function setCachedData(symbol: string, interval: string, limit: number, data: KlineData[]): void {
+  const key = `${symbol}_${interval}_${limit}`
+  klineCache.set(key, { data, timestamp: Date.now() })
+  console.log(`[KlineDataSource] 缓存数据: ${symbol} ${interval} (${data.length} 条)`)
+}
+
 /**
  * 获取交易对类别
  */
@@ -60,6 +86,7 @@ export function getIntervalSeconds(interval: string): number {
 
 /**
  * 获取交易对的基础价格（用于生成模拟数据）
+ * 使用更接近真实市场的价格
  */
 export function getBasePrice(symbol: string): number {
   // 加密货币
@@ -67,26 +94,43 @@ export function getBasePrice(symbol: string): number {
   if (symbol.includes('ETH')) return 3500
   if (symbol.includes('SOL')) return 150
   if (symbol.includes('BNB')) return 600
+  if (symbol.includes('LTC')) return 95
+  if (symbol.includes('XRP')) return 2.5
+  if (symbol.includes('DOGE')) return 0.25
 
-  // 黄金
+  // 黄金（XAUUSD = Gold/USD）- 接近真实市场价格
   if (symbol.startsWith('XAU') || symbol.startsWith('GOLD')) return 2900
-  if (symbol.startsWith('XAG')) return 32
+
+  // 白银（XAGUSD = Silver/USD）- 接近真实市场价格
+  if (symbol.startsWith('XAG')) return 32.5
 
   // 原油
   if (symbol.includes('OIL') || symbol.includes('WTI')) return 75
-  if (symbol.includes('BRENT')) return 80
+  if (symbol.includes('BRENT') || symbol.includes('UKOIL')) return 79
+  if (symbol.includes('USOIL')) return 75
+  if (symbol.includes('NGAS')) return 2.8
 
-  // 外汇
-  if (symbol.startsWith('EUR')) return 1.09
-  if (symbol.startsWith('GBP')) return 1.28
-  if (symbol.startsWith('USDJPY')) return 150
-  if (symbol.startsWith('USDCHF')) return 0.89
+  // 外汇（更准确的价格）
+  if (symbol.startsWith('EURUSD')) return 1.085
+  if (symbol.startsWith('GBPUSD')) return 1.265
+  if (symbol.startsWith('USDJPY')) return 149.8
+  if (symbol.startsWith('USDCHF')) return 0.884
+  if (symbol.startsWith('AUDUSD')) return 0.645
+  if (symbol.startsWith('NZDUSD')) return 0.605
+  if (symbol.startsWith('USDCAD')) return 1.365
+  if (symbol.startsWith('EURGBP')) return 0.858
+  if (symbol.startsWith('EURJPY')) return 162.5
+  if (symbol.startsWith('GBPJPY')) return 189.5
+  if (symbol.startsWith('AUDJPY')) return 96.5
+  if (symbol.startsWith('EURCHF')) return 0.960
+  if (symbol.startsWith('GBPCHF')) return 1.120
+  if (symbol.startsWith('CHFJPY')) return 169.5
 
   return 100
 }
 
 /**
- * 生成模拟K线数据
+ * 生成模拟K线数据（改进版 - 更真实的波动）
  */
 export function generateMockKlines(
   symbol: string,
@@ -101,16 +145,29 @@ export function generateMockKlines(
 
   const klines: KlineData[] = []
 
+  // 使用多个周期的正弦波组合，模拟真实市场波动
+  let currentPrice = basePrice * (1 + (Math.random() - 0.5) * 0.01)
+
   for (let i = 0; i < limit; i++) {
     const time = endTime - ((limit - 1 - i) * intervalSeconds)
 
-    const trend = Math.sin(i / 10) * 0.01
-    const noise = (Math.random() - 0.5) * 0.002
+    // 模拟价格走势（多重周期组合）
+    const trend = Math.sin(i / 20) * 0.02                    // 长期趋势
+    const swing = Math.sin(i / 5) * 0.01                      // 中期波动
+    const noise = (Math.random() - 0.5) * 0.008               // 随机噪声
+    const jump = Math.random() > 0.98 ? (Math.random() - 0.5) * 0.015 : 0 // 偶尔的价格跳变
 
-    const open = basePrice * (1 + trend + noise)
-    const close = basePrice * (1 + trend + noise + (Math.random() - 0.5) * 0.003)
-    const high = Math.max(open, close) * (1 + Math.random() * 0.002)
-    const low = Math.min(open, close) * (1 - Math.random() * 0.002)
+    const priceChange = trend + swing + noise + jump
+    const open = currentPrice
+
+    // 生成 close, high, low
+    const close = open * (1 + priceChange)
+    const volatility = Math.abs(priceChange) * 1.5 + Math.random() * 0.003
+    const high = Math.max(open, close) * (1 + Math.random() * volatility)
+    const low = Math.min(open, close) * (1 - Math.random() * volatility)
+
+    // 更新当前价格
+    currentPrice = close
 
     klines.push({
       time,
@@ -118,9 +175,16 @@ export function generateMockKlines(
       high: Number(high.toFixed(5)),
       low: Number(low.toFixed(5)),
       close: Number(close.toFixed(5)),
-      volume: Math.floor(Math.random() * 1000),
+      volume: Math.floor(Math.random() * 10000 + 100),
     })
   }
+
+  // 确保最后一个 K 线的价格接近当前市场价格
+  const lastKline = klines[klines.length - 1]
+  const lastPriceChange = (basePrice - lastKline.close) / lastKline.close
+  klines[klines.length - 1].close = Number(basePrice.toFixed(5))
+  klines[klines.length - 1].high = Number((lastKline.high * (1 + lastPriceChange * 0.5)).toFixed(5))
+  klines[klines.length - 1].low = Number((lastKline.low * (1 + lastPriceChange * 0.5)).toFixed(5))
 
   return klines
 }
@@ -259,6 +323,13 @@ export async function fetchKlines(
 
   console.log(`[KlineDataSource] Fetching klines: ${symbol} (${category}) ${interval}`)
 
+  // 检查缓存
+  const cached = getCachedData(symbol, interval, limit)
+  if (cached) {
+    console.log(`[KlineDataSource] 使用缓存数据: ${cached.length} 条`)
+    return cached
+  }
+
   // 优先使用真实数据源
   let klines: KlineData[] = []
 
@@ -271,13 +342,16 @@ export async function fetchKlines(
     klines = await fetchYahooFinanceKlines(symbol, interval, limit)
   }
 
-  // 如果获取成功，返回真实数据
+  // 如果获取成功，缓存并返回真实数据
   if (klines.length > 0) {
     console.log(`[KlineDataSource] 成功获取 ${klines.length} 条真实数据`)
+    setCachedData(symbol, interval, limit, klines)
     return klines
   }
 
   // 如果所有数据源都失败，返回模拟数据
   console.log(`[KlineDataSource] 所有数据源失败，生成模拟数据`)
-  return generateMockKlines(symbol, interval, limit)
+  const mockData = generateMockKlines(symbol, interval, limit)
+  setCachedData(symbol, interval, limit, mockData)
+  return mockData
 }
