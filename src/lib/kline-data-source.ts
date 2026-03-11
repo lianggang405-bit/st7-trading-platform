@@ -230,8 +230,307 @@ export async function fetchBinanceKlines(
 }
 
 /**
- * 从 Yahoo Finance API 获取K线数据（支持 Forex, Gold, Oil 等）
+ * 从 Finnhub API 获取黄金和白银的实时价格（用于生成真实K线）
+ * 免费额度：60 请求/分钟
  */
+export async function fetchFinnhubPrice(symbol: string): Promise<number | null> {
+  try {
+    const apiKey = process.env.NEXT_PUBLIC_FINNHUB_API_KEY || ''
+
+    if (!apiKey) {
+      return null
+    }
+
+    // Finnhub 使用不同的交易对格式
+    const finnhubSymbolMap: Record<string, string> = {
+      'XAUUSD': 'XAUUSD',
+      'XAGUSD': 'XAGUSD',
+      'GOLD': 'XAUUSD',
+      'SILVER': 'XAGUSD',
+    }
+
+    const finnhubSymbol = finnhubSymbolMap[symbol.toUpperCase()] || symbol.toUpperCase()
+
+    // Finnhub Quote API
+    const url = `https://finnhub.io/api/v1/quote?symbol=${finnhubSymbol}&token=${apiKey}`
+
+    const response = await fetch(url, {
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      return null
+    }
+
+    const data = await response.json()
+
+    // Finnhub 返回格式：{ c: current price, h: high, l: low, o: open, pc: previous close }
+    const currentPrice = data.c || 0
+
+    if (currentPrice === 0) {
+      return null
+    }
+
+    return currentPrice
+  } catch (error) {
+    return null
+  }
+}
+
+/**
+ * 从 Finnhub API 获取K线数据（使用 candle API）
+ */
+export async function fetchFinnhubKlines(
+  symbol: string,
+  interval: string,
+  limit: number = 200
+): Promise<KlineData[]> {
+  try {
+    const apiKey = process.env.NEXT_PUBLIC_FINNHUB_API_KEY || ''
+
+    if (!apiKey) {
+      return []
+    }
+
+    // Finnhub 使用不同的交易对格式
+    const finnhubSymbolMap: Record<string, string> = {
+      'XAUUSD': 'XAUUSD',
+      'XAGUSD': 'XAGUSD',
+      'GOLD': 'XAUUSD',
+      'SILVER': 'XAGUSD',
+    }
+
+    const finnhubSymbol = finnhubSymbolMap[symbol.toUpperCase()] || symbol.toUpperCase()
+
+    // 转换时间周期为 Finnhub 格式
+    let finnhubInterval = '1'
+    switch (interval.toLowerCase()) {
+      case '1m': finnhubInterval = '1'; break
+      case '5m': finnhubInterval = '5'; break
+      case '15m': finnhubInterval = '15'; break
+      case '1h': finnhubInterval = '60'; break
+      case '4h': finnhubInterval = '240'; break
+      case '1d': finnhubInterval = 'D'; break
+      default: finnhubInterval = '1'
+    }
+
+    // 计算时间范围（最近 N 根K线）
+    const intervalSeconds = getIntervalSeconds(interval)
+    const endTime = Math.floor(Date.now() / 1000)
+    const startTime = endTime - (intervalSeconds * limit)
+
+    // Finnhub Stock Candle API
+    const url = `https://finnhub.io/api/v1/stock/candle?symbol=${finnhubSymbol}&resolution=${finnhubInterval}&from=${startTime}&to=${endTime}&token=${apiKey}`
+
+    const response = await fetch(url, {
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      return []
+    }
+
+    const data = await response.json()
+
+    // Finnhub 返回格式：{ s: status, t: timestamps, o: opens, h: highs, l: lows, c: closes, v: volumes }
+    if (data.s !== 'ok' || !data.t || !data.o) {
+      return []
+    }
+
+    const klines: KlineData[] = []
+
+    for (let i = 0; i < data.t.length; i++) {
+      klines.push({
+        time: data.t[i],
+        open: data.o[i],
+        high: data.h[i],
+        low: data.l[i],
+        close: data.c[i],
+        volume: data.v[i] || 0,
+      })
+    }
+
+    // 按时间排序
+    klines.sort((a, b) => a.time - b.time)
+
+    return klines
+  } catch (error) {
+    return []
+  }
+}
+
+/**
+ * 从 Twelve Data API 获取贵金属K线数据（支持 XAUUSD, XAGUSD 等）
+ * 免费额度：800 请求/天
+ */
+export async function fetchTwelveDataKlines(
+  symbol: string,
+  interval: string,
+  limit: number = 200
+): Promise<KlineData[]> {
+  try {
+    // Twelve Data 需要特定的交易对格式
+    const twelveSymbolMap: Record<string, string> = {
+      'XAUUSD': 'XAU/USD',
+      'XAGUSD': 'XAG/USD',
+      'XPDUSD': 'XPD/USD',
+      'XPTUSD': 'XPT/USD',
+      'GOLD': 'XAU/USD',
+      'SILVER': 'XAG/USD',
+    }
+
+    const twelveSymbol = twelveSymbolMap[symbol.toUpperCase()] || symbol.toUpperCase().replace('USD', '/USD')
+
+    // 转换时间周期为 Twelve Data 格式
+    let twelveInterval = '1min'
+    switch (interval.toLowerCase()) {
+      case '1m': twelveInterval = '1min'; break
+      case '5m': twelveInterval = '5min'; break
+      case '15m': twelveInterval = '15min'; break
+      case '1h': twelveInterval = '1h'; break
+      case '4h': twelveInterval = '4h'; break
+      case '1d': twelveInterval = '1day'; break
+      default: twelveInterval = '1min'
+    }
+
+    // 计算输出大小
+    let outputSize = limit
+    if (outputSize > 100) outputSize = 100 // Twelve Data 免费版限制
+
+    // Twelve Data Time Series API 端点
+    const apiKey = process.env.NEXT_PUBLIC_TWELVE_DATA_API_KEY || 'demo'
+    const url = `https://api.twelvedata.com/time_series?symbol=${twelveSymbol}&interval=${twelveInterval}&outputsize=${outputSize}&apikey=${apiKey}`
+
+    const response = await fetch(url, {
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      return []
+    }
+
+    const data = await response.json()
+
+    // Twelve Data 返回格式：{ values: [{ datetime, open, high, low, close, volume }], status, ... }
+    if (!data.values || !Array.isArray(data.values)) {
+      return []
+    }
+
+    const klines: KlineData[] = data.values.map((v: any) => {
+      // 转换时间格式（YYYY-MM-DD HH:MM:SS 或 YYYY-MM-DD）
+      const datetime = v.datetime
+      const [datePart, timePart] = datetime.split(' ')
+
+      const [year, month, day] = datePart.split('-').map(Number)
+      let hours = 0, minutes = 0, seconds = 0
+
+      if (timePart) {
+        const timeParts = timePart.split(':')
+        hours = parseInt(timeParts[0]) || 0
+        minutes = parseInt(timeParts[1]) || 0
+        seconds = parseInt(timeParts[2]) || 0
+      }
+
+      // 转换为秒级时间戳
+      const timestamp = Math.floor(new Date(year, month - 1, day, hours, minutes, seconds).getTime() / 1000)
+
+      return {
+        time: timestamp,
+        open: parseFloat(v.open) || 0,
+        high: parseFloat(v.high) || 0,
+        low: parseFloat(v.low) || 0,
+        close: parseFloat(v.close) || 0,
+        volume: parseFloat(v.volume) || 0,
+      }
+    })
+
+    // 按时间排序
+    klines.sort((a, b) => a.time - b.time)
+
+    return klines
+  } catch (error) {
+    return []
+  }
+}
+export async function fetchKrakenKlines(
+  symbol: string,
+  interval: string,
+  limit: number = 200
+): Promise<KlineData[]> {
+  try {
+    // Kraken API 需要特定的交易对格式
+    const krakenSymbolMap: Record<string, string> = {
+      'XAUUSD': 'XAUUSD',
+      'XAGUSD': 'XAGUSD',
+      'XPDUSD': 'XPDUSD',
+      'XPTUSD': 'XPTUSD',
+      'GOLD': 'XAUUSD',
+      'SILVER': 'XAGUSD',
+    }
+
+    const krakenSymbol = krakenSymbolMap[symbol.toUpperCase()] || symbol.toUpperCase()
+
+    // 转换时间周期为 Kraken 格式（分钟）
+    let intervalMinutes = 1
+    switch (interval.toLowerCase()) {
+      case '1m': intervalMinutes = 1; break
+      case '5m': intervalMinutes = 5; break
+      case '15m': intervalMinutes = 15; break
+      case '1h': intervalMinutes = 60; break
+      case '4h': intervalMinutes = 240; break
+      case '1d': intervalMinutes = 1440; break
+      default: intervalMinutes = 1
+    }
+
+    // Kraken OHLCV API 端点
+    const url = `https://api.kraken.com/0/public/OHLC?pair=${krakenSymbol}&interval=${intervalMinutes}`
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+      },
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      return []
+    }
+
+    const data = await response.json()
+
+    // Kraken API 返回格式：{ error: [], result: { "XXAUZUSD": [[...]] } }
+    if (data.error && data.error.length > 0) {
+      return []
+    }
+
+    // 获取第一个交易对的数据
+    const resultKeys = Object.keys(data.result || {})
+    if (resultKeys.length === 0) {
+      return []
+    }
+
+    const pairData = data.result[resultKeys[0]]
+
+    if (!Array.isArray(pairData) || pairData.length === 0) {
+      return []
+    }
+
+    // Kraken OHLCV 格式：[time, open, high, low, close, vwap, volume, count]
+    const klines: KlineData[] = pairData.map((k: any) => ({
+      time: parseInt(k[0]), // 秒级时间戳
+      open: parseFloat(k[1]),
+      high: parseFloat(k[2]),
+      low: parseFloat(k[3]),
+      close: parseFloat(k[4]),
+      volume: parseFloat(k[6]), // 成交量
+    }))
+
+    // 取最近的 N 条数据
+    return klines.slice(-limit)
+  } catch (error) {
+    return []
+  }
+}
 export async function fetchYahooFinanceKlines(
   symbol: string,
   interval: string,
@@ -337,8 +636,28 @@ export async function fetchKlines(
   if (category === 'crypto') {
     klines = await fetchBinanceKlines(symbol, interval, limit)
   }
-  // Forex, Gold, Oil: 使用 Yahoo Finance API
-  else if (category === 'forex' || category === 'gold' || category === 'energy') {
+  // Gold (XAUUSD, XAGUSD): 优先使用 Finnhub API
+  else if (category === 'gold') {
+    // 先尝试 Finnhub API（免费且支持贵金属历史数据）
+    klines = await fetchFinnhubKlines(symbol, interval, limit)
+
+    // 如果 Finnhub 失败，尝试 Kraken API
+    if (klines.length === 0) {
+      klines = await fetchKrakenKlines(symbol, interval, limit)
+    }
+
+    // 如果 Kraken 也失败，尝试 Twelve Data
+    if (klines.length === 0) {
+      klines = await fetchTwelveDataKlines(symbol, interval, limit)
+    }
+
+    // 如果 Twelve Data 也失败，尝试 Yahoo Finance
+    if (klines.length === 0) {
+      klines = await fetchYahooFinanceKlines(symbol, interval, limit)
+    }
+  }
+  // Forex, Oil: 使用 Yahoo Finance API
+  else if (category === 'forex' || category === 'energy') {
     klines = await fetchYahooFinanceKlines(symbol, interval, limit)
   }
 
