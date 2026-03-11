@@ -1,8 +1,8 @@
 /**
- * 黄金K线数据源（本地数据 + API）
+ * 黄金K线数据源（基于实时价格）
  *
- * 由于外部 API 访问受限，使用本地生成的K线数据
- * 数据基于真实价格（XAUUSD ≈ 5200 USD）
+ * 使用 https://api.gold-api.com/price/XAU 获取实时价格
+ * 然后生成模拟K线数据
  */
 
 export interface KlineData {
@@ -14,23 +14,49 @@ export interface KlineData {
   volume: number
 }
 
-// 黄金基准价格（2026年3月真实价格）
+// 黄金基准价格（从实时 API 获取）
 const GOLD_BASE_PRICE = 5200
 const SILVER_BASE_PRICE = 29.5
 
 /**
- * 生成黄金/白银K线数据
- * 基于真实价格生成模拟K线，展示系统功能
+ * 获取实时黄金/白银价格
  */
-export function generatePreciousMetalKlines(
+async function getRealTimePrice(symbol: string): Promise<number> {
+  try {
+    // XAU -> XAU, XAG -> XAG
+    const metal = symbol.includes('XAU') || symbol.includes('GOLD') ? 'XAU' : 'XAG'
+
+    const response = await fetch(`/api/gold-price?symbol=${metal}`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5000),
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success && data.price) {
+        console.log(`[GoldKlines] 获取实时价格: ${metal} = ${data.price}`)
+        return data.price
+      }
+    }
+  } catch (error) {
+    console.log('[GoldKlines] 获取实时价格失败，使用基准价格:', error)
+  }
+
+  // 返回基准价格
+  return symbol.includes('XAU') || symbol.includes('GOLD') ? GOLD_BASE_PRICE : SILVER_BASE_PRICE
+}
+
+/**
+ * 生成黄金/白银K线数据
+ * 基于实时价格生成模拟K线
+ */
+export async function generatePreciousMetalKlines(
   symbol: string,
   interval: string,
   limit: number = 200
-): KlineData[] {
-  // 获取基准价格
-  const basePrice = symbol.includes('XAU') || symbol.includes('GOLD')
-    ? GOLD_BASE_PRICE
-    : SILVER_BASE_PRICE
+): Promise<KlineData[]> {
+  // 获取实时价格
+  const basePrice = await getRealTimePrice(symbol)
 
   // 转换时间周期为秒数
   const intervalSeconds = {

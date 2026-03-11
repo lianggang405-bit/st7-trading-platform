@@ -8,7 +8,7 @@ import { generatePreciousMetalKlines } from '@/lib/gold-klines-local'
  *
  * 数据源优先级：
  * 1. GoldAPI（如果 API key 可用）
- * 2. 本地生成数据（基于真实价格）
+ * 2. 本地生成数据（基于实时价格）
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -37,9 +37,9 @@ export async function GET(request: Request) {
     console.log('[GoldAPI Proxy] GoldAPI 调用失败，使用本地数据:', error)
   }
 
-  // 如果 GoldAPI 失败，使用本地生成的数据
-  console.log(`[GoldAPI Proxy] 使用本地生成的数据（基准价格）`)
-  const localKlines = generatePreciousMetalKlines(symbol, interval, limit)
+  // 如果 GoldAPI 失败，使用本地生成的数据（基于实时价格）
+  console.log(`[GoldAPI Proxy] 使用本地生成的数据（基于实时价格）`)
+  const localKlines = await generatePreciousMetalKlines(symbol, interval, limit)
 
   return NextResponse.json({
     success: true,
