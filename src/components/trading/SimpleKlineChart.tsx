@@ -21,6 +21,7 @@ export default function SimpleKlineChart({
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const lastDataRef = useRef<any[]>([]) // 保存上一次的数据
 
   // 检测是否为移动端，如果是则缩小高度（缩小1/3）
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
@@ -45,12 +46,19 @@ export default function SimpleKlineChart({
         mode: 0
       },
       rightPriceScale: {
-        borderColor: "#374151"
+        borderColor: "#374151",
+        mode: 0, // 0 = Normalized Scale（规范化模式，避免跳变）
+        scaleMargins: {
+          top: 0.1,    // 顶部留10%缓冲区
+          bottom: 0.2,  // 底部留20%缓冲区，防止价格变化导致缩放
+        },
+        autoScale: true, // 启用自动缩放
       },
       timeScale: {
         borderColor: "#374151",
         timeVisible: true,
-        secondsVisible: interval === "1m" || interval === "5m"
+        secondsVisible: interval === "1m" || interval === "5m",
+        timeVisible: true,
       }
     })
 
@@ -106,7 +114,24 @@ export default function SimpleKlineChart({
           return timeA - timeB
         })
 
+        // 智能更新：检查是否需要重新设置数据
+        if (lastDataRef.current.length > 0) {
+          // 比较最后一根K线的时间戳
+          const lastNewTime = chartData[chartData.length - 1].time
+          const lastOldTime = lastDataRef.current[lastDataRef.current.length - 1]?.time
+
+          // 如果时间戳相同，只更新最后一根K线的价格
+          if (lastNewTime === lastOldTime) {
+            const lastCandle = chartData[chartData.length - 1]
+            candleSeries.update(lastCandle)
+            lastDataRef.current = chartData
+            return
+          }
+        }
+
+        // 首次加载或时间戳变化，重新设置所有数据
         candleSeries.setData(chartData)
+        lastDataRef.current = chartData
       } catch (error) {
         // 静默处理错误，避免控制台刷屏
       }
@@ -115,8 +140,8 @@ export default function SimpleKlineChart({
     // 初始加载
     loadKlines(true)
 
-    // 定时刷新（每3秒，强制刷新获取最新价格）
-    intervalRef.current = setInterval(() => loadKlines(true), 3000)
+    // 定时刷新（每10秒，减少频率以避免价格轴频繁跳变）
+    intervalRef.current = setInterval(() => loadKlines(true), 10000)
 
     // 响应式调整大小
     const handleResize = () => {
@@ -138,6 +163,7 @@ export default function SimpleKlineChart({
       if (chartRef.current) {
         chartRef.current.remove()
       }
+      lastDataRef.current = [] // 清除数据引用
     }
   }, [symbol, interval, limit, height])
 
