@@ -131,7 +131,7 @@ export default function TradingChart({
 
       // ✅ 如果API返回空数据，返回空数组，不再生成假数据
       if (!history || history.length === 0) {
-        console.warn('[TradingChart] API 返回空数据，无法加载K线图表')
+        // API 返回空数据，返回空数组
         return []
       }
 
@@ -151,8 +151,7 @@ export default function TradingChart({
 
       return klineData
     } catch (error) {
-      console.error('[TradingChart] 获取K线数据异常:', error)
-      // ✅ 不再生成假数据，返回空数组
+      // 获取K线数据异常，返回空数组
       return []
     } finally {
       // ✅ 只在组件仍然挂载时更新状态
@@ -252,7 +251,7 @@ export default function TradingChart({
           console.log(`[TradingChart] 初始化完成，价格基准: ${lastPrice}`)
           chart.timeScale().fitContent()
         } catch (error) {
-          console.warn('[TradingChart] setData error:', error)
+          // setData error，静默处理
         }
       }
     }
@@ -318,12 +317,12 @@ export default function TradingChart({
                 lastCandleRef.current = updated
                 priceRef.current = updated.close
               } catch (error) {
-                console.warn('[TradingChart] WebSocket update error:', error)
+                // 静默处理更新错误
               }
             }
           }
         } catch (error) {
-          console.error('[TradingChart] WebSocket message error:', error)
+          // 静默处理消息解析错误
         }
       }
 
@@ -380,7 +379,7 @@ export default function TradingChart({
                 lastCandleRef.current = updated
                 priceRef.current = updated.close
               } catch (error) {
-                console.warn('[TradingChart] API update error:', error)
+                // API update error，静默处理
               }
             }
           })
@@ -400,7 +399,7 @@ export default function TradingChart({
           height: actualHeight
         })
       } catch (error) {
-        console.warn('[TradingChart] Resize error:', error)
+        // Resize error，静默处理
       }
     }
 
@@ -436,7 +435,7 @@ export default function TradingChart({
         try {
           chart.remove()
         } catch (error) {
-          console.warn('[TradingChart] chart.remove error:', error)
+          // chart.remove error，静默处理
         }
         chartInstance.current = null
       }
