@@ -191,9 +191,14 @@ export function generateMockKlines(
 
     // 生成 close, high, low（更保守的波动）
     const close = open * (1 + priceChange)
-    const volatility = Math.abs(priceChange) * 0.8 + Math.random() * 0.002 * volatilityScale
-    const high = Math.max(open, close) * (1 + Math.random() * volatility)
-    const low = Math.min(open, close) * (1 - Math.random() * volatility)
+
+    // 计算上下影线（相对价格变化）
+    // 使用价格变化的绝对值作为基准，避免波动过大
+    const shadowSize = Math.abs(priceChange) * 0.5 + Math.random() * 0.001 * volatilityScale
+
+    // 确保 high >= max(open, close)，low <= min(open, close)
+    const high = Math.max(open, close) * (1 + shadowSize)
+    const low = Math.min(open, close) * (1 - shadowSize)
 
     // 强制价格回归（防止过度偏离）
     const absDeviation = Math.abs(currentPrice - basePrice) / basePrice
@@ -265,14 +270,22 @@ export async function fetchBinanceKlines(
       return []
     }
 
-    return data.map((k: any) => ({
-      time: Math.floor(k[0] / 1000),
-      open: parseFloat(k[1]),
-      high: parseFloat(k[2]),
-      low: parseFloat(k[3]),
-      close: parseFloat(k[4]),
-      volume: parseFloat(k[5]),
-    }))
+    return data.map((k: any) => {
+      const open = parseFloat(k[1]) || 0
+      const high = parseFloat(k[2]) || 0
+      const low = parseFloat(k[3]) || 0
+      const close = parseFloat(k[4]) || 0
+      const volume = parseFloat(k[5]) || 0
+
+      return {
+        time: Math.floor(k[0] / 1000),
+        open,
+        high: Math.max(high, open, close),  // 确保 high >= max(open, close)
+        low: Math.min(low, open, close),    // 确保 low <= min(open, close)
+        close,
+        volume
+      }
+    })
   } catch (error) {
     return []
   }
@@ -389,13 +402,18 @@ export async function fetchFinnhubKlines(
     const klines: KlineData[] = []
 
     for (let i = 0; i < data.t.length; i++) {
+      const open = Number(data.o[i]) || 0
+      const high = Number(data.h[i]) || 0
+      const low = Number(data.l[i]) || 0
+      const close = Number(data.c[i]) || 0
+
       klines.push({
         time: data.t[i],
-        open: data.o[i],
-        high: data.h[i],
-        low: data.l[i],
-        close: data.c[i],
-        volume: data.v[i] || 0,
+        open,
+        high: Math.max(high, open, close),  // 确保 high >= max(open, close)
+        low: Math.min(low, open, close),    // 确保 low <= min(open, close)
+        close,
+        volume: Number(data.v[i]) || 0,
       })
     }
 
@@ -483,12 +501,17 @@ export async function fetchTwelveDataKlines(
       // 转换为秒级时间戳
       const timestamp = Math.floor(new Date(year, month - 1, day, hours, minutes, seconds).getTime() / 1000)
 
+      const open = parseFloat(v.open) || 0
+      const high = parseFloat(v.high) || 0
+      const low = parseFloat(v.low) || 0
+      const close = parseFloat(v.close) || 0
+
       return {
         time: timestamp,
-        open: parseFloat(v.open) || 0,
-        high: parseFloat(v.high) || 0,
-        low: parseFloat(v.low) || 0,
-        close: parseFloat(v.close) || 0,
+        open,
+        high: Math.max(high, open, close),  // 确保 high >= max(open, close)
+        low: Math.min(low, open, close),    // 确保 low <= min(open, close)
+        close,
         volume: parseFloat(v.volume) || 0,
       }
     })
@@ -565,14 +588,21 @@ export async function fetchKrakenKlines(
     }
 
     // Kraken OHLCV 格式：[time, open, high, low, close, vwap, volume, count]
-    const klines: KlineData[] = pairData.map((k: any) => ({
-      time: parseInt(k[0]), // 秒级时间戳
-      open: parseFloat(k[1]),
-      high: parseFloat(k[2]),
-      low: parseFloat(k[3]),
-      close: parseFloat(k[4]),
-      volume: parseFloat(k[6]), // 成交量
-    }))
+    const klines: KlineData[] = pairData.map((k: any) => {
+      const open = parseFloat(k[1]) || 0
+      const high = parseFloat(k[2]) || 0
+      const low = parseFloat(k[3]) || 0
+      const close = parseFloat(k[4]) || 0
+
+      return {
+        time: parseInt(k[0]), // 秒级时间戳
+        open,
+        high: Math.max(high, open, close),  // 确保 high >= max(open, close)
+        low: Math.min(low, open, close),    // 确保 low <= min(open, close)
+        close,
+        volume: parseFloat(k[6]), // 成交量
+      }
+    })
 
     // 取最近的 N 条数据
     return klines.slice(-limit)
@@ -643,11 +673,11 @@ export async function fetchYahooFinanceKlines(
       if (open !== null && high !== null && low !== null && close !== null) {
         klines.push({
           time: timestamps[i],
-          open,
-          high,
-          low,
-          close,
-          volume,
+          open: Number(open),
+          high: Math.max(Number(high), Number(open), Number(close)),  // 确保 high >= max(open, close)
+          low: Math.min(Number(low), Number(open), Number(close)),    // 确保 low <= min(open, close)
+          close: Number(close),
+          volume: Number(volume),
         })
       }
     }

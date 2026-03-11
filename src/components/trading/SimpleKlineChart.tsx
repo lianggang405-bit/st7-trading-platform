@@ -72,20 +72,35 @@ export default function SimpleKlineChart({
           return
         }
 
-        // 转换为图表格式（添加类型断言）
+        // 安全处理：确保 high/low 数据正确
+        // 转换为图表格式（添加类型断言和安全检查）
         const chartData: Array<{
           time: Time
           open: number
           high: number
           low: number
           close: number
-        }> = candles.map(k => ({
-          time: k.time as Time,
-          open: k.open,
-          high: k.high,
-          low: k.low,
-          close: k.close
-        }))
+        }> = candles.map(k => {
+          const open = Number(k.open)
+          const high = Number(k.high)
+          const low = Number(k.low)
+          const close = Number(k.close)
+
+          return {
+            time: k.time as Time,
+            open,
+            high: Math.max(high, open, close),  // 确保 high >= max(open, close)
+            low: Math.min(low, open, close),    // 确保 low <= min(open, close)
+            close
+          }
+        })
+
+        // 按时间排序（确保从旧到新）
+        chartData.sort((a, b) => {
+          const timeA = typeof a.time === 'number' ? a.time : Number(a.time)
+          const timeB = typeof b.time === 'number' ? b.time : Number(b.time)
+          return timeA - timeB
+        })
 
         candleSeries.setData(chartData)
       } catch (error) {
