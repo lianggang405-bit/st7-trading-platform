@@ -407,9 +407,9 @@ function getFallbackPrice(symbol: string): number {
     'NZDJPY': 91.23,
     'CADJPY': 110.45,
     'CHFJPY': 169.54,
-    // Gold
-    'XAUUSD': 2850.00,
-    'XAGUSD': 32.50,
+    // Gold - 更新为 2026 年 3 月真实价格
+    'XAUUSD': 5200.00,
+    'XAGUSD': 29.50,
     // Crypto
     'BTCUSD': 98500.00,
     'ETHUSD': 3250.00,

@@ -154,18 +154,15 @@ export async function getForexKlines(
 ): Promise<UnifiedKline[]> {
   console.log(`[ForexKlines] 获取 ${symbol} K线数据，interval=${interval}, limit=${limit}`);
 
-  const basePrice = getBasePrice(symbol);
-
   try {
     // 尝试从 API 获取数据
     const data = await getForexKlinesFromAPI(symbol, interval, limit);
     console.log(`[ForexKlines] 从 API 获取 ${data.length} 条K线`);
     return data;
   } catch (error) {
-    console.warn('[ForexKlines] API 失败，使用模拟数据:', error);
-    // 降级到模拟数据
-    const mockData = generateForexMockKlines(symbol, basePrice, limit);
-    console.log(`[ForexKlines] 生成 ${mockData.length} 条模拟K线`);
-    return mockData;
+    console.warn('[ForexKlines] API 失败，返回空数组:', error);
+    // ❌ 金融系统不应该自动生成模拟行情
+    // 返回空数组，让前端显示"数据加载失败"
+    return [];
   }
 }

@@ -108,19 +108,15 @@ export async function getGoldKlines(
 ): Promise<UnifiedKline[]> {
   console.log(`[GoldKlines] 获取 ${symbol} K线数据，interval=${interval}, limit=${limit}`);
 
-  // 基础价格（根据交易对）
-  const basePrice = symbol === 'XAUUSD' ? 2850 : symbol === 'XAGUSD' ? 32 : 2000;
-
   try {
     // 尝试从 API 获取数据
     const data = await getGoldKlinesFromAPI(symbol, interval, limit);
     console.log(`[GoldKlines] 从 API 获取 ${data.length} 条K线`);
     return data;
   } catch (error) {
-    console.warn('[GoldKlines] API 失败，使用模拟数据:', error);
-    // 降级到模拟数据
-    const mockData = generateGoldMockKlines(symbol, basePrice, limit);
-    console.log(`[GoldKlines] 生成 ${mockData.length} 条模拟K线`);
-    return mockData;
+    console.warn('[GoldKlines] API 失败，返回空数组:', error);
+    // ❌ 金融系统不应该自动生成模拟行情
+    // 返回空数组，让前端显示"数据加载失败"
+    return [];
   }
 }

@@ -825,9 +825,20 @@ export async function fetchKlines(
     return klines
   }
 
-  // 如果所有数据源都失败，返回模拟数据
-  console.log(`[KlineDataSource] 所有数据源失败，生成模拟数据`)
-  const mockData = await generateMockKlines(symbol, interval, limit)
-  setCachedData(symbol, interval, limit, mockData)
-  return mockData
+  // ❌ 金融系统不应该自动生成模拟行情
+  // 正确做法：尝试使用缓存数据（即使过期）
+  console.log(`[KlineDataSource] 所有数据源失败，尝试使用缓存数据`)
+
+  // 尝试获取缓存数据（不检查过期时间）
+  const cacheKey = `${symbol}_${interval}_${limit}`
+  const cachedData = klineCache.get(cacheKey)
+
+  if (cachedData && cachedData.data.length > 0) {
+    console.log(`[KlineDataSource] 使用过期的缓存数据（${cachedData.data.length} 条）`)
+    return cachedData.data
+  }
+
+  // 如果连缓存都没有，返回空数组（前端显示"数据加载失败"）
+  console.log(`[KlineDataSource] 无可用数据，返回空数组`)
+  return []
 }
