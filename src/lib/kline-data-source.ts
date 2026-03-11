@@ -667,17 +667,22 @@ export async function fetchYahooFinanceKlines(
 export async function fetchKlines(
   symbol: string,
   interval: string,
-  limit: number = 200
+  limit: number = 200,
+  forceRefresh: boolean = false  // 强制刷新，跳过缓存
 ): Promise<KlineData[]> {
   const category = getSymbolCategory(symbol)
 
-  console.log(`[KlineDataSource] Fetching klines: ${symbol} (${category}) ${interval}`)
+  console.log(`[KlineDataSource] Fetching klines: ${symbol} (${category}) ${interval} forceRefresh=${forceRefresh}`)
 
-  // 检查缓存
-  const cached = getCachedData(symbol, interval, limit)
-  if (cached) {
-    console.log(`[KlineDataSource] 使用缓存数据: ${cached.length} 条`)
-    return cached
+  // 检查缓存（除非强制刷新）
+  if (!forceRefresh) {
+    const cached = getCachedData(symbol, interval, limit)
+    if (cached) {
+      console.log(`[KlineDataSource] 使用缓存数据: ${cached.length} 条`)
+      return cached
+    }
+  } else {
+    console.log(`[KlineDataSource] 强制刷新，跳过缓存`)
   }
 
   // 优先使用真实数据源

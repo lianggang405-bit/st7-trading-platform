@@ -63,10 +63,10 @@ export default function SimpleKlineChart({
     seriesRef.current = candleSeries
 
     // 加载K线数据
-    async function loadKlines() {
+    async function loadKlines(forceRefresh: boolean = false) {
       try {
         // 使用聚合数据源，自动根据交易对类型选择最佳数据源
-        const candles = await fetchKlines(symbol, interval, limit)
+        const candles = await fetchKlines(symbol, interval, limit, forceRefresh)
 
         if (candles.length === 0) {
           return
@@ -93,11 +93,11 @@ export default function SimpleKlineChart({
       }
     }
 
-    // 初始加载
-    loadKlines()
+    // 初始加载（强制刷新，确保使用最新数据）
+    loadKlines(true)
 
-    // 定时刷新（5秒）
-    intervalRef.current = setInterval(loadKlines, 5000)
+    // 定时刷新（5秒，不强制刷新，使用缓存）
+    intervalRef.current = setInterval(() => loadKlines(false), 5000)
 
     // 响应式调整大小
     const handleResize = () => {

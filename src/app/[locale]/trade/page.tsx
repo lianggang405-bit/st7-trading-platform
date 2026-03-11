@@ -73,11 +73,16 @@ export default function TradePage() {
 
   // 初始化时清除K线缓存（确保使用新的模拟数据算法）
   useEffect(() => {
-    // 动态导入 clearKlineCache 函数
-    import('../../../lib/kline-data-source').then(({ clearKlineCache }) => {
-      clearKlineCache();
-      console.log('[TradePage] 已清除 K 线缓存');
-    });
+    // 调用服务端 API 清除缓存
+    const clearServerCache = async () => {
+      try {
+        await fetch('/api/trading/clear-cache', { method: 'POST' });
+        console.log('[TradePage] 已清除服务端 K 线缓存');
+      } catch (error) {
+        console.error('[TradePage] 清除服务端缓存失败:', error);
+      }
+    };
+    clearServerCache();
   }, []);
 
   // 定期檢查並觸發掛單
