@@ -195,16 +195,8 @@ export default function TradePage() {
         const data = await response.json();
 
         if (data.success && data.symbols) {
-          // 更新 marketStore 中的价格
-          data.symbols.forEach((symbol: TradingSymbol) => {
-            setSymbols((prevSymbols: TradingSymbol[]) => {
-              return prevSymbols.map((s) =>
-                s.symbol === symbol.symbol
-                  ? { ...s, price: symbol.price, change: symbol.change }
-                  : s
-              );
-            });
-          });
+          // 直接更新所有交易对数据
+          setSymbols(data.symbols);
         }
       } catch (error) {
         console.error('[TradePage] 更新价格失败:', error);
