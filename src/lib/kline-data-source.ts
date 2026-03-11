@@ -97,16 +97,24 @@ export function getIntervalSeconds(interval: string): number {
  * 优先使用真实价格数据
  */
 export async function getBasePrice(symbol: string): Promise<number> {
-  // 尝试从真实API获取价格
-  const { getRealPreciousMetalPrice } = await import('./real-precious-metals')
-
-  // 如果是贵金属，尝试获取真实价格
+  // 如果是贵金属，尝试从服务端 API 获取真实价格
   const category = getSymbolCategory(symbol)
   if (category === 'gold') {
-    const realPrice = await getRealPreciousMetalPrice(symbol)
-    if (realPrice && realPrice.price > 0) {
-      console.log(`[KlineDataSource] 使用真实价格: ${symbol} = ${realPrice.price}`)
-      return realPrice.price
+    try {
+      const response = await fetch(`/api/real-precious-metals?symbol=${symbol}`, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(5000)  // 5秒超时
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.price && data.price > 0) {
+          console.log(`[KlineDataSource] 使用真实价格: ${symbol} = ${data.price}`)
+          return data.price
+        }
+      }
+    } catch (error) {
+      console.log('[KlineDataSource] 获取真实价格失败，使用静态价格:', error)
     }
   }
 
@@ -767,9 +775,23 @@ export async function fetchKlines(
   }
   // Gold (XAUUSD, XAGUSD): 优先使用 GoldAPI（真实数据）
   else if (category === 'gold') {
-    // 先尝试 GoldAPI（真实贵金属数据）
-    const { fetchGoldAPIKlines } = await import('./real-precious-metals')
-    klines = await fetchGoldAPIKlines(symbol, interval, limit)
+    try {
+      // 通过服务端 API 代理调用 GoldAPI，避免 CORS 问题
+      const response = await fetch(`/api/goldapi-klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10000)  // 10秒超时
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.klines && data.klines.length > 0) {
+          klines = data.klines
+          console.log(`[KlineDataSource] 从 GoldAPI 获取 ${klines.length} 条数据`)
+        }
+      }
+    } catch (error) {
+      console.log('[KlineDataSource] GoldAPI 调用失败，尝试其他数据源:', error)
+    }
 
     // 如果 GoldAPI 失败，尝试 Finnhub API
     if (klines.length === 0) {
