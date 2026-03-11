@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { AuthGuard } from '../../../components/auth-guard';
 import { Price, Change } from '../../../components/data';
-import TradingChart from '../../../components/trading/TradingChart';
+import SimpleKlineChart from '../../../components/trading/SimpleKlineChart';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { useAuthStore } from '../../../stores/authStore';
@@ -18,7 +18,21 @@ import { formatSymbol } from '../../../lib/formatSymbol';
 import { getAllOrders, triggerPendingOrder } from '../../../api/trading';
 import './mobile.css';
 
+// 类型定义
 type Timeframe = '1M' | '5M' | '15M' | '1H' | '1D';
+
+// 转换 Timeframe 到 Binance interval
+function timeFrameToInterval(timeframe: Timeframe): string {
+  return timeframe.toLowerCase().replace('h', 'h').replace('d', 'd');
+}
+
+// 转换 symbol 到 Binance 格式 (BTCUSD -> BTCUSDT)
+function symbolToBinance(symbol: string): string {
+  if (symbol.endsWith('USD')) {
+    return symbol.replace('USD', 'USDT');
+  }
+  return symbol;
+}
 
 export default function TradePage() {
   const router = useRouter();
@@ -457,11 +471,11 @@ export default function TradePage() {
 
         {/* K线图区域 */}
         {currentSymbol && (
-          <TradingChart
-            symbol={currentSymbol}
+          <SimpleKlineChart
+            symbol={symbolToBinance(currentSymbol)}
+            interval={timeFrameToInterval(timeframe)}
             height={500}
-            timeframe={timeframe}
-            onTimeframeChange={setTimeframe}
+            limit={200}
           />
         )}
 
