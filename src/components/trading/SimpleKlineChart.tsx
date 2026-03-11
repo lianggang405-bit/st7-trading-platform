@@ -22,13 +22,17 @@ export default function SimpleKlineChart({
   const seriesRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
+  // 检测是否为移动端，如果是则缩小高度（缩小1/3）
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+  const chartHeight = isMobile ? Math.floor(height * 2 / 3) : height
+
   useEffect(() => {
     if (!chartContainerRef.current) return
 
     // 创建图表
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height,
+      height: chartHeight,
       layout: {
         background: { color: "#0f172a" },
         textColor: "#d1d5db"
