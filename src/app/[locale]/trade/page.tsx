@@ -21,17 +21,9 @@ import './mobile.css';
 // 类型定义
 type Timeframe = '1M' | '5M' | '15M' | '1H' | '1D';
 
-// 转换 Timeframe 到 Binance interval
+// 转换 Timeframe 到 interval 格式
 function timeFrameToInterval(timeframe: Timeframe): string {
   return timeframe.toLowerCase().replace('h', 'h').replace('d', 'd');
-}
-
-// 转换 symbol 到 Binance 格式 (BTCUSD -> BTCUSDT)
-function symbolToBinance(symbol: string): string {
-  if (symbol.endsWith('USD')) {
-    return symbol.replace('USD', 'USDT');
-  }
-  return symbol;
 }
 
 export default function TradePage() {
@@ -472,7 +464,7 @@ export default function TradePage() {
         {/* K线图区域 */}
         {currentSymbol && (
           <SimpleKlineChart
-            symbol={symbolToBinance(currentSymbol)}
+            symbol={currentSymbol}
             interval={timeFrameToInterval(timeframe)}
             height={500}
             limit={200}

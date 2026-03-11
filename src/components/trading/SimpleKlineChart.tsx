@@ -2,14 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { createChart, IChartApi, Time } from "lightweight-charts"
-
-interface KlineData {
-  time: Time
-  open: number
-  high: number
-  low: number
-  close: number
-}
+import { fetchKlines, KlineData } from "@/lib/kline-data-source"
 
 interface SimpleKlineChartProps {
   symbol?: string
@@ -72,29 +65,29 @@ export default function SimpleKlineChart({
     // 加载K线数据
     async function loadKlines() {
       try {
-        const res = await fetch(
-          `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
-        )
+        // 使用聚合数据源，自动根据交易对类型选择最佳数据源
+        const candles = await fetchKlines(symbol, interval, limit)
 
-        if (!res.ok) {
-          throw new Error(`API 请求失败: ${res.status}`)
-        }
-
-        const data = await res.json()
-
-        if (!Array.isArray(data) || data.length === 0) {
+        if (candles.length === 0) {
           return
         }
 
-        const candles: KlineData[] = data.map((k) => ({
-          time: (k[0] / 1000) as Time,
-          open: parseFloat(k[1]),
-          high: parseFloat(k[2]),
-          low: parseFloat(k[3]),
-          close: parseFloat(k[4])
+        // 转换为图表格式（添加类型断言）
+        const chartData: Array<{
+          time: Time
+          open: number
+          high: number
+          low: number
+          close: number
+        }> = candles.map(k => ({
+          time: k.time as Time,
+          open: k.open,
+          high: k.high,
+          low: k.low,
+          close: k.close
         }))
 
-        candleSeries.setData(candles)
+        candleSeries.setData(chartData)
       } catch (error) {
         // 静默处理错误，避免控制台刷屏
       }
