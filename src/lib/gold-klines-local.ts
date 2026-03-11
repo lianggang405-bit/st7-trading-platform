@@ -109,26 +109,15 @@ export async function generatePreciousMetalKlines(
     const high = Math.max(open, close) * (1 + upperShadow)
     const low = Math.min(open, close) * (1 - lowerShadow)
 
-    // 确保最后一个K线的价格接近当前价格
-    if (i === limit - 1) {
-      klines.push({
-        time,
-        open: Number(open.toFixed(2)),
-        high: Number(high.toFixed(2)),
-        low: Number(low.toFixed(2)),
-        close: Number(basePrice.toFixed(2)),
-        volume: Math.floor(Math.random() * 50000 + 10000),
-      })
-    } else {
-      klines.push({
-        time,
-        open: Number(open.toFixed(2)),
-        high: Number(high.toFixed(2)),
-        low: Number(low.toFixed(2)),
-        close: Number(close.toFixed(2)),
-        volume: Math.floor(Math.random() * 50000 + 10000),
-      })
-    }
+    // 生成K线数据（不强制固定价格）
+    klines.push({
+      time,
+      open: Number(open.toFixed(2)),
+      high: Number(high.toFixed(2)),
+      low: Number(low.toFixed(2)),
+      close: Number(close.toFixed(2)),
+      volume: Math.floor(Math.random() * 50000 + 10000),
+    })
 
     currentPrice = close
   }

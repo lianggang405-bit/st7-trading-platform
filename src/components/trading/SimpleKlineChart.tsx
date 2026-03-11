@@ -108,11 +108,11 @@ export default function SimpleKlineChart({
       }
     }
 
-    // 初始加载（强制刷新，确保使用最新数据）
+    // 初始加载
     loadKlines(true)
 
-    // 定时刷新（5秒，不强制刷新，使用缓存）
-    intervalRef.current = setInterval(() => loadKlines(false), 5000)
+    // 定时刷新（每3秒，强制刷新获取最新价格）
+    intervalRef.current = setInterval(() => loadKlines(true), 3000)
 
     // 响应式调整大小
     const handleResize = () => {
