@@ -18,17 +18,16 @@ interface CurrencyOption {
   name: string;
   protocol: string;
   icon: string;
-  placeholder: string;
 }
 
 const CURRENCIES: CurrencyOption[] = [
-  { id: 'ETH', name: 'Ethereum', protocol: 'ERC20', icon: '⟠', placeholder: '0x开头的42位地址' },
-  { id: 'BSC', name: 'BSC', protocol: 'BEP20', icon: '⟠', placeholder: '0x开头的42位地址' },
-  { id: 'POLYGON', name: 'Polygon', protocol: 'MATIC', icon: '⟠', placeholder: '0x开头的42位地址' },
-  { id: 'SOL', name: 'Solana', protocol: 'SPL', icon: '◎', placeholder: 'Base58编码地址' },
-  { id: 'TRX', name: 'Tron', protocol: 'TRC20', icon: '◈', placeholder: 'T开头的34位地址' },
-  { id: 'BTC', name: 'Bitcoin', protocol: 'BTC', icon: '₿', placeholder: '比特币地址' },
-  { id: 'DOGE', name: 'Dogecoin', protocol: 'DOGE', icon: 'Ð', placeholder: '狗狗币地址' },
+  { id: 'ETH', name: 'Ethereum', protocol: 'ERC20', icon: '⟠' },
+  { id: 'BSC', name: 'BSC', protocol: 'BEP20', icon: '⟠' },
+  { id: 'POLYGON', name: 'Polygon', protocol: 'MATIC', icon: '⟠' },
+  { id: 'SOL', name: 'Solana', protocol: 'SPL', icon: '◎' },
+  { id: 'TRX', name: 'Tron', protocol: 'TRC20', icon: '◈' },
+  { id: 'BTC', name: 'Bitcoin', protocol: 'BTC', icon: '₿' },
+  { id: 'DOGE', name: 'Dogecoin', protocol: 'DOGE', icon: 'Ð' },
 ];
 
 export default function BindWalletPage() {
@@ -215,7 +214,7 @@ export default function BindWalletPage() {
                     setWalletAddress(e.target.value);
                     if (error) setError('');
                   }}
-                  placeholder={selectedCurrency.placeholder}
+                  placeholder={t(`placeholder.${selectedCurrency.id.toLowerCase()}`)}
                   className="w-full px-3 py-2 text-sm border-b border-gray-200 outline-none focus:border-blue-500 transition-colors placeholder:text-gray-400"
                 />
               </div>

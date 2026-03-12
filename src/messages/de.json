@@ -202,7 +202,16 @@
     "enterWalletAddress": "Bitte Brieftaschenadresse eingeben",
     "invalidAddress": "Ungültiges {currency} Adressformat",
     "addressAlreadyBound": "Diese Brieftaschenadresse ist bereits gebunden",
-    "confirm": "Bestätigen"
+    "confirm": "Bestätigen",
+    "placeholder": {
+      "eth": "42-Zeichen-Adresse beginnend mit 0x",
+      "bsc": "42-Zeichen-Adresse beginnend mit 0x",
+      "polygon": "42-Zeichen-Adresse beginnend mit 0x",
+      "sol": "Base58-kodierte Adresse",
+      "trx": "34-Zeichen-Adresse beginnend mit T",
+      "btc": "Bitcoin-Adresse",
+      "doge": "Dogecoin-Adresse"
+    }
   },
   "walletAuth": {
     "title": "Brieftaschen-Autorisierung",

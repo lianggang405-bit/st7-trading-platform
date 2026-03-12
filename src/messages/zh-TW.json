@@ -120,7 +120,16 @@
     "enterWalletAddress": "請輸入錢包地址",
     "invalidAddress": "無效的 {currency} 地址格式",
     "addressAlreadyBound": "該錢包地址已綁定",
-    "confirm": "確定"
+    "confirm": "確定",
+    "placeholder": {
+      "eth": "0x 開頭的 42 位地址",
+      "bsc": "0x 開頭的 42 位地址",
+      "polygon": "0x 開頭的 42 位地址",
+      "sol": "Base58 編碼地址",
+      "trx": "T 開頭的 34 位地址",
+      "btc": "比特幣地址",
+      "doge": "狗狗幣地址"
+    }
   },
   "position": {
     "title": "持倉",

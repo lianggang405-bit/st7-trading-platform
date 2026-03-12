@@ -202,7 +202,16 @@
     "enterWalletAddress": "Vui lòng nhập địa chỉ ví",
     "invalidAddress": "Định dạng địa chỉ {currency} không hợp lệ",
     "addressAlreadyBound": "Địa chỉ ví này đã được liên kết",
-    "confirm": "Xác nhận"
+    "confirm": "Xác nhận",
+    "placeholder": {
+      "eth": "Địa chỉ 42 ký tự bắt đầu bằng 0x",
+      "bsc": "Địa chỉ 42 ký tự bắt đầu bằng 0x",
+      "polygon": "Địa chỉ 42 ký tự bắt đầu bằng 0x",
+      "sol": "Địa chỉ mã hóa Base58",
+      "trx": "Địa chỉ 34 ký tự bắt đầu bằng T",
+      "btc": "Địa chỉ Bitcoin",
+      "doge": "Địa chỉ Dogecoin"
+    }
   },
   "walletAuth": {
     "title": "Ủy quyền ví",
