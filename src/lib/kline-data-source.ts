@@ -94,28 +94,28 @@ export function getIntervalSeconds(interval: string): number {
 
 /**
  * 获取交易对的基础价格（用于生成模拟数据）
- * 优先使用真实价格数据
+ * 优先从 /api/market 获取真实价格
  */
 export async function getBasePrice(symbol: string): Promise<number> {
-  // 如果是贵金属，尝试从服务端 API 获取真实价格
-  const category = getSymbolCategory(symbol)
-  if (category === 'gold') {
-    try {
-      const response = await fetch(`/api/real-precious-metals?symbol=${symbol}`, {
-        cache: 'no-store',
-        signal: AbortSignal.timeout(5000)  // 5秒超时
-      })
+  try {
+    // 从统一的市场数据源获取价格
+    const response = await fetch('/api/market', {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5000)  // 5秒超时
+    })
 
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.price && data.price > 0) {
-          console.log(`[KlineDataSource] 使用真实价格: ${symbol} = ${data.price}`)
-          return data.price
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success && data.symbols) {
+        const symbolData = data.symbols.find((s: any) => s.symbol === symbol)
+        if (symbolData && symbolData.price > 0) {
+          console.log(`[KlineDataSource] 使用统一市场数据源价格: ${symbol} = ${symbolData.price}`)
+          return symbolData.price
         }
       }
-    } catch (error) {
-      console.log('[KlineDataSource] 获取真实价格失败，使用静态价格:', error)
     }
+  } catch (error) {
+    console.log('[KlineDataSource] 获取统一市场数据源价格失败，使用静态价格:', error)
   }
 
   // 失败则使用基准价格

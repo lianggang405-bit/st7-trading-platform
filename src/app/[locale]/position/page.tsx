@@ -21,6 +21,7 @@ export default function PositionPage() {
   const locale = pathname.split('/')[1];
   const { user, logout, isHydrated, isLogin } = useAuthStore();
   const marketState = useMarketStore();
+  const loadMarket = marketState?.loadMarket;
   const symbols = marketState?.symbols ?? [];
   const { positions, closePosition, updatePositions, syncFromBackend } = usePositionStore();
   const { updateFloatingProfit, onClosePosition, equity, usedMargin, balance, freeMargin } = useAssetStore();
@@ -33,6 +34,17 @@ export default function PositionPage() {
       useAssetStore.getState().syncFromBackend();
     }
   }, [isHydrated, isLogin, syncFromBackend]);
+
+  // 🔥 高频刷新市场数据（每1秒，确保价格实时更新）
+  useEffect(() => {
+    if (!isHydrated) return; // 未初始化前不刷新
+
+    const interval = setInterval(() => {
+      loadMarket();
+    }, 1000); // 1秒刷新
+
+    return () => clearInterval(interval);
+  }, [isHydrated, loadMarket]);
 
   // 确认对话框状态
   const [confirmDialog, setConfirmDialog] = useState<{
