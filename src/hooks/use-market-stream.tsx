@@ -92,49 +92,60 @@ export function useMarketStream(options: UseMarketStreamOptions): UseMarketStrea
 
     const url = `/api/market/stream?${params.toString()}`;
 
-    // 创建 EventSource
-    const eventSource = new EventSource(url);
-    eventSourceRef.current = eventSource;
+    try {
+      // 创建 EventSource
+      const eventSource = new EventSource(url);
+      eventSourceRef.current = eventSource;
 
-    // 监听消息
-    eventSource.onmessage = (event) => {
-      try {
-        const messageData = JSON.parse(event.data);
+      console.log('[useMarketStream] Connecting to SSE:', url);
 
-        // 处理连接状态消息
-        if (messageData.type === 'connection') {
-          setConnectionState(messageData.state);
-          return;
+      // 监听消息
+      eventSource.onmessage = (event) => {
+        try {
+          const messageData = JSON.parse(event.data);
+
+          console.log('[useMarketStream] Received message:', messageData);
+
+          // 处理连接状态消息
+          if (messageData.type === 'connection') {
+            setConnectionState(messageData.state);
+            return;
+          }
+
+          // 处理市场数据
+          setData(prev => {
+            const newData = [...prev, messageData];
+            // 保留最近的 100 条数据
+            return newData.slice(-100);
+          });
+        } catch (err) {
+          console.error('[useMarketStream] Failed to parse message:', err);
+          setError(err as Error);
         }
+      };
 
-        // 处理市场数据
-        setData(prev => {
-          const newData = [...prev, messageData];
-          // 保留最近的 100 条数据
-          return newData.slice(-100);
-        });
-      } catch (err) {
-        console.error('[useMarketStream] Failed to parse message:', err);
-        setError(err as Error);
-      }
-    };
+      // 监听错误
+      eventSource.onerror = (err) => {
+        console.error('[useMarketStream] EventSource error:', err);
+        setConnectionState('error');
+        setError(new Error('Connection error'));
 
-    // 监听错误
-    eventSource.onerror = (err) => {
-      console.error('[useMarketStream] EventSource error:', err);
+        // 自动重连
+        if (autoReconnect) {
+          console.log('[useMarketStream] Scheduling reconnection...');
+          setConnectionState('connecting');
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connect();
+          }, reconnectDelay);
+        } else {
+          cleanup();
+        }
+      };
+    } catch (error) {
+      console.error('[useMarketStream] Failed to create EventSource:', error);
       setConnectionState('error');
-      setError(new Error('Connection error'));
-
-      // 自动重连
-      if (autoReconnect) {
-        setConnectionState('connecting');
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connect();
-        }, reconnectDelay);
-      } else {
-        cleanup();
-      }
-    };
+      setError(error as Error);
+    }
   }, [symbols, type, interval, autoReconnect, reconnectDelay, cleanup]);
 
   // 断开连接

@@ -16,7 +16,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import { mockSymbols } from '../../../lib/market-mock-data';
 import { formatSymbol } from '../../../lib/formatSymbol';
 import { getAllOrders, triggerPendingOrder } from '../../../api/trading';
-import { useMarketStream } from '../../../hooks/use-market-stream';
 import './mobile.css';
 
 // 类型定义
@@ -72,14 +71,6 @@ export default function TradePage() {
   const [takeProfit, setTakeProfit] = useState(''); // 改为空字符串
   const [pendingPrice, setPendingPrice] = useState(0);
   const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] = useState(false);
-
-  // 📡 WebSocket 实时行情（仅用于加密货币）
-  const cryptoSymbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT'];
-  const { data: wsData, isConnected: wsConnected } = useMarketStream({
-    symbols: cryptoSymbols,
-    type: 'ticker',
-    autoReconnect: true,
-  });
 
   // 初始化时清除K线缓存（确保使用新的模拟数据算法）
   useEffect(() => {
@@ -165,18 +156,6 @@ export default function TradePage() {
 
     return () => clearInterval(interval);
   }, [marketState, symbols.length]);
-
-  // 📡 WebSocket 实时更新（仅用于加密货币）
-  useEffect(() => {
-    if (!wsConnected || wsData.length === 0) return;
-
-    // 更新 marketStore 中的加密货币价格
-    wsData.forEach(item => {
-      if (item.type === 'ticker' && item.data) {
-        marketState?.updateSymbolPrice(item.symbol, item.data.lastPrice, item.data.priceChangePercent);
-      }
-    });
-  }, [wsData, wsConnected, marketState]);
 
   // 设置默认交易对
   useEffect(() => {
