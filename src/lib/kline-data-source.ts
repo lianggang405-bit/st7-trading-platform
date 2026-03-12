@@ -168,6 +168,11 @@ export function getBasePriceStatic(symbol: string): number {
 
 /**
  * 生成模拟K线数据（改进版 - 更真实的波动）
+ * 
+ * 重要逻辑：
+ * - 最后一根K线的收盘价必须等于当前的交易对价格
+ * - 从最后一根K线往回推算历史价格
+ * - 这样可以确保K线图与交易对价格一致
  */
 export async function generateMockKlines(
   symbol: string,
@@ -175,7 +180,7 @@ export async function generateMockKlines(
   limit: number = 200
 ): Promise<KlineData[]> {
   const intervalSeconds = getIntervalSeconds(interval)
-  const basePrice = await getBasePrice(symbol)  // 使用异步函数获取真实价格
+  const currentPrice = await getBasePrice(symbol)  // 获取当前交易对价格
   const category = getSymbolCategory(symbol)
 
   const now = Math.floor(Date.now() / 1000)
@@ -190,16 +195,17 @@ export async function generateMockKlines(
   const maxPriceDeviation = isPreciousMetal ? 0.015 : 0.05  // 贵金属最大偏离1.5%（约40点）
 
   // 使用更真实的市场模拟模型
-  let currentPrice = basePrice * (1 + (Math.random() - 0.5) * 0.005)
+  // 从最后一根K线往回推算（确保最后一根K线的收盘价等于当前价格）
+  let lastClosePrice = currentPrice
+  const priceChanges: number[] = []  // 保存价格变化（用于反向生成）
 
   // 市场状态（模拟真实市场的多空转换）
   let marketPhase = 'consolidation'  // consolidation, trend_up, trend_down
   let phaseDuration = 0
   const phaseLength = 10 + Math.floor(Math.random() * 20)
 
+  // 正向生成价格变化（从第一个K线到最后一个）
   for (let i = 0; i < limit; i++) {
-    const time = endTime - ((limit - 1 - i) * intervalSeconds)
-
     // 市场相位转换
     phaseDuration++
     if (phaseDuration > phaseLength) {
@@ -225,19 +231,28 @@ export async function generateMockKlines(
       trendBias = -0.001 * volatilityScale  // 温和下跌
     }
 
-    // 均值回归（防止价格过度偏离）
-    const priceDeviation = (currentPrice - basePrice) / basePrice
-    const meanReversion = -priceDeviation * 0.03
+    // 综合价格变化（相对于前一K线的收盘价）
+    const priceChange = randomShock + trendBias
+    priceChanges.push(priceChange)
+  }
 
-    // 综合价格变化
-    const priceChange = randomShock + trendBias + meanReversion
-    const open = currentPrice
+  // 反向生成K线（确保最后一根K线的收盘价等于当前价格）
+  let currentPriceForGeneration = currentPrice
 
-    // 生成 close, high, low
+  for (let i = limit - 1; i >= 0; i--) {
+    // 计算时间（从现在往前推）
+    const time = endTime - (limit - i - 1) * intervalSeconds
+
+    // 反向应用价格变化（当前K线的收盘价 = 下一K线的开盘价）
+    const priceChange = priceChanges[i]
+
+    // 当前K线的开盘价（从下一根K线的收盘价反推）
+    const open = currentPriceForGeneration
+
+    // 当前K线的收盘价
     const close = open * (1 + priceChange)
 
     // 上下影线（基于真实市场的上下影线比例）
-    // 真实市场上下影线通常是实体的1-3倍
     const bodySize = Math.abs(close - open) / open
     const upperShadowRatio = Math.random() * 2 + 0.5  // 0.5-2.5倍实体
     const lowerShadowRatio = Math.random() * 2 + 0.5
@@ -245,16 +260,8 @@ export async function generateMockKlines(
     const high = Math.max(open, close) * (1 + bodySize * upperShadowRatio)
     const low = Math.min(open, close) * (1 - bodySize * lowerShadowRatio)
 
-    // 强制价格回归（防止过度偏离）
-    const absDeviation = Math.abs(currentPrice - basePrice) / basePrice
-    if (absDeviation > maxPriceDeviation) {
-      const correction = (basePrice - currentPrice) * 0.3
-      currentPrice = currentPrice + correction
-    }
-
-    currentPrice = close
-
-    klines.push({
+    // 保存K线数据（注意：由于是反向生成，需要反转顺序）
+    klines.unshift({
       time,
       open: Number(open.toFixed(5)),
       high: Number(high.toFixed(5)),
@@ -262,26 +269,13 @@ export async function generateMockKlines(
       close: Number(close.toFixed(5)),
       volume: Math.floor(Math.random() * 10000 + 100),
     })
+
+    // 更新当前价格（用于反向生成前一根K线）
+    currentPriceForGeneration = close
   }
 
-  // 确保最后一个 K 线的价格接近当前市场价格
-  const lastKline = klines[klines.length - 1]
-  const lastPriceChange = (basePrice - lastKline.close) / lastKline.close
-  klines[klines.length - 1].close = Number(basePrice.toFixed(5))
-  klines[klines.length - 1].high = Number((lastKline.high * (1 + lastPriceChange * 0.5)).toFixed(5))
-  klines[klines.length - 1].low = Number((lastKline.low * (1 + lastPriceChange * 0.5)).toFixed(5))
-
-  // 最终验证：确保所有价格在合理范围内
+  // ✅ 安全验证：确保 high >= max(open, close) 且 low <= min(open, close)
   for (const kline of klines) {
-    const deviation = Math.abs(kline.close - basePrice) / basePrice
-    if (deviation > maxPriceDeviation) {
-      const correctionFactor = 1 + (basePrice - kline.close) / kline.close * 0.8
-      kline.close = Number((kline.close * correctionFactor).toFixed(5))
-      kline.high = Number((kline.high * correctionFactor).toFixed(5))
-      kline.low = Number((kline.low * correctionFactor).toFixed(5))
-    }
-
-    // ✅ 安全验证：确保 high >= max(open, close) 且 low <= min(open, close)
     const maxOC = Math.max(kline.open, kline.close)
     const minOC = Math.min(kline.open, kline.close)
 
