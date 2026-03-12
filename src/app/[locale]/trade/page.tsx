@@ -194,9 +194,26 @@ export default function TradePage() {
         const response = await fetch('/api/trading/symbols');
         const data = await response.json();
 
-        if (data.success && data.symbols) {
-          // 直接更新所有交易对数据
-          setSymbols(data.symbols);
+        if (data.success && data.symbols && setSymbols) {
+          // 保留当前交易对的最新价格（避免被5秒定时器覆盖）
+          const updatedSymbols = data.symbols.map((newSymbol: TradingSymbol) => {
+            if (currentSymbol && newSymbol.symbol === currentSymbol) {
+              // 获取当前交易对的最新价格（从 symbols 中）
+              const currentSymbolData = symbols.find(s => s.symbol === currentSymbol);
+              if (currentSymbolData && currentSymbolData.price !== undefined) {
+                // 保留当前交易对的价格和涨跌幅
+                return {
+                  ...newSymbol,
+                  price: currentSymbolData.price,
+                  change: currentSymbolData.change,
+                };
+              }
+            }
+            return newSymbol;
+          });
+
+          // 更新交易对数据
+          setSymbols(updatedSymbols);
         }
       } catch (error) {
         console.error('[TradePage] 更新价格失败:', error);
@@ -206,7 +223,7 @@ export default function TradePage() {
     // 每5秒更新一次价格
     const interval = setInterval(updatePrices, 5000);
     return () => clearInterval(interval);
-  }, [setSymbols]);
+  }, [setSymbols, currentSymbol, symbols]);
 
   // 监听价格变化，触发脉冲动画
   useEffect(() => {

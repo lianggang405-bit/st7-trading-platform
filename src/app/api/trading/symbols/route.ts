@@ -19,19 +19,46 @@ function normalizeSymbol(symbol: string): string {
 
 /**
  * 获取交易对的默认价格（从 real-time-prices.ts）
+ * 添加基于时间的动态波动，模拟实时价格变化
  */
 function getDefaultPrice(symbol: string): { price: number; change: number } {
-  const price = defaultPriceMap[symbol];
-  if (price !== undefined) {
-    // 从 realTimePrices 中查找对应的涨跌幅
-    const realTimePrice = realTimePrices.find(p => p.symbol === symbol);
-    return {
-      price: price,
-      change: realTimePrice ? realTimePrice.change : 0,
-    };
+  const basePrice = defaultPriceMap[symbol];
+  if (basePrice === undefined) {
+    // 如果找不到，返回 0
+    return { price: 0, change: 0 };
   }
-  // 如果找不到，返回 0（前端会通过 getInitialPrice 再次获取）
-  return { price: 0, change: 0 };
+
+  // 从 realTimePrices 中查找对应的涨跌幅
+  const realTimePrice = realTimePrices.find(p => p.symbol === symbol);
+  const baseChange = realTimePrice ? realTimePrice.change : 0;
+
+  // 基于当前时间生成动态波动（每秒变化）
+  const now = Date.now();
+  const timeFactor = Math.floor(now / 1000); // 每秒变化一次
+
+  // 根据价格范围设置波动幅度
+  let volatility: number;
+  if (basePrice > 10000) {
+    volatility = basePrice * 0.0005; // 高价格：0.05% 波动
+  } else if (basePrice > 100) {
+    volatility = basePrice * 0.001; // 中等价格：0.1% 波动
+  } else if (basePrice > 1) {
+    volatility = basePrice * 0.002; // 低价格：0.2% 波动
+  } else {
+    volatility = basePrice * 0.005; // 极低价格：0.5% 波动
+  }
+
+  // 使用时间因子生成伪随机波动
+  const randomFactor = Math.sin(timeFactor + symbol.length) * volatility;
+  const dynamicPrice = basePrice + randomFactor;
+
+  // 动态涨跌幅
+  const dynamicChange = baseChange + (Math.cos(timeFactor / 10) * 0.5);
+
+  return {
+    price: dynamicPrice,
+    change: dynamicChange,
+  };
 }
 
 export async function GET() {
