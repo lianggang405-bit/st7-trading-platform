@@ -187,6 +187,24 @@
     }
   },
   "wallet": {
+    "title": "กระเป๋าเงิน",
+    "balance": "ยอดเงิน",
+    "addAddress": "เพิ่มที่อยู่คริปโต",
+    "connectedWallets": "กระเป๋าเงินที่เชื่อมต่อแล้ว",
+    "disconnect": "ยกเลิกการเชื่อมต่อ",
+    "bindTitle": "ผูกที่อยู่คริปโต",
+    "currency": "สกุลเงิน",
+    "walletAddress": "ที่อยู่กระเป๋าเงิน",
+    "bind": "เพิ่ม",
+    "binding": "กำลังผูก...",
+    "bindSuccess": "ผูกสำเร็จ",
+    "bindSuccessMessage": "ที่อยู่กระเป๋าเงิน {currency} ของคุณ {address} ถูกผูกเรียบร้อยแล้ว",
+    "enterWalletAddress": "โปรดป้อนที่อยู่กระเป๋าเงิน",
+    "invalidAddress": "รูปแบบที่อยู่ {currency} ไม่ถูกต้อง",
+    "addressAlreadyBound": "ที่อยู่กระเป๋าเงินนี้ถูกผูกแล้ว",
+    "confirm": "ยืนยัน"
+  },
+  "walletAuth": {
     "title": "การอนุญาตกระเป๋าเงิน",
     "availableBalance": "ยอดเงินที่ใช้ได้",
     "userId": "ID ผู้ใช้",

@@ -187,6 +187,24 @@
     }
   },
   "wallet": {
+    "title": "Кошелек",
+    "balance": "Баланс",
+    "addAddress": "Добавить адрес криптовалюты",
+    "connectedWallets": "Подключенные кошельки",
+    "disconnect": "Отключить",
+    "bindTitle": "Привязать адрес криптовалюты",
+    "currency": "Валюта",
+    "walletAddress": "Адрес кошелька",
+    "bind": "Добавить",
+    "binding": "Привязка...",
+    "bindSuccess": "Успешно привязано",
+    "bindSuccessMessage": "Ваш адрес кошелька {currency} {address} успешно привязан",
+    "enterWalletAddress": "Пожалуйста, введите адрес кошелька",
+    "invalidAddress": "Неверный формат адреса {currency}",
+    "addressAlreadyBound": "Этот адрес кошелька уже привязан",
+    "confirm": "Подтвердить"
+  },
+  "walletAuth": {
     "title": "Авторизация кошелька",
     "availableBalance": "Доступный баланс",
     "userId": "ID пользователя",

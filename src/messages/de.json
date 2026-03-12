@@ -187,6 +187,24 @@
     }
   },
   "wallet": {
+    "title": "Brieftasche",
+    "balance": "Guthaben",
+    "addAddress": "Kryptowährungsadresse hinzufügen",
+    "connectedWallets": "Verbundene Brieftaschen",
+    "disconnect": "Trennen",
+    "bindTitle": "Kryptowährungsadresse binden",
+    "currency": "Währung",
+    "walletAddress": "Brieftaschenadresse",
+    "bind": "Hinzufügen",
+    "binding": "Binden...",
+    "bindSuccess": "Erfolgreich gebunden",
+    "bindSuccessMessage": "Ihre {currency} Brieftaschenadresse {address} wurde erfolgreich gebunden",
+    "enterWalletAddress": "Bitte Brieftaschenadresse eingeben",
+    "invalidAddress": "Ungültiges {currency} Adressformat",
+    "addressAlreadyBound": "Diese Brieftaschenadresse ist bereits gebunden",
+    "confirm": "Bestätigen"
+  },
+  "walletAuth": {
     "title": "Brieftaschen-Autorisierung",
     "availableBalance": "Verfügbares Guthaben",
     "userId": "Benutzer-ID",

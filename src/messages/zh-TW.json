@@ -242,7 +242,7 @@
       "daysAgo": " 天前"
     }
   },
-  "wallet": {
+  "walletAuth": {
     "title": "錢包授權",
     "availableBalance": "可用餘額",
     "userId": "用戶ID",

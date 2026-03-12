@@ -242,7 +242,7 @@
       "daysAgo": " days ago"
     }
   },
-  "wallet": {
+  "walletAuth": {
     "title": "Wallet Authorization",
     "availableBalance": "Available Balance",
     "userId": "User ID",

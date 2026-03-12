@@ -187,6 +187,24 @@
     }
   },
   "wallet": {
+    "title": "Ví",
+    "balance": "Số dư",
+    "addAddress": "Thêm địa chỉ tiền điện tử",
+    "connectedWallets": "Ví đã kết nối",
+    "disconnect": "Ngắt kết nối",
+    "bindTitle": "Liên kết địa chỉ tiền điện tử",
+    "currency": "Tiền tệ",
+    "walletAddress": "Địa chỉ ví",
+    "bind": "Thêm",
+    "binding": "Đang liên kết...",
+    "bindSuccess": "Liên kết thành công",
+    "bindSuccessMessage": "Địa chỉ ví {currency} của bạn {address} đã được liên kết thành công",
+    "enterWalletAddress": "Vui lòng nhập địa chỉ ví",
+    "invalidAddress": "Định dạng địa chỉ {currency} không hợp lệ",
+    "addressAlreadyBound": "Địa chỉ ví này đã được liên kết",
+    "confirm": "Xác nhận"
+  },
+  "walletAuth": {
     "title": "Ủy quyền ví",
     "availableBalance": "Số dư khả dụng",
     "userId": "ID người dùng",
