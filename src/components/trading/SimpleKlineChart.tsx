@@ -115,28 +115,18 @@ export default function SimpleKlineChart({
           return timeA - timeB
         })
 
-        // 🔥 关键修复：如果提供了 currentPrice，强制设置最后一根K线的收盘价
+        // 🔥 关键修复：如果提供了 currentPrice，只修改最后一根K线的收盘价和边界
         if (currentPrice && chartData.length > 0) {
           const lastCandle = chartData[chartData.length - 1]
-          const priceChangeRatio = currentPrice / lastCandle.close
 
-          // 🛡️ 极端情况保护：限制比例变化范围（防止行情突然跳动导致K线异常）
-          const MAX_RATIO = 1.02  // 最大上涨比例 2%
-          const MIN_RATIO = 0.98  // 最大下跌比例 2%
-          const safeRatio = Math.max(MIN_RATIO, Math.min(MAX_RATIO, priceChangeRatio))
-
-          // 调整最后一根K线的收盘价
+          // 只修改 close 价格
           lastCandle.close = currentPrice
 
-          // 调整 high 和 low（使用安全的比例，保持K线形态）
-          lastCandle.high = lastCandle.high * safeRatio
-          lastCandle.low = lastCandle.low * safeRatio
+          // 更新 high 和 low 边界（不改变 K线形态，只更新边界值）
+          lastCandle.high = Math.max(lastCandle.high, currentPrice)
+          lastCandle.low = Math.min(lastCandle.low, currentPrice)
 
-          // 确保 high >= max(open, close) 且 low <= min(open, close)
-          lastCandle.high = Math.max(lastCandle.high, lastCandle.open, lastCandle.close)
-          lastCandle.low = Math.min(lastCandle.low, lastCandle.open, lastCandle.close)
-
-          console.log(`[SimpleKlineChart] 强制设置最后一根K线价格: ${currentPrice} (ratio: ${priceChangeRatio.toFixed(4)} → ${safeRatio.toFixed(4)})`)
+          console.log(`[SimpleKlineChart] 更新最后一根K线: close=${currentPrice}, high=${lastCandle.high}, low=${lastCandle.low}`)
         }
 
         // 智能更新：检查是否需要重新设置数据
@@ -199,23 +189,16 @@ export default function SimpleKlineChart({
     const lastCandle = lastDataRef.current[lastDataRef.current.length - 1]
 
     if (lastCandle) {
-      const priceChangeRatio = currentPrice / lastCandle.close
-
-      // 🛡️ 极端情况保护：限制比例变化范围
-      const MAX_RATIO = 1.02
-      const MIN_RATIO = 0.98
-      const safeRatio = Math.max(MIN_RATIO, Math.min(MAX_RATIO, priceChangeRatio))
-
-      // 更新最后一根K线
+      // 🔥 只修改 close 和边界值，不改变 K线形态
       const updatedCandle = {
         time: lastCandle.time,
         open: lastCandle.open,
         close: currentPrice,
-        high: Math.max(lastCandle.high * safeRatio, lastCandle.open, currentPrice),
-        low: Math.min(lastCandle.low * safeRatio, lastCandle.open, currentPrice),
+        high: Math.max(lastCandle.high, currentPrice),  // 更新边界
+        low: Math.min(lastCandle.low, currentPrice),    // 更新边界
       }
 
-      // 使用 update 而不是 setData，实现平滑更新
+      // 更新图表
       seriesRef.current.update(updatedCandle)
 
       // 更新缓存
@@ -223,5 +206,10 @@ export default function SimpleKlineChart({
     }
   }, [currentPrice])
 
-  return <div ref={chartContainerRef} style={{ width: "100%" }} />
+  return (
+    <div
+      ref={chartContainerRef}
+      style={{ height: `${chartHeight}px` }}
+    />
+  )
 }
