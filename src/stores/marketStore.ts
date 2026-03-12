@@ -4,7 +4,7 @@ export interface TradingSymbol {
   symbol: string;
   price: number;
   change: number;
-  source: 'binance' | 'goldapi' | 'mock';
+  source: 'binance' | 'gold-api' | 'mock' | 'fallback';
   category: 'crypto' | 'metal' | 'forex' | 'energy' | 'cfd';
 }
 
@@ -14,8 +14,8 @@ interface MarketState {
   setCurrentSymbol: (symbol: string) => void;
   setSymbols: (symbols: TradingSymbol[]) => void;
   updateSymbolPrice: (symbol: string, price: number, change?: number) => void;
-  loadMarket: () => Promise<void>; // 新增：加载市场数据
-  isHydrated: boolean; // 新增：是否已初始化
+  loadMarket: () => Promise<void>;
+  isHydrated: boolean;
 }
 
 export const useMarketStore = create<MarketState>((set, get) => ({
@@ -51,6 +51,11 @@ export const useMarketStore = create<MarketState>((set, get) => ({
 
   /**
    * 加载市场数据（统一从 /api/market 获取）
+   *
+   * 数据来源：
+   * - Crypto → Binance API（真实数据）
+   * - Metal → Gold API（真实数据）
+   * - 其他 → 模拟数据
    */
   loadMarket: async () => {
     try {
