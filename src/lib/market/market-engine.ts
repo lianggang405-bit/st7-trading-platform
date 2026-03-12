@@ -4,6 +4,7 @@
  * 数据源策略：
  * - Crypto → CoinGecko API（多端点尝试）
  * - Metal → Gold API（真实数据）
+ * - Forex → FastForex API（真实数据，带缓存和降级）
  * - 其他 → 模拟数据
  *
  * 设计原则：
@@ -13,6 +14,12 @@
  * - 缓存：降级时使用最后一次真实价格
  * - 代理：支持多端点自动切换
  */
+
+import {
+  fetchAllForexRates,
+  parseForexPairs,
+  clearCache as clearForexCache,
+} from '@/lib/services/fastforex';
 
 type SymbolInfo = {
   symbol: string
@@ -78,6 +85,84 @@ const symbols: SymbolInfo[] = [
   { symbol: "GER40", type: "cfd", category: "cfd", basePrice: 17800 },
   { symbol: "JPN225", type: "cfd", category: "cfd", basePrice: 40000 },
 ];
+
+// 外汇数据缓存
+const forexDataCache = new Map<string, {
+  data: ForexPairData[];
+  timestamp: number;
+}>();
+
+interface ForexPairData {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+}
+
+/**
+ * 获取外汇数据（带缓存和降级）
+ */
+async function fetchForexData(): Promise<Map<string, { price: number; change: number }>> {
+  try {
+    // 检查缓存（30秒缓存）
+    const cached = forexDataCache.get('forex');
+    const now = Date.now();
+
+    if (cached && (now - cached.timestamp) < 30000) {
+      console.log('[MarketEngine] Using cached forex data');
+      const result = new Map<string, { price: number; change: number }>();
+      for (const pair of cached.data) {
+        result.set(pair.symbol, {
+          price: pair.price,
+          change: pair.change,
+        });
+      }
+      return result;
+    }
+
+    // 调用 FastForex API
+    const response = await fetchAllForexRates();
+    const forexPairs = parseForexPairs(response.results);
+
+    // 更新缓存
+    forexDataCache.set('forex', {
+      data: forexPairs,
+      timestamp: now,
+    });
+
+    // 转换为 Map
+    const result = new Map<string, { price: number; change: number }>();
+    for (const pair of forexPairs) {
+      result.set(pair.symbol, {
+        price: pair.price,
+        change: pair.change,
+      });
+    }
+
+    console.log(`[MarketEngine] Fetched ${result.size} forex pairs from FastForex`);
+    return result;
+  } catch (error) {
+    console.error('[MarketEngine] FastForex API failed:', error);
+
+    // 降级：使用缓存数据（即使过期）
+    const cached = forexDataCache.get('forex');
+    if (cached) {
+      console.log('[MarketEngine] Using expired cached forex data as fallback');
+      const result = new Map<string, { price: number; change: number }>();
+      for (const pair of cached.data) {
+        result.set(pair.symbol, {
+          price: mockPrice(pair.price), // 基于缓存价格波动
+          change: calculateChange(pair.price, pair.price) // 暂时无法计算涨跌
+        });
+      }
+      return result;
+    }
+
+    // 降级失败：返回空 Map
+    console.warn('[MarketEngine] No forex data available, will use mock data');
+    return new Map();
+  }
+}
 
 /**
  * 更新价格缓存
@@ -248,6 +333,14 @@ export async function getMarketData() {
     console.warn('[MarketEngine] Failed to fetch crypto prices from CoinGecko, will use cache/fallback');
   }
 
+  // 获取外汇数据（FastForex API）
+  let forexPrices = new Map<string, { price: number; change: number }>();
+  try {
+    forexPrices = await fetchForexData();
+  } catch (error) {
+    console.warn('[MarketEngine] Failed to fetch forex data, will use mock data');
+  }
+
   // 处理所有交易对
   for (const s of symbols) {
     try {
@@ -285,6 +378,20 @@ export async function getMarketData() {
         change = data.change;
         source = "gold-api";
         updatePriceCache(s.symbol, price, s.basePrice); // 更新缓存
+      } else if (s.type === "forex") {
+        // Forex → FastForex API
+        if (forexPrices.has(s.symbol)) {
+          const data = forexPrices.get(s.symbol)!;
+          price = data.price;
+          change = data.change;
+          source = "fastforex";
+          updatePriceCache(s.symbol, price, s.basePrice); // 更新缓存
+        } else {
+          // 降级：使用模拟数据
+          price = mockPrice(s.basePrice!);
+          change = calculateChange(price, s.basePrice!); // 计算涨跌幅
+          source = "mock";
+        }
       } else {
         // 其他 → 模拟数据
         price = mockPrice(s.basePrice!);
