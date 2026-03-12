@@ -24,7 +24,7 @@ type SymbolInfo = {
 }
 
 // 价格缓存：保存最后一次成功获取的真实价格
-const priceCache = new Map<string, { price: number; timestamp: number }>();
+const priceCache = new Map<string, { price: number; timestamp: number; basePrice: number }>();
 
 // CoinGecko API 多端点配置（按优先级排序）
 const COINGECKO_ENDPOINTS = [
@@ -82,17 +82,18 @@ const symbols: SymbolInfo[] = [
 /**
  * 更新价格缓存
  */
-function updatePriceCache(symbol: string, price: number) {
+function updatePriceCache(symbol: string, price: number, basePrice?: number) {
   priceCache.set(symbol, {
     price,
     timestamp: Date.now(),
+    basePrice: basePrice || price,
   });
 }
 
 /**
  * 获取缓存价格（如果存在且未过期）
  */
-function getCachedPrice(symbol: string, maxAge: number = 3600000): number | null {
+function getCachedPrice(symbol: string, maxAge: number = 3600000): { price: number; basePrice: number } | null {
   const cached = priceCache.get(symbol);
   if (!cached) return null;
 
@@ -102,7 +103,18 @@ function getCachedPrice(symbol: string, maxAge: number = 3600000): number | null
     return null;
   }
 
-  return cached.price;
+  return {
+    price: cached.price,
+    basePrice: cached.basePrice,
+  };
+}
+
+/**
+ * 计算涨跌幅（相对于基准价格）
+ */
+function calculateChange(currentPrice: number, basePrice: number): number {
+  if (basePrice === 0) return 0;
+  return ((currentPrice - basePrice) / basePrice) * 100;
 }
 
 /**
@@ -250,17 +262,19 @@ export async function getMarketData() {
           price = data.price;
           change = data.change;
           source = "coingecko";
-          updatePriceCache(s.symbol, price); // 更新缓存
+          updatePriceCache(s.symbol, price, s.basePrice); // 更新缓存
         } else {
           // 使用缓存价格或 fallback
-          const cachedPrice = getCachedPrice(s.symbol);
-          if (cachedPrice !== null) {
-            price = mockPrice(cachedPrice); // 基于缓存价格波动
-            change = 0;
+          const cached = getCachedPrice(s.symbol);
+          if (cached !== null) {
+            price = mockPrice(cached.price); // 基于缓存价格波动
+            change = calculateChange(price, cached.basePrice); // 计算涨跌幅
             source = "cached";
           } else {
             price = mockPrice(s.basePrice || 100); // 使用基准价格
-            change = 0;
+            change = 0; // 初始无涨跌
+            // 🔥 重要：首次 fallback 也要更新缓存，这样下次就能计算涨跌幅了
+            updatePriceCache(s.symbol, price, s.basePrice || 100);
             source = "fallback";
           }
         }
@@ -270,11 +284,11 @@ export async function getMarketData() {
         price = data.price;
         change = data.change;
         source = "gold-api";
-        updatePriceCache(s.symbol, price); // 更新缓存
+        updatePriceCache(s.symbol, price, s.basePrice); // 更新缓存
       } else {
         // 其他 → 模拟数据
         price = mockPrice(s.basePrice!);
-        change = 0;
+        change = calculateChange(price, s.basePrice!); // 计算涨跌幅
         source = "mock";
       }
 
@@ -287,22 +301,27 @@ export async function getMarketData() {
       });
     } catch (error) {
       // 降级处理：使用缓存或模拟数据
-      const cachedPrice = getCachedPrice(s.symbol);
+      const cached = getCachedPrice(s.symbol);
       let price: number;
+      let change: number;
 
-      if (cachedPrice !== null) {
-        price = mockPrice(cachedPrice); // 基于缓存价格波动
+      if (cached !== null) {
+        price = mockPrice(cached.price); // 基于缓存价格波动
+        change = calculateChange(price, cached.basePrice); // 计算涨跌幅
         console.warn(`[MarketEngine] Using cached price for ${s.symbol}`);
       } else {
         price = mockPrice(s.basePrice || 100); // 使用基准价格
+        change = 0; // 初始无涨跌
+        // 🔥 重要：首次 fallback 也要更新缓存
+        updatePriceCache(s.symbol, price, s.basePrice || 100);
         console.warn(`[MarketEngine] Using fallback price for ${s.symbol}`);
       }
 
       result.push({
         symbol: s.symbol,
         price,
-        change: 0,
-        source: cachedPrice !== null ? "cached" : "fallback",
+        change,
+        source: cached !== null ? "cached" : "fallback",
         category: s.category,
       });
     }
@@ -324,9 +343,9 @@ export async function getSymbolPrice(symbol: string): Promise<number> {
   try {
     if (config.type === "crypto") {
       // 先尝试获取缓存价格
-      const cachedPrice = getCachedPrice(symbol);
-      if (cachedPrice !== null) {
-        return cachedPrice;
+      const cached = getCachedPrice(symbol);
+      if (cached !== null) {
+        return cached.price;
       }
 
       // 再尝试从 API 获取
@@ -334,7 +353,7 @@ export async function getSymbolPrice(symbol: string): Promise<number> {
         const prices = await fetchCryptoPrices([config.coingeckoId]);
         if (prices.has(config.coingeckoId)) {
           const price = prices.get(config.coingeckoId)!.price;
-          updatePriceCache(symbol, price);
+          updatePriceCache(symbol, price, config.basePrice);
           return price;
         }
       }
@@ -343,16 +362,16 @@ export async function getSymbolPrice(symbol: string): Promise<number> {
       return mockPrice(config.basePrice || 100);
     } else if (config.type === "metal") {
       const data = await fetchMetal(config.goldSymbol as "XAU" | "XAG");
-      updatePriceCache(symbol, data.price);
+      updatePriceCache(symbol, data.price, config.basePrice);
       return data.price;
     } else {
       return mockPrice(config.basePrice!);
     }
   } catch {
     // 降级处理
-    const cachedPrice = getCachedPrice(symbol);
-    if (cachedPrice !== null) {
-      return cachedPrice;
+    const cached = getCachedPrice(symbol);
+    if (cached !== null) {
+      return cached.price;
     }
     return mockPrice(config.basePrice || 100);
   }

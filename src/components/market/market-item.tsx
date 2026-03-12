@@ -184,7 +184,9 @@ export function MarketItem({ symbol, price, change, onClick }: MarketItemProps) 
 
   // 价格脉冲状态
   const [pulse, setPulse] = useState<'up' | 'down' | null>(null);
-  const prevPrice = useRef(price);
+
+  // 使用 useRef 保存上一次的价格（不会因为重新渲染而重置）
+  const prevPriceRef = useRef(price);
 
   useEffect(() => {
     if (isLoading) {
@@ -195,20 +197,26 @@ export function MarketItem({ symbol, price, change, onClick }: MarketItemProps) 
 
   // 监听价格变化，触发脉冲动画
   useEffect(() => {
-    if (price > prevPrice.current) {
-      setPulse('up');
-    } else if (price < prevPrice.current) {
-      setPulse('down');
+    const prevPrice = prevPriceRef.current;
+
+    // 只有价格真正变化时才触发脉冲
+    if (Math.abs(price - prevPrice) > 0.000001) {
+      if (price > prevPrice) {
+        setPulse('up');
+      } else if (price < prevPrice) {
+        setPulse('down');
+      }
+
+      const t = setTimeout(() => {
+        setPulse(null);
+      }, 350);
+
+      return () => clearTimeout(t);
     }
-
-    prevPrice.current = price;
-
-    const t = setTimeout(() => {
-      setPulse(null);
-    }, 350);
-
-    return () => clearTimeout(t);
   }, [price]);
+
+  // 更新前一次价格的引用
+  prevPriceRef.current = price;
 
   const getPricePrecision = (symbol: string) => {
     // JPY 对：3位小数
