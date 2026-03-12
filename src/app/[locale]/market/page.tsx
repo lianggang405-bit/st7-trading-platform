@@ -9,6 +9,7 @@ import { MarketList, MarketSymbol } from '../../../components/market/market-list
 import { useAuthStore } from '../../../stores/authStore';
 import { useMarketStore } from '../../../stores/marketStore';
 import { mockSymbols } from '../../../lib/market-mock-data';
+import { useMarketStream } from '../../../hooks/use-market-stream';
 
 export default function MarketPage() {
   const router = useRouter();
@@ -21,6 +22,14 @@ export default function MarketPage() {
   const [filteredSymbols, setFilteredSymbols] = useState<MarketSymbol[]>([]);
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
+
+  // 📡 WebSocket 实时行情（仅用于加密货币）
+  const cryptoSymbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT'];
+  const { data: wsData, isConnected: wsConnected } = useMarketStream({
+    symbols: cryptoSymbols,
+    type: 'ticker',
+    autoReconnect: true,
+  });
 
   // 调试日志
   useEffect(() => {
@@ -57,6 +66,18 @@ export default function MarketPage() {
 
     return () => clearInterval(interval);
   }, [loaded, loadMarket]);
+
+  // 📡 WebSocket 实时更新（仅用于加密货币）
+  useEffect(() => {
+    if (!wsConnected || wsData.length === 0) return;
+
+    // 更新 marketStore 中的加密货币价格
+    wsData.forEach(item => {
+      if (item.type === 'ticker' && item.data) {
+        marketState?.updateSymbolPrice(item.symbol, item.data.lastPrice, item.data.priceChangePercent);
+      }
+    });
+  }, [wsData, wsConnected, marketState]);
 
   // 根据分类过滤
   useEffect(() => {

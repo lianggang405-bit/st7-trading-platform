@@ -13,6 +13,7 @@ import { usePositionStore } from '../../../stores/positionStore';
 import { useAssetStore } from '../../../stores/assetStore';
 import { useRiskControlStore } from '../../../stores/riskControlStore';
 import { formatSymbol } from '../../../lib/formatSymbol';
+import { useMarketStream } from '../../../hooks/use-market-stream';
 
 export default function PositionPage() {
   const router = useRouter();
@@ -26,6 +27,14 @@ export default function PositionPage() {
   const { positions, closePosition, updatePositions, syncFromBackend } = usePositionStore();
   const { updateFloatingProfit, onClosePosition, equity, usedMargin, balance, freeMargin } = useAssetStore();
   const { marginLevel, warning, danger, updateRisk, checkAndForceClose } = useRiskControlStore();
+
+  // 📡 WebSocket 实时行情（仅用于加密货币持仓）
+  const cryptoSymbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT'];
+  const { data: wsData, isConnected: wsConnected } = useMarketStream({
+    symbols: cryptoSymbols,
+    type: 'ticker',
+    autoReconnect: true,
+  });
 
   // 页面加载时，同步后端数据
   useEffect(() => {
@@ -45,6 +54,18 @@ export default function PositionPage() {
 
     return () => clearInterval(interval);
   }, [isHydrated, loadMarket]);
+
+  // 📡 WebSocket 实时更新（仅用于加密货币持仓）
+  useEffect(() => {
+    if (!wsConnected || wsData.length === 0) return;
+
+    // 更新 marketStore 中的加密货币价格
+    wsData.forEach(item => {
+      if (item.type === 'ticker' && item.data) {
+        marketState?.updateSymbolPrice(item.symbol, item.data.lastPrice, item.data.priceChangePercent);
+      }
+    });
+  }, [wsData, wsConnected, marketState]);
 
   // 确认对话框状态
   const [confirmDialog, setConfirmDialog] = useState<{

@@ -30,8 +30,12 @@ type SymbolInfo = {
   goldSymbol?: string
 }
 
-// 价格缓存：保存最后一次成功获取的真实价格
-const priceCache = new Map<string, { price: number; timestamp: number; basePrice: number }>();
+// 价格缓存：保存最后一次成功获取的真实价格和第一次获取的真实价格（作为基准价格）
+const priceCache = new Map<string, { 
+  price: number; 
+  timestamp: number; 
+  basePrice: number | null;  // 第一次获取的真实价格（作为涨跌幅基准）
+}>();
 
 // CoinGecko API 多端点配置（按优先级排序）
 const COINGECKO_ENDPOINTS = [
@@ -166,19 +170,32 @@ async function fetchForexData(): Promise<Map<string, { price: number; change: nu
 
 /**
  * 更新价格缓存
+ * 
+ * 重要：如果缓存中没有基准价格（第一次获取真实价格），则将当前价格设置为基准价格
+ * 后续获取真实价格时，基准价格保持不变（使用第一次获取的价格）
  */
 function updatePriceCache(symbol: string, price: number, basePrice?: number) {
+  const cached = priceCache.get(symbol);
+  
+  // 如果缓存中已有基准价格，使用缓存的基准价格
+  const existingBasePrice = cached?.basePrice;
+  
   priceCache.set(symbol, {
     price,
     timestamp: Date.now(),
-    basePrice: basePrice || price,
+    // 如果有传入的 basePrice（从配置文件），使用它
+    // 否则，如果缓存中有基准价格，使用缓存的
+    // 否则，这是第一次获取真实价格，将当前价格设置为基准价格
+    basePrice: basePrice || existingBasePrice || price,
   });
+  
+  console.log(`[MarketEngine] Update price cache: ${symbol} = ${price}, basePrice = ${priceCache.get(symbol)!.basePrice}`);
 }
 
 /**
  * 获取缓存价格（如果存在且未过期）
  */
-function getCachedPrice(symbol: string, maxAge: number = 3600000): { price: number; basePrice: number } | null {
+function getCachedPrice(symbol: string, maxAge: number = 3600000): { price: number; basePrice: number | null } | null {
   const cached = priceCache.get(symbol);
   if (!cached) return null;
 
@@ -197,8 +214,8 @@ function getCachedPrice(symbol: string, maxAge: number = 3600000): { price: numb
 /**
  * 计算涨跌幅（相对于基准价格）
  */
-function calculateChange(currentPrice: number, basePrice: number): number {
-  if (basePrice === 0) return 0;
+function calculateChange(currentPrice: number, basePrice: number | null): number {
+  if (!basePrice || basePrice === 0) return 0;
   return ((currentPrice - basePrice) / basePrice) * 100;
 }
 
@@ -361,7 +378,7 @@ export async function getMarketData() {
           const cached = getCachedPrice(s.symbol);
           if (cached !== null) {
             price = mockPrice(cached.price); // 基于缓存价格波动
-            change = calculateChange(price, cached.basePrice); // 计算涨跌幅
+            change = calculateChange(price, cached.basePrice || s.basePrice || cached.price); // 计算涨跌幅
             source = "cached";
           } else {
             price = mockPrice(s.basePrice || 100); // 使用基准价格
@@ -414,7 +431,7 @@ export async function getMarketData() {
 
       if (cached !== null) {
         price = mockPrice(cached.price); // 基于缓存价格波动
-        change = calculateChange(price, cached.basePrice); // 计算涨跌幅
+        change = calculateChange(price, cached.basePrice || s.basePrice || cached.price); // 计算涨跌幅
         console.warn(`[MarketEngine] Using cached price for ${s.symbol}`);
       } else {
         price = mockPrice(s.basePrice || 100); // 使用基准价格
