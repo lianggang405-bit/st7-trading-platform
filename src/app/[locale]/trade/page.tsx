@@ -359,12 +359,7 @@ export default function TradePage() {
     return price >= 1000 ? 2 : 4;
   };
 
-  // K线图价格更新回调
-  const handleKlinePriceUpdate = (price: number) => {
-    if (currentSymbol && updateSymbolPrice) {
-      updateSymbolPrice(currentSymbol, price);
-    }
-  };
+  const estimatedFee = 1; // 固定手续费
 
   const currentSymbolData = currentSymbol ? symbols.find(s => s.symbol === currentSymbol) : null;
 
@@ -373,8 +368,6 @@ export default function TradePage() {
   const requiredMargin = currentSymbolData
     ? (currentSymbolData.price * parseFloat(volume)) / leverage
     : 0;
-
-  const estimatedFee = 1; // 固定手续费
 
   return (
     <AuthGuard>
@@ -494,7 +487,6 @@ export default function TradePage() {
             interval={timeFrameToInterval(timeframe)}
             height={500}
             limit={200}
-            onPriceUpdate={handleKlinePriceUpdate}
           />
         )}
 
