@@ -53,44 +53,28 @@ export default function MarketPage() {
 
     if (categoryFilter === 'Forex') {
       filtered = symbols
-        .filter(s => s.category === 'forex')
+        .filter(s => s.symbol.includes('USD') && !s.symbol.includes('USDT') && !s.symbol.startsWith('XA'))
         .map(s => ({
           symbol: s.symbol,
           price: s.price,
-          change: s.change,
         }));
     } else if (categoryFilter === 'Metal') {
       filtered = symbols
-        .filter(s => s.category === 'metal')
+        .filter(s => s.symbol.startsWith('XA'))
         .map(s => ({
           symbol: s.symbol,
           price: s.price,
-          change: s.change,
         }));
     } else if (categoryFilter === 'Crypto') {
       filtered = symbols
-        .filter(s => s.category === 'crypto')
+        .filter(s => s.symbol.endsWith('USDT'))
         .map(s => ({
           symbol: s.symbol,
           price: s.price,
-          change: s.change,
         }));
-    } else if (categoryFilter === 'Energy') {
-      filtered = symbols
-        .filter(s => s.category === 'energy')
-        .map(s => ({
-          symbol: s.symbol,
-          price: s.price,
-          change: s.change,
-        }));
-    } else if (categoryFilter === 'CFD') {
-      filtered = symbols
-        .filter(s => s.category === 'cfd')
-        .map(s => ({
-          symbol: s.symbol,
-          price: s.price,
-          change: s.change,
-        }));
+    } else if (categoryFilter === 'Energy' || categoryFilter === 'CFD') {
+      // Energy 和 CFD 暂时没有数据
+      filtered = [];
     }
 
     setFilteredSymbols(filtered);
