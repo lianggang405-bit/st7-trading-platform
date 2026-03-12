@@ -1,9 +1,9 @@
 /**
- * Market Engine - 统一行情引擎
+ * Market Engine - 统一行情引擎（支持多端点代理）
  *
  * 数据源策略：
- * - Crypto → CoinGecko API (真实数据)
- * - Metal → Gold API (真实数据)
+ * - Crypto → CoinGecko API（多端点尝试）
+ * - Metal → Gold API（真实数据）
  * - 其他 → 模拟数据
  *
  * 设计原则：
@@ -11,6 +11,7 @@
  * - 稳定：自动降级，失败不影响
  * - 统一：全站只有一个价格源
  * - 缓存：降级时使用最后一次真实价格
+ * - 代理：支持多端点自动切换
  */
 
 type SymbolInfo = {
@@ -24,6 +25,14 @@ type SymbolInfo = {
 
 // 价格缓存：保存最后一次成功获取的真实价格
 const priceCache = new Map<string, { price: number; timestamp: number }>();
+
+// CoinGecko API 多端点配置（按优先级排序）
+const COINGECKO_ENDPOINTS = [
+  // 主端点
+  'https://api.coingecko.com/api/v3',
+  // 备用端点（如果有的话）
+  // 'https://api.coingecko.com/api/v3',
+];
 
 // 交易对配置
 const symbols: SymbolInfo[] = [
@@ -97,21 +106,57 @@ function getCachedPrice(symbol: string, maxAge: number = 3600000): number | null
 }
 
 /**
- * 从 CoinGecko API 获取加密货币价格（批量获取）
+ * 使用代理或镜像获取数据
+ * 尝试多个端点，直到成功或全部失败
+ */
+async function fetchWithProxy(
+  path: string,
+  signal: AbortSignal
+): Promise<Response> {
+  const errors: Error[] = [];
+
+  // 尝试所有配置的端点
+  for (const endpoint of COINGECKO_ENDPOINTS) {
+    try {
+      const url = `${endpoint}${path}`;
+      console.log(`[MarketEngine] Trying endpoint: ${endpoint}`);
+
+      const response = await fetch(url, {
+        signal,
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (compatible; TradingApp/1.0)',
+        },
+      });
+
+      if (response.ok) {
+        console.log(`[MarketEngine] Success with endpoint: ${endpoint}`);
+        return response;
+      }
+
+      throw new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      console.warn(`[MarketEngine] Endpoint failed: ${endpoint}`, error);
+      errors.push(error as Error);
+    }
+  }
+
+  // 所有端点都失败
+  const lastError = errors[errors.length - 1];
+  throw new Error(`All endpoints failed. Last error: ${lastError?.message}`);
+}
+
+/**
+ * 从 CoinGecko API 获取加密货币价格（批量获取，支持多端点）
  */
 async function fetchCryptoPrices(coingeckoIds: string[]): Promise<Map<string, { price: number; change: number }>> {
   try {
     const ids = coingeckoIds.join(',');
-    const res = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`,
-      { signal: AbortSignal.timeout(5000) }
-    );
+    const path = `/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
 
-    if (!res.ok) {
-      throw new Error(`CoinGecko API error: ${res.status}`);
-    }
+    const response = await fetchWithProxy(path, AbortSignal.timeout(5000));
 
-    const data = await res.json();
+    const data = await response.json();
 
     const result = new Map<string, { price: number; change: number }>();
 
@@ -122,6 +167,7 @@ async function fetchCryptoPrices(coingeckoIds: string[]): Promise<Map<string, { 
       });
     }
 
+    console.log(`[MarketEngine] Fetched ${result.size} crypto prices from CoinGecko`);
     return result;
   } catch (error) {
     console.warn('[MarketEngine] CoinGecko API failed:', error);
