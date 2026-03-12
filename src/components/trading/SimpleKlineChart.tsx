@@ -9,6 +9,7 @@ interface SimpleKlineChartProps {
   interval?: string
   limit?: number
   height?: number
+  currentPrice?: number  // 当前价格（用于确保K线图价格一致）
 }
 
 export default function SimpleKlineChart({
@@ -16,6 +17,7 @@ export default function SimpleKlineChart({
   interval = "1m",
   limit = 200,
   height = 500,
+  currentPrice,  // 当前价格（可选）
 }: SimpleKlineChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -112,6 +114,25 @@ export default function SimpleKlineChart({
           const timeB = typeof b.time === 'number' ? b.time : Number(b.time)
           return timeA - timeB
         })
+
+        // 🔥 关键修复：如果提供了 currentPrice，强制设置最后一根K线的收盘价
+        if (currentPrice && chartData.length > 0) {
+          const lastCandle = chartData[chartData.length - 1]
+          const priceChangeRatio = currentPrice / lastCandle.close
+
+          // 调整最后一根K线的收盘价
+          lastCandle.close = currentPrice
+
+          // 调整 high 和 low（保持比例）
+          lastCandle.high = lastCandle.high * priceChangeRatio
+          lastCandle.low = lastCandle.low * priceChangeRatio
+
+          // 确保 high >= max(open, close) 且 low <= min(open, close)
+          lastCandle.high = Math.max(lastCandle.high, lastCandle.open, lastCandle.close)
+          lastCandle.low = Math.min(lastCandle.low, lastCandle.open, lastCandle.close)
+
+          console.log(`[SimpleKlineChart] 强制设置最后一根K线价格: ${currentPrice}`)
+        }
 
         // 智能更新：检查是否需要重新设置数据
         if (lastDataRef.current.length > 0) {

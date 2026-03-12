@@ -16,7 +16,7 @@ export type SymbolCategory = 'forex' | 'gold' | 'crypto' | 'energy' | 'cfd'
 
 // 数据缓存
 const klineCache = new Map<string, { data: KlineData[]; timestamp: number }>()
-const CACHE_DURATION = 5 * 60 * 1000 // 缓存 5 分钟（减少 API 请求）
+const CACHE_DURATION = 10 * 1000 // 缓存 10 秒（确保价格实时更新）
 
 /**
  * 获取缓存的 K 线数据

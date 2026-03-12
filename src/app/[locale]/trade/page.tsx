@@ -487,6 +487,7 @@ export default function TradePage() {
             interval={timeFrameToInterval(timeframe)}
             height={500}
             limit={200}
+            currentPrice={symbols.find(s => s.symbol === currentSymbol)?.price}  // 传递当前价格
           />
         )}
 
