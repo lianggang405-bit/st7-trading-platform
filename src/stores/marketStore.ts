@@ -4,7 +4,7 @@ export interface TradingSymbol {
   symbol: string;
   price: number;
   change: number;
-  source: 'binance' | 'gold-api' | 'mock' | 'fallback';
+  source: 'coingecko' | 'gold-api' | 'mock' | 'cached' | 'fallback';
   category: 'crypto' | 'metal' | 'forex' | 'energy' | 'cfd';
 }
 
@@ -53,7 +53,7 @@ export const useMarketStore = create<MarketState>((set, get) => ({
    * 加载市场数据（统一从 /api/market 获取）
    *
    * 数据来源：
-   * - Crypto → Binance API（真实数据）
+   * - Crypto → CoinGecko API（真实数据）
    * - Metal → Gold API（真实数据）
    * - 其他 → 模拟数据
    */

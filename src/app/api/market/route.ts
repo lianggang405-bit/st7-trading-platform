@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
  * 统一行情 API
  *
  * 数据流：
- * - Crypto → Binance API（真实数据）
+ * - Crypto → CoinGecko API（真实数据）
  * - Metal → Gold API（真实数据）
  * - Forex/Energy/Index → 模拟数据
  *
