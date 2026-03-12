@@ -186,7 +186,7 @@ export default function TradePage() {
     updateRisk({ equity, usedMargin });
   }, [equity, usedMargin, updateRisk]);
 
-  // ✅ 定期更新所有交易对的价格（每10秒）
+  // ✅ 定期更新所有交易对的价格（每5秒）
   useEffect(() => {
     const updatePrices = async () => {
       try {
@@ -203,8 +203,8 @@ export default function TradePage() {
       }
     };
 
-    // 每10秒更新一次价格
-    const interval = setInterval(updatePrices, 10000);
+    // 每5秒更新一次价格
+    const interval = setInterval(updatePrices, 5000);
     return () => clearInterval(interval);
   }, [setSymbols]);
 

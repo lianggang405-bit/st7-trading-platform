@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { AuthGuard } from '../../../../components/auth-guard';
 import { PageShell } from '../../../../components/layout/page-shell';
 import { useAuthStore } from '../../../../stores/authStore';
@@ -32,6 +33,7 @@ const CURRENCIES: CurrencyOption[] = [
 
 export default function BindWalletPage() {
   const router = useRouter();
+  const t = useTranslations('wallet');
   const { user, isHydrated } = useAuthStore();
 
   const [wallets, setWallets] = useState<Wallet[]>([]);
@@ -76,12 +78,12 @@ export default function BindWalletPage() {
     setError('');
 
     if (!walletAddress) {
-      setError('请输入钱包地址');
+      setError(t('enterWalletAddress'));
       return;
     }
 
     if (!validateAddress(walletAddress, selectedCurrency)) {
-      setError(`无效的${selectedCurrency.name}地址格式`);
+      setError(t('invalidAddress', { currency: selectedCurrency.name }));
       return;
     }
 
@@ -89,7 +91,7 @@ export default function BindWalletPage() {
       (w: Wallet) => w.address.toLowerCase() === walletAddress.toLowerCase()
     );
     if (isAlreadyBound) {
-      setError('该钱包地址已绑定');
+      setError(t('addressAlreadyBound'));
       return;
     }
 
@@ -146,7 +148,7 @@ export default function BindWalletPage() {
 
           {/* 顶部标题 */}
           <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-            <h1 className="text-xl font-bold text-gray-900">绑定數位貨幣地址</h1>
+            <h1 className="text-xl font-bold text-gray-900">{t('bindTitle')}</h1>
           </div>
 
           {/* 主要内容 */}
@@ -154,7 +156,7 @@ export default function BindWalletPage() {
             <div className="w-full max-w-md space-y-4">
               {/* 货币选择下拉菜单 */}
               <div className="relative" ref={dropdownRef}>
-                <label className="block text-sm text-gray-700 mb-2">貨幣</label>
+                <label className="block text-sm text-gray-700 mb-2">{t('currency')}</label>
                 <div
                   className="flex items-center justify-between border-b border-gray-200 pb-3 cursor-pointer"
                   onClick={() => setShowDropdown(!showDropdown)}
@@ -205,7 +207,7 @@ export default function BindWalletPage() {
 
               {/* 钱包地址输入框 */}
               <div>
-                <label className="block text-sm text-gray-700 mb-2">錢包地址</label>
+                <label className="block text-sm text-gray-700 mb-2">{t('walletAddress')}</label>
                 <input
                   type="text"
                   value={walletAddress}
@@ -231,7 +233,7 @@ export default function BindWalletPage() {
                 disabled={isBinding}
                 className="w-full rounded-lg bg-blue-500 py-3 text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {isBinding ? '绑定中...' : '添加'}
+                {isBinding ? t('binding') : t('bind')}
               </button>
             </div>
           </div>
@@ -261,14 +263,12 @@ export default function BindWalletPage() {
 
                 {/* 成功标题 */}
                 <h3 className="text-center text-lg font-semibold text-gray-900 mb-2">
-                  綁定成功
+                  {t('bindSuccess')}
                 </h3>
 
                 {/* 成功信息 */}
                 <div className="text-center text-sm text-gray-600 mb-6">
-                  <p>您的 {selectedCurrency.name} 钱包地址</p>
-                  <p className="font-mono mt-1">{walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}</p>
-                  <p className="mt-2">已成功綁定</p>
+                  <p>{t('bindSuccessMessage', { currency: selectedCurrency.name, address: `${walletAddress.slice(0, 8)}...${walletAddress.slice(-6)}` })}</p>
                 </div>
 
                 {/* 确认按钮 */}
@@ -276,7 +276,7 @@ export default function BindWalletPage() {
                   onClick={handleSuccessConfirm}
                   className="w-full rounded-lg bg-blue-500 py-3 text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                 >
-                  確定
+                  {t('confirm')}
                 </button>
               </div>
             </div>

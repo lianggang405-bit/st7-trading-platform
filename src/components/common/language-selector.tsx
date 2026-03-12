@@ -108,8 +108,8 @@ export function LanguageSelector() {
             onClick={() => setIsOpen(false)}
           />
 
-          {/* 菜单内容 - 右对齐，增加宽度确保完整显示 */}
-          <div className="absolute top-full right-0 mt-2 z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-2 w-[180px] max-h-[300px] overflow-y-auto">
+          {/* 菜单内容 - 左对齐，增加宽度确保完整显示 */}
+          <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-2 w-[180px] max-h-[300px] overflow-y-auto">
             {languages.map((language) => (
               <button
                 key={language.code}

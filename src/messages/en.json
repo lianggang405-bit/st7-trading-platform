@@ -104,6 +104,24 @@
     "withdraw": "Withdraw",
     "accountDetails": "Account Details"
   },
+  "wallet": {
+    "title": "Wallet",
+    "balance": "Balance",
+    "addAddress": "Add Cryptocurrency Address",
+    "connectedWallets": "Connected Wallets",
+    "disconnect": "Disconnect",
+    "bindTitle": "Bind Cryptocurrency Address",
+    "currency": "Currency",
+    "walletAddress": "Wallet Address",
+    "bind": "Add",
+    "binding": "Binding...",
+    "bindSuccess": "Binding Successful",
+    "bindSuccessMessage": "Your {currency} wallet address {address} has been successfully bound",
+    "enterWalletAddress": "Please enter wallet address",
+    "invalidAddress": "Invalid {currency} address format",
+    "addressAlreadyBound": "This wallet address is already bound",
+    "confirm": "Confirm"
+  },
   "position": {
     "title": "Position",
     "pendingOrders": "Pending Orders",

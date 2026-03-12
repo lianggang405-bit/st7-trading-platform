@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
 import { useAuthStore } from '../../../stores/authStore';
@@ -16,6 +17,7 @@ export interface Wallet {
 export default function WalletAuthorizePage() {
   const router = useRouter();
   const pathname = usePathname();
+  const t = useTranslations('wallet');
   const { user, logout, isHydrated } = useAuthStore();
   const { balance, syncFromBackend } = useAssetStore();
 
@@ -31,7 +33,7 @@ export default function WalletAuthorizePage() {
   };
 
   const formatBalance = (amount: number) => {
-    return new Intl.NumberFormat('zh-TW', {
+    return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
@@ -69,7 +71,7 @@ export default function WalletAuthorizePage() {
 
           {/* 顶部标题 */}
           <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-            <h1 className="text-xl font-bold text-gray-700">錢包</h1>
+            <h1 className="text-xl font-bold text-gray-700">{t('title')}</h1>
           </div>
 
           {/* 主要内容 - 顶部布局 */}
@@ -80,7 +82,7 @@ export default function WalletAuthorizePage() {
                 <div className="flex items-start gap-3">
                   <div className="flex-1">
                     <div className="mb-1">
-                      <span className="text-xs text-gray-600">餘額</span>
+                      <span className="text-xs text-gray-600">{t('balance')}</span>
                     </div>
                     <div className="text-3xl font-bold text-blue-600">
                       {formatBalance(balance)}
@@ -110,14 +112,14 @@ export default function WalletAuthorizePage() {
                       />
                     </svg>
                   </div>
-                  <span className="text-sm font-medium text-blue-900">添加數字貨幣地址</span>
+                  <span className="text-sm font-medium text-blue-900">{t('addAddress')}</span>
                 </button>
               </div>
 
               {/* 已连接的钱包列表 */}
               {wallets.length > 0 && (
                 <div className="mt-6 max-w-2xl mx-auto space-y-2">
-                  <h2 className="text-xs font-medium text-gray-600">已连接的钱包</h2>
+                  <h2 className="text-xs font-medium text-gray-600">{t('connectedWallets')}</h2>
                   {wallets.map((wallet, index) => (
                     <div
                       key={wallet.address}
@@ -142,7 +144,7 @@ export default function WalletAuthorizePage() {
                         onClick={() => handleDisconnect(wallet.address)}
                         className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors"
                       >
-                        断开连接
+                        {t('disconnect')}
                       </button>
                     </div>
                   ))}

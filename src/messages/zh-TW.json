@@ -104,6 +104,24 @@
     "withdraw": "出金",
     "accountDetails": "帳單詳情"
   },
+  "wallet": {
+    "title": "錢包",
+    "balance": "餘額",
+    "addAddress": "添加數字貨幣地址",
+    "connectedWallets": "已連接的錢包",
+    "disconnect": "斷開連接",
+    "bindTitle": "綁定數字貨幣地址",
+    "currency": "貨幣",
+    "walletAddress": "錢包地址",
+    "bind": "添加",
+    "binding": "綁定中...",
+    "bindSuccess": "綁定成功",
+    "bindSuccessMessage": "您的 {currency} 錢包地址 {address} 已成功綁定",
+    "enterWalletAddress": "請輸入錢包地址",
+    "invalidAddress": "無效的 {currency} 地址格式",
+    "addressAlreadyBound": "該錢包地址已綁定",
+    "confirm": "確定"
+  },
   "position": {
     "title": "持倉",
     "pendingOrders": "掛單",

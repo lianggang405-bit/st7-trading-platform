@@ -116,8 +116,27 @@ export default function MarketPage() {
     setFilteredSymbols(filtered);
   }, [symbols, categoryFilter]);
 
-  // ✅ 禁用实时价格刷新，因为没有可靠的实时价格源
-  // 未来应该通过 WebSocket 或 API 获取真实实时价格
+  // ✅ 定期更新所有交易对的价格（每5秒）
+  useEffect(() => {
+    const updatePrices = async () => {
+      try {
+        // 重新获取所有交易对数据
+        const response = await fetch('/api/trading/symbols');
+        const data = await response.json();
+
+        if (data.success && data.symbols && setSymbols) {
+          // 直接更新所有交易对数据
+          setSymbols(data.symbols);
+        }
+      } catch (error) {
+        console.error('[MarketPage] 更新价格失败:', error);
+      }
+    };
+
+    // 每5秒更新一次价格
+    const interval = setInterval(updatePrices, 5000);
+    return () => clearInterval(interval);
+  }, [setSymbols]);
 
   const handleSymbolClick = (symbol: string) => {
     // 点击品种跳转到交易页面
