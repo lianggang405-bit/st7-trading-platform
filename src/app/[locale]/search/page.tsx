@@ -5,55 +5,20 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { PageShell } from '../../../components/layout/page-shell';
 import { MarketItem } from '../../../components/market/market-item';
-import { useMarketStore } from '../../../stores/marketStore';
-import { mockSymbols } from '../../../lib/market-mock-data';
+import { useMarketStore } from '../../../store/marketStore';
 import { formatSymbol } from '../../../lib/formatSymbol';
 
 export default function SearchPage() {
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations('market');
-  const marketState = useMarketStore();
-  const symbols = marketState?.symbols ?? [];
-  const setSymbols = marketState?.setSymbols;
+  const marketStore = useMarketStore();
+  const symbols = marketStore.getAllSymbols();
   const [query, setQuery] = useState('');
   const [filteredSymbols, setFilteredSymbols] = useState<any[]>([]);
-  const [loaded, setLoaded] = useState(false);
 
   // 获取语言
   const locale = pathname.split('/')[1];
-
-  // 从数据库加载数据
-  useEffect(() => {
-    if (loaded || !symbols || symbols.length === 0) {
-      // 如果已加载或状态没有数据，使用 mock 数据
-      if (!loaded && setSymbols) {
-        setSymbols(mockSymbols);
-        setLoaded(true);
-      }
-      return;
-    }
-
-    async function loadSymbols() {
-      try {
-        const response = await fetch('/api/trading/symbols');
-        const data = await response.json();
-
-        if (data.success && data.symbols && setSymbols) {
-          setSymbols(data.symbols);
-        } else {
-          // 如果 API 失败，使用备用数据
-          setSymbols?.(mockSymbols);
-        }
-      } catch (error) {
-        console.error('Failed to load symbols:', error);
-        // 如果 API 失败，使用备用数据
-        setSymbols?.(mockSymbols);
-      }
-    }
-
-    loadSymbols();
-  }, [loaded, symbols, setSymbols]);
 
   // 搜索过滤
   useEffect(() => {

@@ -8,7 +8,7 @@ import { PageShell } from '../../../components/layout/page-shell';
 import { Price } from '../../../components/data';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useAuthStore } from '../../../stores/authStore';
-import { useMarketStore } from '../../../stores/marketStore';
+import { useMarketStore } from '../../../store/marketStore';
 import { usePositionStore } from '../../../stores/positionStore';
 import { useAssetStore } from '../../../stores/assetStore';
 import { useRiskControlStore } from '../../../stores/riskControlStore';
@@ -20,9 +20,8 @@ export default function PositionPage() {
   const t = useTranslations('position');
   const locale = pathname.split('/')[1];
   const { user, logout, isHydrated, isLogin } = useAuthStore();
-  const marketState = useMarketStore();
-  const loadMarket = marketState?.loadMarket;
-  const symbols = marketState?.symbols ?? [];
+  const marketStore = useMarketStore();
+  const symbols = marketStore.getAllSymbols();
   const { positions, closePosition, updatePositions, syncFromBackend } = usePositionStore();
   const { updateFloatingProfit, onClosePosition, equity, usedMargin, balance, freeMargin } = useAssetStore();
   const { marginLevel, warning, danger, updateRisk, checkAndForceClose } = useRiskControlStore();
@@ -34,17 +33,6 @@ export default function PositionPage() {
       useAssetStore.getState().syncFromBackend();
     }
   }, [isHydrated, isLogin, syncFromBackend]);
-
-  // 🔥 高频刷新市场数据（每1秒，确保价格实时更新）
-  useEffect(() => {
-    if (!isHydrated) return; // 未初始化前不刷新
-
-    const interval = setInterval(() => {
-      loadMarket();
-    }, 1000); // 1秒刷新
-
-    return () => clearInterval(interval);
-  }, [isHydrated, loadMarket]);
 
   // 确认对话框状态
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -71,8 +59,8 @@ export default function PositionPage() {
   // 实时更新所有持仓的盈亏
   useEffect(() => {
     const uniqueSymbols = [...new Set(positions.map(pos => pos.symbol))];
-    uniqueSymbols.forEach(symbol => {
-      const symbolData = symbols.find(s => s.symbol === symbol);
+    uniqueSymbols.forEach((symbol: string) => {
+      const symbolData = symbols.find((s: any) => s.symbol === symbol);
       if (symbolData) {
         updatePositions(symbol, symbolData.price);
       }

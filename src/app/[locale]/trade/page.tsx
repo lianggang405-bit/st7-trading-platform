@@ -8,12 +8,11 @@ import SimpleKlineChart from '../../../components/trading/SimpleKlineChart';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { useAuthStore } from '../../../stores/authStore';
-import { useMarketStore, TradingSymbol } from '../../../stores/marketStore';
+import { useMarketStore } from '../../../store/marketStore';
 import { usePositionStore } from '../../../stores/positionStore';
 import { useAssetStore } from '../../../stores/assetStore';
 import { useRiskControlStore } from '../../../stores/riskControlStore';
 import { useRouter, usePathname } from 'next/navigation';
-import { mockSymbols } from '../../../lib/market-mock-data';
 import { formatSymbol } from '../../../lib/formatSymbol';
 import { getAllOrders, triggerPendingOrder } from '../../../api/trading';
 import './mobile.css';
@@ -32,21 +31,24 @@ export default function TradePage() {
   const locale = pathname.split('/')[1];
   const t = useTranslations('trade');
   const { isHydrated } = useAuthStore();
-  const marketState = useMarketStore();
-  const symbols = marketState?.symbols ?? [];
-  const currentSymbol = marketState?.currentSymbol;
-  const setCurrentSymbol = marketState?.setCurrentSymbol;
-  const setSymbols = marketState?.setSymbols;
-  const updateSymbolPrice = marketState?.updateSymbolPrice;
   const { positions, openPosition, closePosition, updatePositions } = usePositionStore();
   const { freeMargin, onOpenPosition, equity, usedMargin, balance } = useAssetStore();
   const { marginLevel, warning, danger, updateRisk } = useRiskControlStore();
 
-  // 价格脉冲状态
+  const [currentSymbol, setCurrentSymbol] = useState<string>('BTCUSDT');
+  const marketStore = useMarketStore();
+  const symbols = marketStore.getAllSymbols();
+  const currentPrice = marketStore.getSymbolPrice(currentSymbol);
   const [pricePulse, setPricePulse] = useState<'up' | 'down' | null>(null);
   const [symbolPulses, setSymbolPulses] = useState<Record<string, 'up' | 'down' | null>>({});
   const prevPrice = useRef<number | null>(null);
   const prevPrices = useRef<Record<string, number>>({});
+
+  // 使用 useRef 来避免 symbols 变化导致的无限循环
+  const symbolsRef = useRef(symbols);
+  useEffect(() => {
+    symbolsRef.current = symbols;
+  }, [symbols]);
 
   // 确认对话框状态
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -84,24 +86,28 @@ export default function TradePage() {
       }
     };
     clearServerCache();
+
+    // 从 URL 获取默认交易对
+    const urlSymbol = new URLSearchParams(window.location.search).get('symbol');
+    if (urlSymbol) {
+      setCurrentSymbol(urlSymbol);
+    }
   }, []);
 
-  // 定期檢查並觸發掛單
+  // 定期检查并触发挂单
   useEffect(() => {
     const checkAndTriggerOrders = async () => {
       try {
-        // 獲取所有 pending 订单
+        // 获取所有 pending 订单
         const result = await getAllOrders({ status: 'pending' });
-        
+
         if (result.success && result.orders) {
           for (const order of result.orders) {
-            // 獲取当前市场价格
-            const symbolData = symbols.find(s => s.symbol === order.symbol);
-            if (!symbolData) continue;
+            // 获取当前市场价格
+            const currentPrice = marketStore.getSymbolPrice(order.symbol);
+            if (!currentPrice) continue;
 
-            const currentPrice = symbolData.price;
-
-            // 檢查觸發條件
+            // 检查触发条件
             let shouldTrigger = false;
             if (order.side === 'buy') {
               // 买单：当前价格 <= 挂单价格
@@ -119,71 +125,28 @@ export default function TradePage() {
           }
         }
       } catch (error) {
-        console.error('檢查掛單失敗:', error);
+        console.error('检查挂单失败:', error);
       }
     };
 
-    // 每秒檢查一次
+    // 每秒检查一次
     const interval = setInterval(checkAndTriggerOrders, 1000);
     return () => clearInterval(interval);
-  }, [symbols]);
-
-  // 从 marketStore 加载数据
-  useEffect(() => {
-    if (symbols.length > 0) return; // 已加载则不重复加载
-
-    async function loadSymbols() {
-      try {
-        // 使用 marketStore 的 loadMarket 函数
-        await marketState.loadMarket();
-      } catch (error) {
-        console.error('[TradePage] Failed to load symbols:', error);
-      }
-    }
-
-    if (isHydrated) {
-      loadSymbols();
-    }
-  }, [isHydrated, marketState, symbols.length]);
-
-  // 🔥 高频刷新市场数据（每1秒，模拟实时推送）
-  useEffect(() => {
-    if (symbols.length === 0) return; // 未加载前不刷新
-
-    const interval = setInterval(() => {
-      marketState.loadMarket();
-    }, 1000); // 1秒刷新
-
-    return () => clearInterval(interval);
-  }, [marketState, symbols.length]);
-
-  // 设置默认交易对
-  useEffect(() => {
-    if (symbols.length > 0) {
-      const urlSymbol = new URLSearchParams(window.location.search).get('symbol');
-      if (urlSymbol) {
-        setCurrentSymbol(urlSymbol);
-      } else if (!currentSymbol) {
-        setCurrentSymbol('BTCUSD');
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setCurrentSymbol, symbols.length]);
+  }, [marketStore]);
 
   // 更新持仓价格和盈亏
   useEffect(() => {
     if (currentSymbol) {
-      const symbolData = symbols.find(s => s.symbol === currentSymbol);
-      if (symbolData) {
-        updatePositions(currentSymbol, symbolData.price);
+      const price = marketStore.getSymbolPrice(currentSymbol);
+      if (price) {
+        updatePositions(currentSymbol, price);
         // 如果挂单价格未设置或为0，则初始化为当前价格
         if (pendingPrice === 0) {
-          setPendingPrice(symbolData.price);
+          setPendingPrice(price);
         }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [symbols, currentSymbol, updatePositions]);
+  }, [currentSymbol, updatePositions, marketStore, pendingPrice]);
 
   // 更新风控状态
   useEffect(() => {
@@ -195,7 +158,8 @@ export default function TradePage() {
     const newPulses: Record<string, 'up' | 'down' | null> = {};
     let hasChange = false;
 
-    symbols.forEach((symbol) => {
+    const currentSymbols = symbolsRef.current;
+    currentSymbols.forEach((symbol) => {
       if (symbol.price !== undefined) {
         const prevSymbolPrice = prevPrices.current[symbol.symbol];
 
@@ -230,12 +194,12 @@ export default function TradePage() {
 
       return () => clearTimeout(timer);
     }
-  }, [symbols]);
+  }, [currentPrice]);  // 只依赖 currentPrice，而不是 symbols
 
   // 监听当前交易对价格变化，触发脉冲动画
   useEffect(() => {
     if (currentSymbol) {
-      const symbolData = symbols.find(s => s.symbol === currentSymbol);
+      const symbolData = symbolsRef.current.find(s => s.symbol === currentSymbol);
       if (symbolData && symbolData.price !== undefined) {
         // 如果有前一次的价格，比较变化
         if (prevPrice.current !== null) {
@@ -487,7 +451,7 @@ export default function TradePage() {
             interval={timeFrameToInterval(timeframe)}
             height={500}
             limit={200}
-            currentPrice={symbols.find(s => s.symbol === currentSymbol)?.price}  // 传递当前价格
+            currentPrice={currentPrice || undefined}  // 传递当前价格（从 marketStore 获取）
           />
         )}
 

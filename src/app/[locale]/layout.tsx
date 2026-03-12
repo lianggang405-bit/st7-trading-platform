@@ -6,6 +6,7 @@ import { locales } from '../../config/locales';
 import { BottomTab } from '../../components/layout/bottom-tab';
 import { AuthProvider } from '../../components/providers/auth-provider';
 import { LocaleRedirect } from '../../components/providers/locale-redirect';
+import { MarketProvider } from '../../components/providers/market-provider';
 import { Toaster } from '../../components/ui/sonner';
 import '../globals.css';
 
@@ -103,14 +104,16 @@ export default async function LocaleLayout({
 
   return (
     <AuthProvider isDev={isDev}>
-      <NextIntlClientProvider messages={messages}>
-        <LocaleRedirect />
-        <main className="pb-28 min-h-screen">
-          {children}
-        </main>
-        <BottomTab />
-        <Toaster />
-      </NextIntlClientProvider>
+      <MarketProvider>
+        <NextIntlClientProvider messages={messages}>
+          <LocaleRedirect />
+          <main className="pb-28 min-h-screen">
+            {children}
+          </main>
+          <BottomTab />
+          <Toaster />
+        </NextIntlClientProvider>
+      </MarketProvider>
     </AuthProvider>
   );
 }

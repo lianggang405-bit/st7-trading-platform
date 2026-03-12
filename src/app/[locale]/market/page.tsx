@@ -1,103 +1,85 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
 import { MarketHeader } from '../../../components/market/market-header';
 import { MarketList, MarketSymbol } from '../../../components/market/market-list';
 import { useAuthStore } from '../../../stores/authStore';
-import { useMarketStore } from '../../../stores/marketStore';
-import { mockSymbols } from '../../../lib/market-mock-data';
+import { useMarketStore } from '../../../store/marketStore';
 
 export default function MarketPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const marketState = useMarketStore();
-  const loadMarket = marketState?.loadMarket;
-  const symbols = marketState?.symbols ?? [];
+  const marketStore = useMarketStore();
+  const symbols = marketStore.getAllSymbols();
   const { isHydrated, isLogin } = useAuthStore();
   const [categoryFilter, setCategoryFilter] = useState('Forex');
   const [filteredSymbols, setFilteredSymbols] = useState<MarketSymbol[]>([]);
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
 
+  // 使用 useRef 来避免 symbols 变化导致的无限循环
+  const symbolsRef = useRef(symbols);
+  useEffect(() => {
+    symbolsRef.current = symbols;
+  }, [symbols]);
+
   // 调试日志
   useEffect(() => {
-    console.log('[MarketPage] isHydrated:', isHydrated, 'isLogin:', isLogin, 'loaded:', loaded);
-  }, [isHydrated, isLogin, loaded]);
+    console.log('[MarketPage] isHydrated:', isHydrated, 'isLogin:', isLogin, 'loaded:', loaded, 'symbols count:', symbols.length);
+  }, [isHydrated, isLogin, loaded, symbols.length]);
 
-  // 从 marketStore 加载数据
+  // 标记为已加载（新的 marketStore 会自动更新，不需要手动加载）
   useEffect(() => {
-    if (loaded || !isHydrated) return;
-
-    async function loadSymbols() {
-      try {
-        setLoading(true);
-        // 使用 marketStore 的 loadMarket 函数
-        await loadMarket();
-        setLoaded(true);
-      } catch (error) {
-        console.error('[MarketPage] Failed to load symbols:', error);
-      } finally {
-        setLoading(false);
-      }
+    if (isHydrated && !loaded) {
+      setLoaded(true);
+      setLoading(false);
     }
-
-    loadSymbols();
-  }, [loaded, isHydrated, loadMarket]);
-
-  // 🔥 高频刷新市场数据（每1秒，模拟实时推送）
-  useEffect(() => {
-    if (!loaded) return; // 未加载前不刷新
-
-    const interval = setInterval(() => {
-      loadMarket();
-    }, 1000); // 1秒刷新
-
-    return () => clearInterval(interval);
-  }, [loaded, loadMarket]);
+  }, [isHydrated, loaded]);
 
   // 根据分类过滤
   useEffect(() => {
+    const currentSymbols = symbolsRef.current;
     let filtered: any[] = [];
 
     if (categoryFilter === 'Forex') {
-      filtered = symbols
-        .filter(s => s.category === 'forex')
-        .map(s => ({
+      filtered = currentSymbols
+        .filter((s: any) => s.category === 'forex')
+        .map((s: any) => ({
           symbol: s.symbol,
           price: s.price,
           change: s.change,
         }));
     } else if (categoryFilter === 'Metal') {
-      filtered = symbols
-        .filter(s => s.category === 'metal')
-        .map(s => ({
+      filtered = currentSymbols
+        .filter((s: any) => s.category === 'metal')
+        .map((s: any) => ({
           symbol: s.symbol,
           price: s.price,
           change: s.change,
         }));
     } else if (categoryFilter === 'Crypto') {
-      filtered = symbols
-        .filter(s => s.category === 'crypto')
-        .map(s => ({
+      filtered = currentSymbols
+        .filter((s: any) => s.category === 'crypto')
+        .map((s: any) => ({
           symbol: s.symbol,
           price: s.price,
           change: s.change,
         }));
     } else if (categoryFilter === 'Energy') {
-      filtered = symbols
-        .filter(s => s.category === 'energy')
-        .map(s => ({
+      filtered = currentSymbols
+        .filter((s: any) => s.category === 'energy')
+        .map((s: any) => ({
           symbol: s.symbol,
           price: s.price,
           change: s.change,
         }));
     } else if (categoryFilter === 'CFD') {
-      filtered = symbols
-        .filter(s => s.category === 'cfd')
-        .map(s => ({
+      filtered = currentSymbols
+        .filter((s: any) => s.category === 'cfd')
+        .map((s: any) => ({
           symbol: s.symbol,
           price: s.price,
           change: s.change,
@@ -105,7 +87,7 @@ export default function MarketPage() {
     }
 
     setFilteredSymbols(filtered);
-  }, [symbols, categoryFilter]);
+  }, [categoryFilter]);  // 只依赖 categoryFilter
 
   const handleSymbolClick = (symbol: string) => {
     // 点击品种跳转到交易页面
