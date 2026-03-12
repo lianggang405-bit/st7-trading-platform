@@ -14,8 +14,8 @@ export default function MarketPage() {
   const router = useRouter();
   const pathname = usePathname();
   const marketState = useMarketStore();
+  const loadMarket = marketState?.loadMarket;
   const symbols = marketState?.symbols ?? [];
-  const setSymbols = marketState?.setSymbols;
   const { isHydrated, isLogin } = useAuthStore();
   const [categoryFilter, setCategoryFilter] = useState('Forex');
   const [filteredSymbols, setFilteredSymbols] = useState<MarketSymbol[]>([]);
@@ -35,7 +35,7 @@ export default function MarketPage() {
       try {
         setLoading(true);
         // 使用 marketStore 的 loadMarket 函数
-        await marketState.loadMarket();
+        await loadMarket();
         setLoaded(true);
       } catch (error) {
         console.error('[MarketPage] Failed to load symbols:', error);
@@ -45,7 +45,18 @@ export default function MarketPage() {
     }
 
     loadSymbols();
-  }, [loaded, isHydrated, marketState]);
+  }, [loaded, isHydrated, loadMarket]);
+
+  // 🔥 高频刷新市场数据（每1秒，模拟实时推送）
+  useEffect(() => {
+    if (!loaded) return; // 未加载前不刷新
+
+    const interval = setInterval(() => {
+      loadMarket();
+    }, 1000); // 1秒刷新
+
+    return () => clearInterval(interval);
+  }, [loaded, loadMarket]);
 
   // 根据分类过滤
   useEffect(() => {
@@ -95,15 +106,6 @@ export default function MarketPage() {
 
     setFilteredSymbols(filtered);
   }, [symbols, categoryFilter]);
-
-  // 定时刷新市场数据（每5秒）
-  useEffect(() => {
-    const interval = setInterval(() => {
-      marketState.loadMarket();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [marketState]);
 
   const handleSymbolClick = (symbol: string) => {
     // 点击品种跳转到交易页面

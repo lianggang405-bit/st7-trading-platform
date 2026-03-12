@@ -1,121 +1,88 @@
 import { NextRequest } from 'next/server';
-import { getPriceFromBinance } from '@/lib/market-data-source';
-import { getRandomChange } from '@/lib/market-generator';
-import { monitorAndTriggerOrders } from '@/lib/order-monitor';
+import { getMarketData } from '@/lib/market/market-engine';
+
+// ✅ 禁用 Next.js API 缓存，确保实时流式传输
+export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/market/stream
- * 实时行情数据流（SSE）
+ * 实时行情流 API (Server-Sent Events)
  *
- * Query 参数:
- * - symbols: 交易对列表（逗号分隔），如 BTCUSD,ETHUSD
- * - interval: 更新间隔（毫秒），默认 1000ms
- * - useRealData: 是否使用真实数据（可选，默认 true）
+ * 功能：
+ * - 每 3 秒推送一次市场数据
+ * - 客户端自动重连
+ * - 单向推送（服务器 → 客户端）
+ *
+ * 使用方式：
+ * ```javascript
+ * const eventSource = new EventSource('/api/market/stream');
+ * eventSource.onmessage = (e) => {
+ *   const data = JSON.parse(e.data);
+ *   console.log('实时价格:', data.symbols);
+ * };
+ * ```
  */
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const symbolsParam = searchParams.get('symbols');
-  const interval = parseInt(searchParams.get('interval') || '1000', 10);
-  const useRealData = searchParams.get('useRealData') !== 'false';
-
-  if (!symbolsParam) {
-    return new Response('Missing required parameter: symbols', {
-      status: 400,
-      headers: { 'Content-Type': 'text/plain' },
-    });
-  }
-
-  const symbols = symbolsParam.split(',').map(s => s.trim());
-
-  // 创建 SSE 流
   const encoder = new TextEncoder();
+
+  // 创建可读流
   const stream = new ReadableStream({
     async start(controller) {
-      console.log(`[MarketStream] Starting stream for ${symbols.join(',')} (interval: ${interval}ms)`);
+      console.log('[Market Stream] Client connected');
 
-      const sendEvent = (data: any) => {
-        const message = `data: ${JSON.stringify(data)}\n\n`;
-        controller.enqueue(encoder.encode(message));
-      };
+      let isRunning = true;
 
-      // 发送初始连接确认
-      sendEvent({
-        type: 'connected',
-        symbols,
-        interval,
-        timestamp: Date.now(),
-      });
+      // 发送数据函数
+      const sendData = async () => {
+        if (!isRunning) return;
 
-      // 定时发送行情数据
-      const intervalId = setInterval(async () => {
         try {
-          const updates: { [symbol: string]: { price: number; change?: number } } = {};
+          const symbols = await getMarketData();
 
-          for (const symbol of symbols) {
-            if (useRealData) {
-              // 使用真实数据
-              const price = await getPriceFromBinance(symbol);
-              if (price !== null) {
-                // 随机生成涨跌幅（因为 Binance ticker 单独请求较慢）
-                updates[symbol] = {
-                  price,
-                  change: getRandomChange(),
-                };
-              }
-            } else {
-              // 使用模拟数据
-              const basePrices: { [key: string]: number } = {
-                BTCUSD: 95000,
-                ETHUSD: 3400,
-                SOLUSD: 240,
-                XRPUSD: 2.5,
-                BNBUSD: 680,
-                DOGEUSD: 0.38,
-                ADAUSD: 1.1,
-              };
-
-              const basePrice = basePrices[symbol] || 100;
-              const price = basePrice * (0.95 + Math.random() * 0.1);
-
-              updates[symbol] = {
-                price,
-                change: getRandomChange(),
-              };
-            }
-          }
-
-          // 发送行情更新
-          sendEvent({
-            type: 'update',
-            data: updates,
+          const data = {
+            type: 'price_update',
             timestamp: Date.now(),
-          });
+            symbols,
+          };
 
-          // 异步检查订单触发（不阻塞 SSE 流）
-          monitorAndTriggerOrders().catch(error => {
-            console.error('[MarketStream] Order monitoring error:', error);
-          });
+          // SSE 格式: data: <JSON>\n\n
+          const message = `data: ${JSON.stringify(data)}\n\n`;
+          controller.enqueue(encoder.encode(message));
+
+          console.log(`[Market Stream] Sent ${symbols.length} symbols at ${new Date().toISOString()}`);
         } catch (error) {
-          console.error('[MarketStream] Error fetching market data:', error);
+          console.error('[Market Stream] Error fetching data:', error);
 
-          // 发送错误事件
-          sendEvent({
+          // 发送错误消息
+          const errorMessage = `data: ${JSON.stringify({
             type: 'error',
             message: 'Failed to fetch market data',
             timestamp: Date.now(),
-          });
+          })}\n\n`;
+          controller.enqueue(encoder.encode(errorMessage));
         }
-      }, interval);
+      };
 
-      // 客户端断开连接时清理
+      // 立即发送一次数据
+      await sendData();
+
+      // 定时发送数据（每 3 秒）
+      const intervalId = setInterval(() => {
+        sendData().catch(error => {
+          console.error('[Market Stream] Error in interval:', error);
+        });
+      }, 3000);
+
+      // 处理客户端断开连接
       request.signal.addEventListener('abort', () => {
-        console.log('[MarketStream] Client disconnected');
+        console.log('[Market Stream] Client disconnected');
+        isRunning = false;
         clearInterval(intervalId);
         controller.close();
       });
     },
   });
 
+  // 返回 SSE 响应
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/event-stream',

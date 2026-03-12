@@ -14,14 +14,18 @@ interface MarketState {
   setCurrentSymbol: (symbol: string) => void;
   setSymbols: (symbols: TradingSymbol[]) => void;
   updateSymbolPrice: (symbol: string, price: number, change?: number) => void;
+  updateFromStream: (symbols: TradingSymbol[]) => void;
   loadMarket: () => Promise<void>;
   isHydrated: boolean;
+  useStreaming: boolean;
+  setUseStreaming: (enabled: boolean) => void;
 }
 
 export const useMarketStore = create<MarketState>((set, get) => ({
   symbols: [],
   currentSymbol: null,
   isHydrated: false,
+  useStreaming: false,
 
   setCurrentSymbol: (symbol: string) =>
     set({
@@ -84,5 +88,43 @@ export const useMarketStore = create<MarketState>((set, get) => ({
       console.error('[MarketStore] Failed to load market data:', error);
       // 不抛出错误，保持当前数据
     }
+  },
+
+  /**
+   * 从实时流更新所有交易对价格
+   *
+   * 这是 SSE 流式更新的入口
+   */
+  updateFromStream: (symbols: TradingSymbol[]) => {
+    const state = get();
+
+    if (state.symbols.length === 0) {
+      // 第一次收到数据，直接设置
+      console.log('[MarketStore] First stream data, setting symbols');
+      set({
+        symbols,
+        isHydrated: true,
+      });
+      return;
+    }
+
+    // 更新现有交易对的价格
+    set({
+      symbols: state.symbols.map((existing) => {
+        const updated = symbols.find((s) => s.symbol === existing.symbol);
+        if (updated) {
+          return updated; // 使用流中的新数据
+        }
+        return existing; // 保持旧数据
+      }),
+    });
+  },
+
+  /**
+   * 设置是否使用实时流
+   */
+  setUseStreaming: (enabled: boolean) => {
+    set({ useStreaming: enabled });
+    console.log('[MarketStore] Streaming mode:', enabled ? 'enabled' : 'disabled');
   },
 }));

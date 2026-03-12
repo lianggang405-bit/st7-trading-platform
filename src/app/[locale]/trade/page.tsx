@@ -146,14 +146,16 @@ export default function TradePage() {
     }
   }, [isHydrated, marketState, symbols.length]);
 
-  // 定时刷新市场数据（每5秒）
+  // 🔥 高频刷新市场数据（每1秒，模拟实时推送）
   useEffect(() => {
+    if (symbols.length === 0) return; // 未加载前不刷新
+
     const interval = setInterval(() => {
       marketState.loadMarket();
-    }, 5000);
+    }, 1000); // 1秒刷新
 
     return () => clearInterval(interval);
-  }, [marketState]);
+  }, [marketState, symbols.length]);
 
   // 设置默认交易对
   useEffect(() => {
