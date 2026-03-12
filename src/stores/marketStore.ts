@@ -3,7 +3,9 @@ import { create } from 'zustand';
 export interface TradingSymbol {
   symbol: string;
   price: number;
+  change: number;
   source: 'binance' | 'gold-api' | 'mock' | 'fallback';
+  category: 'crypto' | 'metal' | 'forex' | 'energy' | 'cfd';
 }
 
 interface MarketState {
@@ -11,7 +13,7 @@ interface MarketState {
   currentSymbol: string | null;
   setCurrentSymbol: (symbol: string) => void;
   setSymbols: (symbols: TradingSymbol[]) => void;
-  updateSymbolPrice: (symbol: string, price: number) => void;
+  updateSymbolPrice: (symbol: string, price: number, change?: number) => void;
   loadMarket: () => Promise<void>;
   isHydrated: boolean;
 }
@@ -41,7 +43,7 @@ export const useMarketStore = create<MarketState>((set, get) => ({
     set((state) => ({
       symbols: state.symbols.map((s) =>
         s.symbol === symbol
-          ? { ...s, price }
+          ? { ...s, price, change: change ?? s.change }
           : s
       ),
     }));

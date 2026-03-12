@@ -430,13 +430,13 @@ export default function TradePage() {
                         <div className={`flex items-center gap-2 mt-1 ${
                           currentSymbol === symbol.symbol ? 'text-gray-300' : 'text-gray-500'
                         }`}>
-                          <Price
-                            value={symbol.price}
-                            precision={getPricePrecision(symbol.price)}
+                          <Price 
+                            value={symbol.price} 
+                            precision={getPricePrecision(symbol.price)} 
                             pulse={symbolPulses[symbol.symbol] || null}
-                            change={0}
+                            change={symbol.change}
                           />
-                          <Change value={0} showArrow />
+                          <Change value={symbol.change} showArrow />
                         </div>
                       </button>
                     ))}
@@ -449,15 +449,15 @@ export default function TradePage() {
             {currentSymbolData ? (
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold text-blue-600">
-                  <Price
-                    value={currentSymbolData.price}
-                    precision={getPricePrecision(currentSymbolData.price)}
+                  <Price 
+                    value={currentSymbolData.price} 
+                    precision={getPricePrecision(currentSymbolData.price)} 
                     pulse={pricePulse}
-                    change={0}
+                    change={currentSymbolData.change}
                   />
                 </span>
                 <div className="flex items-center gap-1 mt-1">
-                  <Change value={0} showArrow />
+                  <Change value={currentSymbolData.change} showArrow />
                 </div>
               </div>
             ) : (
