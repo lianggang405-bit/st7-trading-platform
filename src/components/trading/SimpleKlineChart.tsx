@@ -120,18 +120,23 @@ export default function SimpleKlineChart({
           const lastCandle = chartData[chartData.length - 1]
           const priceChangeRatio = currentPrice / lastCandle.close
 
+          // 🛡️ 极端情况保护：限制比例变化范围（防止行情突然跳动导致K线异常）
+          const MAX_RATIO = 1.02  // 最大上涨比例 2%
+          const MIN_RATIO = 0.98  // 最大下跌比例 2%
+          const safeRatio = Math.max(MIN_RATIO, Math.min(MAX_RATIO, priceChangeRatio))
+
           // 调整最后一根K线的收盘价
           lastCandle.close = currentPrice
 
-          // 调整 high 和 low（保持比例）
-          lastCandle.high = lastCandle.high * priceChangeRatio
-          lastCandle.low = lastCandle.low * priceChangeRatio
+          // 调整 high 和 low（使用安全的比例，保持K线形态）
+          lastCandle.high = lastCandle.high * safeRatio
+          lastCandle.low = lastCandle.low * safeRatio
 
           // 确保 high >= max(open, close) 且 low <= min(open, close)
           lastCandle.high = Math.max(lastCandle.high, lastCandle.open, lastCandle.close)
           lastCandle.low = Math.min(lastCandle.low, lastCandle.open, lastCandle.close)
 
-          console.log(`[SimpleKlineChart] 强制设置最后一根K线价格: ${currentPrice}`)
+          console.log(`[SimpleKlineChart] 强制设置最后一根K线价格: ${currentPrice} (ratio: ${priceChangeRatio.toFixed(4)} → ${safeRatio.toFixed(4)})`)
         }
 
         // 智能更新：检查是否需要重新设置数据
@@ -186,6 +191,37 @@ export default function SimpleKlineChart({
       lastDataRef.current = [] // 清除数据引用
     }
   }, [symbol, interval, limit, height])
+
+  // 🚀 优化：每秒更新最后一根K线（平滑移动，不是跳动）
+  useEffect(() => {
+    if (!currentPrice || !seriesRef.current || lastDataRef.current.length === 0) return
+
+    const lastCandle = lastDataRef.current[lastDataRef.current.length - 1]
+
+    if (lastCandle) {
+      const priceChangeRatio = currentPrice / lastCandle.close
+
+      // 🛡️ 极端情况保护：限制比例变化范围
+      const MAX_RATIO = 1.02
+      const MIN_RATIO = 0.98
+      const safeRatio = Math.max(MIN_RATIO, Math.min(MAX_RATIO, priceChangeRatio))
+
+      // 更新最后一根K线
+      const updatedCandle = {
+        time: lastCandle.time,
+        open: lastCandle.open,
+        close: currentPrice,
+        high: Math.max(lastCandle.high * safeRatio, lastCandle.open, currentPrice),
+        low: Math.min(lastCandle.low * safeRatio, lastCandle.open, currentPrice),
+      }
+
+      // 使用 update 而不是 setData，实现平滑更新
+      seriesRef.current.update(updatedCandle)
+
+      // 更新缓存
+      lastDataRef.current[lastDataRef.current.length - 1] = updatedCandle
+    }
+  }, [currentPrice])
 
   return <div ref={chartContainerRef} style={{ width: "100%" }} />
 }
