@@ -27,47 +27,31 @@ export default function MarketPage() {
     console.log('[MarketPage] isHydrated:', isHydrated, 'isLogin:', isLogin, 'loaded:', loaded);
   }, [isHydrated, isLogin, loaded]);
 
-  // 从数据库加载数据
+  // 从 marketStore 加载数据
   useEffect(() => {
     if (loaded || !isHydrated) return;
 
     async function loadSymbols() {
       try {
         setLoading(true);
-        const response = await fetch('/api/trading/symbols');
-        const data = await response.json();
-
-        console.log('[MarketPage] API Response:', data);
-
-        if (data.success && data.symbols && setSymbols) {
-          console.log('[MarketPage] Setting symbols:', data.symbols.slice(0, 5)); // 打印前5个
-          setSymbols(data.symbols);
-        } else {
-          // 如果 API 失敗，使用备用数据
-          console.log('[MarketPage] API failed, using mockSymbols');
-          setSymbols?.(mockSymbols);
-        }
+        // 使用 marketStore 的 loadMarket 函数
+        await marketState.loadMarket();
+        setLoaded(true);
       } catch (error) {
         console.error('[MarketPage] Failed to load symbols:', error);
-        // 如果 API 失敗，使用备用数据
-        setSymbols?.(mockSymbols);
       } finally {
         setLoading(false);
-        setLoaded(true);
       }
     }
 
     loadSymbols();
-  }, [loaded, isHydrated, setSymbols]);
+  }, [loaded, isHydrated, marketState]);
 
   // 根据分类过滤
   useEffect(() => {
-    console.log('[MarketPage] symbols updated:', symbols.slice(0, 3)); // 打印前3个
-
     let filtered: any[] = [];
 
     if (categoryFilter === 'Forex') {
-      // Forex 显示外汇类交易对
       filtered = symbols
         .filter(s => s.category === 'forex')
         .map(s => ({
@@ -76,16 +60,14 @@ export default function MarketPage() {
           change: s.change,
         }));
     } else if (categoryFilter === 'Metal') {
-      // Metal 显示贵金属
       filtered = symbols
-        .filter(s => s.category === 'gold')
+        .filter(s => s.category === 'metal')
         .map(s => ({
           symbol: s.symbol,
           price: s.price,
           change: s.change,
         }));
     } else if (categoryFilter === 'Crypto') {
-      // Crypto 显示加密货币
       filtered = symbols
         .filter(s => s.category === 'crypto')
         .map(s => ({
@@ -94,7 +76,6 @@ export default function MarketPage() {
           change: s.change,
         }));
     } else if (categoryFilter === 'Energy') {
-      // Energy 显示能源
       filtered = symbols
         .filter(s => s.category === 'energy')
         .map(s => ({
@@ -103,7 +84,6 @@ export default function MarketPage() {
           change: s.change,
         }));
     } else if (categoryFilter === 'CFD') {
-      // CFD 显示指数（CFD）
       filtered = symbols
         .filter(s => s.category === 'cfd')
         .map(s => ({
@@ -116,27 +96,14 @@ export default function MarketPage() {
     setFilteredSymbols(filtered);
   }, [symbols, categoryFilter]);
 
-  // ✅ 定期更新所有交易对的价格（每5秒）
+  // 定时刷新市场数据（每5秒）
   useEffect(() => {
-    const updatePrices = async () => {
-      try {
-        // 重新获取所有交易对数据
-        const response = await fetch('/api/trading/symbols');
-        const data = await response.json();
+    const interval = setInterval(() => {
+      marketState.loadMarket();
+    }, 5000);
 
-        if (data.success && data.symbols && setSymbols) {
-          // 直接更新所有交易对数据
-          setSymbols(data.symbols);
-        }
-      } catch (error) {
-        console.error('[MarketPage] 更新价格失败:', error);
-      }
-    };
-
-    // 每5秒更新一次价格
-    const interval = setInterval(updatePrices, 5000);
     return () => clearInterval(interval);
-  }, [setSymbols]);
+  }, [marketState]);
 
   const handleSymbolClick = (symbol: string) => {
     // 点击品种跳转到交易页面
