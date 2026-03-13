@@ -1,15 +1,25 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { createChart, IChartApi, Time } from "lightweight-charts"
 import { fetchKlines, KlineData } from "@/lib/kline-data-source"
+import { useMarketStore } from "@/store/marketStore"
+
+// 🎯 K线数据结构（统一格式）
+export interface Candle {
+  time: number
+  open: number
+  high: number
+  low: number
+  close: number
+}
 
 interface SimpleKlineChartProps {
   symbol?: string
   interval?: string
   limit?: number
   height?: number
-  currentPrice?: number  // 当前价格（用于确保K线图价格一致）
+  currentPrice?: number  // 可选，如果提供则使用，否则从MarketStore读取
 }
 
 // 🎯 动态价格轴刻度计算函数（交易所级）
@@ -59,18 +69,33 @@ export default function SimpleKlineChart({
   interval = "1m",
   limit = 200,
   height = 500,
-  currentPrice,  // 当前价格（可选）
+  currentPrice: propCurrentPrice,  // 可选，如果提供则使用
 }: SimpleKlineChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<any>(null)
   const priceLineRef = useRef<any>(null)  // 实时价格红线
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
-  const lastDataRef = useRef<any[]>([]) // 保存上一次的数据
+  const lastDataRef = useRef<Candle[]>([]) // 保存上一次的数据
+
+  // 🎯 从MarketStore读取当前价格（统一行情源）
+  const marketStorePrice = useMarketStore((state) => state.getSymbolPrice(symbol))
+  const currentPrice = propCurrentPrice ?? marketStorePrice ?? 0
 
   // 检测是否为移动端，如果是则缩小高度（缩小1/3）
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const chartHeight = isMobile ? Math.floor(height * 2 / 3) : height
+
+  // 🎯 时间周期映射（毫秒）
+  const intervalMap: Record<string, number> = {
+    "1m": 60000,
+    "5m": 300000,
+    "15m": 900000,
+    "1h": 3600000,
+    "4h": 14400000,
+    "1d": 86400000,
+  }
+  const currentInterval = intervalMap[interval] || 60000
 
   useEffect(() => {
     if (!chartContainerRef.current) return
@@ -117,6 +142,64 @@ export default function SimpleKlineChart({
 
     chartRef.current = chart
     seriesRef.current = candleSeries
+
+    // 🎯 实时更新当前K线（核心逻辑）
+    function updateCurrentCandle(price: number) {
+      if (lastDataRef.current.length === 0) return
+
+      const candle = lastDataRef.current[lastDataRef.current.length - 1]
+      candle.close = price
+      candle.high = Math.max(candle.high, price)
+      candle.low = Math.min(candle.low, price)
+    }
+
+    // 🎯 检查是否需要生成新K线
+    function checkNewCandle(price: number, intervalMs: number) {
+      if (lastDataRef.current.length === 0) return
+
+      const last = lastDataRef.current[lastDataRef.current.length - 1]
+      const now = Date.now()
+
+      // 如果当前时间超过上一个K线的时间 + 周期
+      if (now - last.time >= intervalMs) {
+        const newCandle: Candle = {
+          time: now,
+          open: price,
+          high: price,
+          low: price,
+          close: price,
+        }
+
+        lastDataRef.current.push(newCandle)
+
+        // 限制K线数量，自动滚动
+        if (lastDataRef.current.length > limit) {
+          lastDataRef.current.shift()
+        }
+
+        return true  // 返回true表示生成了新K线
+      }
+
+      return false
+    }
+
+    // 🎯 动态价格轴计算（核心）
+    function getPriceRange(): { high: number; low: number } {
+      if (lastDataRef.current.length === 0) {
+        return { high: 0, low: 0 }
+      }
+
+      const highs = lastDataRef.current.map(c => c.high)
+      const lows = lastDataRef.current.map(c => c.low)
+      const high = Math.max(...highs)
+      const low = Math.min(...lows)
+      const padding = (high - low) * 0.2
+
+      return {
+        high: high + padding,
+        low: low - padding,
+      }
+    }
 
     // 加载K线数据
     async function loadKlines(forceRefresh: boolean = false) {
@@ -215,6 +298,14 @@ export default function SimpleKlineChart({
             lastDataRef.current = chartData
             return
           }
+
+          // 🎯 新K线生成：自动滚动到最新K线
+          const isNewCandle = lastNewTime !== lastOldTime
+          if (isNewCandle && chartRef.current) {
+            // 自动滚动到最新K线（交易所级体验）
+            chartRef.current.timeScale().scrollToPosition(0, false)  // false = 禁用动画
+            console.log(`[SimpleKlineChart] 新K线生成，自动滚动到最新K线`)
+          }
         }
 
         // 首次加载或时间戳变化，重新设置所有数据
@@ -222,15 +313,9 @@ export default function SimpleKlineChart({
         lastDataRef.current = chartData
 
         // 🎯 添加实时价格红线（交易所级）
-        if (currentPrice) {
+        if (currentPrice && !priceLineRef.current) {
           const precision = calculatePricePrecision(symbol, interval)
 
-          // 如果已经有价格线，先移除
-          if (priceLineRef.current) {
-            candleSeries.removePriceLine(priceLineRef.current)
-          }
-
-          // 添加新的价格线
           priceLineRef.current = candleSeries.createPriceLine({
             price: currentPrice,
             color: "#ff4d4f",  // 红色
@@ -298,10 +383,10 @@ export default function SimpleKlineChart({
       // 更新缓存
       lastDataRef.current[lastDataRef.current.length - 1] = updatedCandle
 
-      // 🎯 更新实时价格红线
+      // 🎯 更新实时价格红线（交易所级）
+      // 注意：Lightweight Charts 的价格线不支持直接更新价格
+      // 需要先移除再重新添加（这是库的限制，无法优化）
       if (priceLineRef.current) {
-        // Lightweight Charts 的价格线不支持直接更新价格
-        // 需要先移除再重新添加
         seriesRef.current.removePriceLine(priceLineRef.current)
 
         const precision = calculatePricePrecision(symbol, interval)
@@ -331,16 +416,21 @@ export default function SimpleKlineChart({
       const displayHigh = maxHigh + padding
       const displayLow = minLow - padding
 
-      // 🎯 动态调整价格范围
+      console.log(`[SimpleKlineChart] 实时价格范围: range=${priceRange.toFixed(2)}, high=${maxHigh.toFixed(2)}, low=${minLow.toFixed(2)}`)
+
+      // 🎯 检查是否需要自动滚动
       const visibleRange = chartRef.current.timeScale().getVisibleRange()
-      if (visibleRange) {
-        chartRef.current.timeScale().setVisibleLogicalRange({
-          from: visibleRange.from as number,
-          to: visibleRange.to as number,
-        })
+      const lastTime = lastCandle.time
+      const visibleTimeTo = visibleRange ? (typeof visibleRange.to === 'number' ? visibleRange.to : Number(visibleRange.to)) : 0
+
+      // 如果用户正在查看最新K线（最后10秒内），保持自动滚动
+      const isViewingLatest = lastTime - visibleTimeTo < 10000
+
+      if (isViewingLatest) {
+        chartRef.current.timeScale().scrollToPosition(0, false)  // false = 禁用动画，确保流畅
       }
     }
-  }, [currentPrice])
+  }, [currentPrice, symbol, interval])
 
   return (
     <div
