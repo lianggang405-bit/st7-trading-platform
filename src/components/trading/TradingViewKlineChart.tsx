@@ -271,14 +271,17 @@ export default function TradingViewKlineChart({
         klineAggregator.initHistoricalCandles(symbol, interval, historicalCandles)
         console.log(`[TradingViewKlineChart] K线聚合器已初始化: ${historicalCandles.length}根历史K线`)
 
-        // 转换为图表格式
-        const chartData = historicalCandles.map(candle => ({
-          time: candle.time as Time,
-          open: candle.open,
-          high: candle.high,
-          low: candle.low,
-          close: candle.close
-        }))
+        // 转换为图表格式（确保time是number类型）
+        const chartData = historicalCandles.map(candle => {
+          const timeValue = typeof candle.time === 'number' ? candle.time : Number(candle.time)
+          return {
+            time: timeValue as Time,
+            open: candle.open,
+            high: candle.high,
+            low: candle.low,
+            close: candle.close
+          }
+        })
 
         // 设置初始数据
         seriesRef.current.setData(chartData)
@@ -317,9 +320,15 @@ export default function TradingViewKlineChart({
 
     if (!currentCandle) return
 
+    // 🎯 调试：打印time字段的类型和值
+    console.log(`[TradingViewKlineChart] handleTickUpdate: time=${currentCandle.time}, type=${typeof currentCandle.time}, value=${JSON.stringify(currentCandle.time)}`)
+
+    // 🎯 确保time是number类型
+    const timeValue = typeof currentCandle.time === 'number' ? currentCandle.time : Number(currentCandle.time)
+
     // 更新图表（tick-by-tick更新）
     seriesRef.current.update({
-      time: currentCandle.time as Time,
+      time: timeValue as Time,
       open: currentCandle.open,
       high: currentCandle.high,
       low: currentCandle.low,
