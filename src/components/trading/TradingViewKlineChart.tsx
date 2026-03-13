@@ -234,6 +234,31 @@ export default function TradingViewKlineChart({
           close: k.close
         }))
         console.log(`[TradingViewKlineChart] 加载到真实历史数据: ${historicalCandles.length}根K线`)
+
+        // 🎯 检查历史数据价格与当前价格的差异
+        const lastCandle = historicalCandles[historicalCandles.length - 1]
+        if (currentPrice > 0) {
+          const priceDiff = Math.abs(lastCandle.close - currentPrice)
+          const priceDiffPercent = (priceDiff / currentPrice) * 100
+
+          console.log(`[TradingViewKlineChart] 价格差异: ${priceDiff.toFixed(2)} (${priceDiffPercent.toFixed(2)}%)`)
+
+          // 如果价格差异超过10%，使用模拟数据
+          if (priceDiffPercent > 10) {
+            console.warn(`[TradingViewKlineChart] 历史数据价格与当前价格差异过大 (${priceDiffPercent.toFixed(2)}%)，使用模拟数据`)
+            historicalCandles = generateMockHistoricalCandles(currentPrice, limit)
+            console.log(`[TradingViewKlineChart] 生成模拟历史数据: ${historicalCandles.length}根K线`)
+          } else {
+            // 价格差异在可接受范围内，调整最后一根K线的close价格
+            console.log(`[TradingViewKlineChart] 调整最后一根K线的close价格: ${lastCandle.close} → ${currentPrice}`)
+            historicalCandles[historicalCandles.length - 1] = {
+              ...lastCandle,
+              close: currentPrice,
+              high: Math.max(lastCandle.high, currentPrice),
+              low: Math.min(lastCandle.low, currentPrice)
+            }
+          }
+        }
       } else {
         // 没有真实数据，生成模拟历史数据
         console.warn(`[TradingViewKlineChart] 没有加载到真实历史数据，生成模拟数据`)
