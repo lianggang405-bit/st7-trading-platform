@@ -48,7 +48,7 @@ export const useMarketStore = create<MarketState>((set, get) => ({
 
     Object.values(symbols).forEach((s) => {
       // 计算涨跌幅
-      const change = ((s.price - s.base) / s.base) * 100
+      const change = ((s.price - s.basePrice) / s.basePrice) * 100
       result.push({
         symbol: s.symbol,
         price: s.price,

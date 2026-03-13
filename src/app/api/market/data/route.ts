@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRandomTrend, getRandomChange, getRandomPrice } from '@/lib/market-generator';
-import { getPriceFromBinance, getBatchPricesFromBinance, getPriceChangeFromBinance } from '@/lib/market-data-source';
+import { getMarket } from '@/lib/marketEngine';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
@@ -12,28 +11,6 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
  * - useRealData: 是否使用真实数据（可选，默认 true）
  * - withTicker: 是否包含 24 小时涨跌幅（可选，默认 false）
  */
-
-/**
- * 获取基准价格
- */
-function getBasePrice(symbol: string): number {
-  const basePrices: { [key: string]: number } = {
-    BTCUSD: 95000,
-    ETHUSD: 3400,
-    SOLUSD: 240,
-    XRPUSD: 2.5,
-    BNBUSD: 680,
-    DOGEUSD: 0.38,
-    ADAUSD: 1.1,
-    EURUSD: 1.0856,
-    GBPUSD: 1.2654,
-    USDJPY: 149.82,
-    GOLDUSD: 2600,
-    SILVERUSD: 31.5,
-  };
-
-  return basePrices[symbol] || 100;
-}
 
 /**
  * 调控机器人缓存
@@ -103,7 +80,6 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const symbolsParam = searchParams.get('symbols');
-    const useRealData = searchParams.get('useRealData') !== 'false'; // 默认使用真实数据
     const withTicker = searchParams.get('withTicker') === 'true';
 
     if (!symbolsParam) {
@@ -114,74 +90,32 @@ export async function GET(request: NextRequest) {
     }
 
     const symbols = symbolsParam.split(',').map(s => s.trim());
-    const result: { [symbol: string]: { price: number; change?: number } } = {};
+    const result: { [symbol: string]: { price: number; change?: number; high?: number; low?: number } } = {};
 
-    if (useRealData) {
-      // ✅ 使用真实数据
-      console.log(`[MarketData] Fetching real data for ${symbols.length} symbols...`);
+    // 从市场引擎获取最新数据
+    const marketData = getMarket();
 
-      if (withTicker) {
-        // 获取价格和 24 小时涨跌幅
-        const pricePromises = symbols.map(async (symbol, index) => {
-          try {
-            const ticker = await getPriceChangeFromBinance(symbol);
-            if (ticker) {
-              return { symbol, data: ticker };
-            }
-            return null;
-          } catch (error) {
-            console.warn(`[MarketData] Error fetching ticker for ${symbol}:`, error);
-            return null;
-          }
-        });
+    console.log(`[MarketData] Fetching market data for ${symbols.length} symbols...`);
 
-        const results = await Promise.all(pricePromises);
+    for (const symbol of symbols) {
+      const data = marketData[symbol];
 
-        for (let i = 0; i < results.length; i++) {
-          const item = results[i];
-          if (item) {
-            // ✅ 应用调控机器人浮点值
-            const floatValue = await getBotFloatValue(item.symbol);
-            const adjustedPrice = applyBotAdjustment(item.data.price, floatValue);
-            result[item.symbol] = {
-              ...item.data,
-              price: adjustedPrice,
-            };
-          } else {
-            // ✅ 获取失败时，不返回该 symbol，让前端保持当前价格
-            // 不再使用随机生成
-            console.log(`[MarketData] Failed to fetch ticker for ${symbols[i]}, skipping...`);
-          }
-        }
-      } else {
-        // 只获取价格
-        const priceMap = await getBatchPricesFromBinance(symbols);
-
-        for (const symbol of symbols) {
-          if (priceMap[symbol] !== undefined) {
-            // ✅ 应用调控机器人浮点值
-            const floatValue = await getBotFloatValue(symbol);
-            const adjustedPrice = applyBotAdjustment(priceMap[symbol], floatValue);
-            result[symbol] = { price: adjustedPrice };
-          } else {
-            // ✅ 获取失败时，不返回该 symbol，让前端保持当前价格
-            // 不再使用随机生成
-            console.log(`[MarketData] Failed to fetch price for ${symbol}, skipping...`);
-          }
-        }
-      }
-    } else {
-      // ✅ 使用模拟数据
-      console.log(`[MarketData] Generating mock data for ${symbols.length} symbols...`);
-
-      for (const symbol of symbols) {
+      if (data) {
+        // ✅ 应用调控机器人浮点值
         const floatValue = await getBotFloatValue(symbol);
-        const basePrice = getRandomPrice(getBasePrice(symbol));
-        const adjustedPrice = applyBotAdjustment(basePrice, floatValue);
+        const adjustedPrice = applyBotAdjustment(data.price, floatValue);
+
         result[symbol] = {
           price: adjustedPrice,
-          change: getRandomChange(),
         };
+
+        // 如果需要 24 小时涨跌幅，计算基于 basePrice 的百分比变化
+        if (withTicker) {
+          const changePercent = ((data.price - data.basePrice) / data.basePrice) * 100;
+          result[symbol].change = Number(changePercent.toFixed(2));
+        }
+      } else {
+        console.log(`[MarketData] No data found for ${symbol}, skipping...`);
       }
     }
 

@@ -1,155 +1,222 @@
 /**
- * 唯一行情引擎
- * 所有交易对的价格都从这里产生
- * 每个交易对使用独立随机种子，确保独立波动
+ * 两层价格系统
+ *
+ * 真实行情层（每6-12小时更新一次）
+ *         ↓
+ * 模拟行情层（每秒更新）
  */
 
 export type SymbolData = {
   symbol: string
-  price: number
-  base: number
+  basePrice: number      // 真实基准价格（定期从API更新）
+  price: number          // 当前模拟价格（围绕 basePrice 波动）
+  volatility: number     // 波动率（每个交易对独立）
+  trend: 'up' | 'down' | 'neutral'  // 随机趋势（上涨/下跌/横盘）
+  trendStrength: number  // 趋势强度（0-1）
+  lastBaseUpdate: number // 上次更新 basePrice 的时间戳
+  updateInterval: number // 更新间隔（毫秒）
   category: 'crypto' | 'metal' | 'forex' | 'energy' | 'cfd'
 }
 
 // 所有交易对的初始数据
 const symbols: Record<string, SymbolData> = {
-  // 加密货币
-  BTCUSDT: { symbol: "BTCUSDT", price: 62000, base: 62000, category: 'crypto' },
-  ETHUSDT: { symbol: "ETHUSDT", price: 3200, base: 3200, category: 'crypto' },
-  LTCUSDT: { symbol: "LTCUSDT", price: 150, base: 150, category: 'crypto' },
-  SOLUSDT: { symbol: "SOLUSDT", price: 200, base: 200, category: 'crypto' },
-  XRPUSDT: { symbol: "XRPUSDT", price: 0.6, base: 0.6, category: 'crypto' },
-  DOGEUSDT: { symbol: "DOGEUSDT", price: 0.2, base: 0.2, category: 'crypto' },
-  ADAUSDT: { symbol: "ADAUSDT", price: 1.2, base: 1.2, category: 'crypto' },
-  DOTUSDT: { symbol: "DOTUSDT", price: 8, base: 8, category: 'crypto' },
+  // 加密货币（大波动，3小时更新）
+  BTCUSDT: { symbol: "BTCUSDT", basePrice: 62000, price: 62000, volatility: 0.002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
+  ETHUSDT: { symbol: "ETHUSDT", basePrice: 3200, price: 3200, volatility: 0.002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
+  LTCUSDT: { symbol: "LTCUSDT", basePrice: 150, price: 150, volatility: 0.0025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
+  SOLUSDT: { symbol: "SOLUSDT", basePrice: 200, price: 200, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
+  XRPUSDT: { symbol: "XRPUSDT", basePrice: 0.6, price: 0.6, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
+  DOGEUSDT: { symbol: "DOGEUSDT", basePrice: 0.2, price: 0.2, volatility: 0.004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
+  ADAUSDT: { symbol: "ADAUSDT", basePrice: 1.2, price: 1.2, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
+  DOTUSDT: { symbol: "DOTUSDT", basePrice: 8, price: 8, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
 
-  // 贵金属
-  XAUUSD: { symbol: "XAUUSD", price: 5200, base: 5200, category: 'metal' },
-  XAGUSD: { symbol: "XAGUSD", price: 29.5, base: 29.5, category: 'metal' },
+  // 贵金属（中等波动，6小时更新）
+  XAUUSD: { symbol: "XAUUSD", basePrice: 5200, price: 5200, volatility: 0.0008, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 6 * 60 * 60 * 1000, category: 'metal' },
+  XAGUSD: { symbol: "XAGUSD", basePrice: 29.5, price: 29.5, volatility: 0.0015, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 6 * 60 * 60 * 1000, category: 'metal' },
 
-  // 外汇
-  EURUSD: { symbol: "EURUSD", price: 1.085, base: 1.085, category: 'forex' },
-  GBPUSD: { symbol: "GBPUSD", price: 1.265, base: 1.265, category: 'forex' },
-  USDJPY: { symbol: "USDJPY", price: 149.8, base: 149.8, category: 'forex' },
-  USDCHF: { symbol: "USDCHF", price: 0.884, base: 0.884, category: 'forex' },
-  AUDUSD: { symbol: "AUDUSD", price: 0.655, base: 0.655, category: 'forex' },
-  NZDUSD: { symbol: "NZDUSD", price: 0.609, base: 0.609, category: 'forex' },
-  USDCAD: { symbol: "USDCAD", price: 1.366, base: 1.366, category: 'forex' },
-  EURGBP: { symbol: "EURGBP", price: 0.859, base: 0.859, category: 'forex' },
-  EURJPY: { symbol: "EURJPY", price: 162.5, base: 162.5, category: 'forex' },
-  GBPJPY: { symbol: "GBPJPY", price: 189.5, base: 189.5, category: 'forex' },
-  AUDJPY: { symbol: "AUDJPY", price: 98.2, base: 98.2, category: 'forex' },
-  CADJPY: { symbol: "CADJPY", price: 110.5, base: 110.5, category: 'forex' },
-  CHFJPY: { symbol: "CHFJPY", price: 169.5, base: 169.5, category: 'forex' },
+  // 外汇（小波动，12小时更新）
+  EURUSD: { symbol: "EURUSD", basePrice: 1.085, price: 1.085, volatility: 0.0002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
+  GBPUSD: { symbol: "GBPUSD", basePrice: 1.265, price: 1.265, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
+  USDJPY: { symbol: "USDJPY", basePrice: 149.8, price: 149.8, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
+  USDCHF: { symbol: "USDCHF", basePrice: 0.884, price: 0.884, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
+  AUDUSD: { symbol: "AUDUSD", basePrice: 0.655, price: 0.655, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
+  NZDUSD: { symbol: "NZDUSD", basePrice: 0.609, price: 0.609, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
+  USDCAD: { symbol: "USDCAD", basePrice: 1.366, price: 1.366, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
+  EURGBP: { symbol: "EURGBP", basePrice: 0.859, price: 0.859, volatility: 0.0002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
+  EURJPY: { symbol: "EURJPY", basePrice: 162.5, price: 162.5, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
+  GBPJPY: { symbol: "GBPJPY", basePrice: 189.5, price: 189.5, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
+  AUDJPY: { symbol: "AUDJPY", basePrice: 98.2, price: 98.2, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
+  CADJPY: { symbol: "CADJPY", basePrice: 110.5, price: 110.5, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
+  CHFJPY: { symbol: "CHFJPY", basePrice: 169.5, price: 169.5, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
 
-  // 能源
-  USOIL: { symbol: "USOIL", price: 85, base: 85, category: 'energy' },
-  UKOIL: { symbol: "UKOIL", price: 87.8, base: 87.8, category: 'energy' },
-  NGAS: { symbol: "NGAS", price: 2.8, base: 2.8, category: 'energy' },
+  // 能源（中等波动，6小时更新）
+  USOIL: { symbol: "USOIL", basePrice: 85, price: 85, volatility: 0.001, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 6 * 60 * 60 * 1000, category: 'energy' },
+  UKOIL: { symbol: "UKOIL", basePrice: 87.8, price: 87.8, volatility: 0.001, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 6 * 60 * 60 * 1000, category: 'energy' },
+  NGAS: { symbol: "NGAS", basePrice: 2.8, price: 2.8, volatility: 0.002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 6 * 60 * 60 * 1000, category: 'energy' },
 
-  // 指数
-  US500: { symbol: "US500", price: 5200, base: 5200, category: 'cfd' },
-  ND100: { symbol: "ND100", price: 18500, base: 18500, category: 'cfd' },
-  AUS200: { symbol: "AUS200", price: 7807, base: 7807, category: 'cfd' },
-  UK100: { symbol: "UK100", price: 8098, base: 8098, category: 'cfd' },
-  GER40: { symbol: "GER40", price: 17814, base: 17814, category: 'cfd' },
-  JPN225: { symbol: "JPN225", price: 40034, base: 40034, category: 'cfd' },
+  // 指数（小波动，12小时更新）
+  US500: { symbol: "US500", basePrice: 5200, price: 5200, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'cfd' },
+  ND100: { symbol: "ND100", basePrice: 18500, price: 18500, volatility: 0.0004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'cfd' },
+  AUS200: { symbol: "AUS200", basePrice: 7807, price: 7807, volatility: 0.0004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'cfd' },
+  UK100: { symbol: "UK100", basePrice: 8098, price: 8098, volatility: 0.0004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'cfd' },
+  GER40: { symbol: "GER40", basePrice: 17814, price: 17814, volatility: 0.0004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'cfd' },
+  JPN225: { symbol: "JPN225", basePrice: 40034, price: 40034, volatility: 0.0005, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'cfd' },
 }
 
 /**
- * 每个交易对的波动率配置
- * 越大的资产波动越大，外汇波动最小
+ * 初始化随机趋势
+ * 每个交易对随机分配一个趋势（上涨/下跌/横盘）
  */
-const volatilityMap: Record<string, number> = {
-  // 加密货币（大波动 0.2%）
-  BTCUSDT: 0.002,
-  ETHUSDT: 0.002,
-  LTCUSDT: 0.0025,
-  SOLUSDT: 0.003,
-  XRPUSDT: 0.003,
-  DOGEUSDT: 0.004,
-  ADAUSDT: 0.003,
-  DOTUSDT: 0.003,
-
-  // 贵金属（中等波动）
-  XAUUSD: 0.0008,  // 黄金
-  XAGUSD: 0.0015,  // 白银
-
-  // 外汇（小波动）
-  EURUSD: 0.0002,
-  GBPUSD: 0.0003,
-  USDJPY: 0.0003,
-  USDCHF: 0.00025,
-  AUDUSD: 0.00025,
-  NZDUSD: 0.00025,
-  USDCAD: 0.00025,
-  EURGBP: 0.0002,
-  EURJPY: 0.00025,
-  GBPJPY: 0.0003,
-  AUDJPY: 0.0003,
-  CADJPY: 0.0003,
-  CHFJPY: 0.0003,
-
-  // 能源（中等波动）
-  USOIL: 0.001,
-  UKOIL: 0.001,
-  NGAS: 0.002,
-
-  // 指数（小波动）
-  US500: 0.0003,
-  ND100: 0.0004,
-  AUS200: 0.0004,
-  UK100: 0.0004,
-  GER40: 0.0004,
-  JPN225: 0.0005,
+function initTrends() {
+  Object.values(symbols).forEach((s) => {
+    const rand = Math.random()
+    if (rand < 0.33) {
+      s.trend = 'up'
+      s.trendStrength = 0.3 + Math.random() * 0.3  // 0.3-0.6
+    } else if (rand < 0.66) {
+      s.trend = 'down'
+      s.trendStrength = 0.3 + Math.random() * 0.3
+    } else {
+      s.trend = 'neutral'
+      s.trendStrength = 0.1 + Math.random() * 0.2  // 0.1-0.3
+    }
+  })
 }
 
 /**
- * 计算下一个价格（连续价格模型）
+ * 定期更新趋势
+ * 每小时有 10% 概率改变趋势
+ */
+function updateTrends() {
+  Object.values(symbols).forEach((s) => {
+    if (Math.random() < 0.1) {  // 10% 概率改变趋势
+      const rand = Math.random()
+      if (rand < 0.33) {
+        s.trend = 'up'
+        s.trendStrength = 0.3 + Math.random() * 0.3
+      } else if (rand < 0.66) {
+        s.trend = 'down'
+        s.trendStrength = 0.3 + Math.random() * 0.3
+      } else {
+        s.trend = 'neutral'
+        s.trendStrength = 0.1 + Math.random() * 0.2
+      }
+    }
+  })
+}
+
+/**
+ * 获取真实价格
+ * 从外部 API 获取最新真实价格
+ */
+async function fetchRealPrice(symbol: string): Promise<number | null> {
+  try {
+    if (symbol === 'XAUUSD') {
+      // 黄金 API
+      const res = await fetch('https://api.gold-api.com/price/XAU')
+      if (!res.ok) throw new Error('Gold API failed')
+      const data = await res.json()
+      return data.price
+    } else if (symbol === 'XAGUSD') {
+      // 白银 API
+      const res = await fetch('https://api.gold-api.com/price/XAG')
+      if (!res.ok) throw new Error('Silver API failed')
+      const data = await res.json()
+      return data.price
+    } else if (symbol === 'BTCUSDT' || symbol === 'ETHUSDT' || 
+               symbol === 'LTCUSDT' || symbol === 'SOLUSDT' ||
+               symbol === 'XRPUSDT' || symbol === 'DOGEUSDT' ||
+               symbol === 'ADAUSDT' || symbol === 'DOTUSDT') {
+      // 加密货币 API
+      const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)
+      if (!res.ok) throw new Error('Binance API failed')
+      const data = await res.json()
+      return parseFloat(data.price)
+    }
+    
+    // 其他交易对暂时不更新真实价格
+    return null
+  } catch (error) {
+    console.error(`Failed to fetch real price for ${symbol}:`, error)
+    return null
+  }
+}
+
+/**
+ * 平滑调整 basePrice
+ * 防止跳空，每次只调整差距的 20%
+ */
+function adjustBasePrice(data: SymbolData, realPrice: number) {
+  const diff = realPrice - data.basePrice
+  data.basePrice += diff * 0.2  // 每次调整 20%
+}
+
+/**
+ * 检查并更新真实价格
+ * 定期检查是否需要更新 basePrice
+ */
+async function checkAndUpdateRealPrice(symbol: string) {
+  const data = symbols[symbol]
+  if (!data) return
+
+  const now = Date.now()
+  if (now - data.lastBaseUpdate > data.updateInterval) {
+    // 时间到了，获取真实价格
+    const realPrice = await fetchRealPrice(symbol)
+    if (realPrice !== null) {
+      // 平滑调整，避免跳空
+      adjustBasePrice(data, realPrice)
+      data.lastBaseUpdate = now
+      console.log(`Updated ${symbol} basePrice to ${data.basePrice.toFixed(2)} (real: ${realPrice.toFixed(2)})`)
+    }
+  }
+}
+
+/**
+ * 模拟价格生成（每秒调用）
  *
- * 关键修复：
- * - 新价格 = 旧价格 + 微小波动（不是从 base 重新计算）
- * - 每个交易对使用独立波动率
- * - 添加最大跳动限制，防止断崖式跳变
- * - 限制价格范围（base 的 95%-105%）
+ * 核心算法：
+ * 1. 随机波动（围绕 basePrice）
+ * 2. 趋势影响（上涨/下跌/横盘）
+ * 3. 限制范围（base 的 97%-103%）
+ * 4. 限制跳动（防止断崖式跳变）
  */
 function nextPrice(data: SymbolData): number {
-  // 获取该交易对的波动率
-  const volatilityRate = volatilityMap[data.symbol] || 0.001
+  // 基础波动（随机）
+  const baseVolatility = data.basePrice * data.volatility
+  const randomChange = (Math.random() - 0.5) * baseVolatility * 2  // -1x 到 +1x 波动
 
-  // 计算波动幅度
-  const volatility = data.base * volatilityRate
-
-  // 随机波动（-50% 到 +50% 的波动幅度）
-  const random = (Math.random() - 0.5) * volatility
-
-  // 计算新价格（连续变化：新价格 = 旧价格 + 微小波动）
-  let price = data.price + random
-
-  // 最大跳动限制（防止断崖式跳变）
-  const maxStep = volatility * 0.5  // 最大跳动为波动幅度的 50%
-  const priceDiff = price - data.price
-
-  if (Math.abs(priceDiff) > maxStep) {
-    // 如果跳动超过限制，强制限制在最大跳动范围内
-    price = data.price + Math.sign(priceDiff) * maxStep
+  // 趋势影响
+  let trendChange = 0
+  if (data.trend === 'up') {
+    trendChange = baseVolatility * data.trendStrength * 0.5  // 向上趋势
+  } else if (data.trend === 'down') {
+    trendChange = -baseVolatility * data.trendStrength * 0.5  // 向下趋势
   }
 
-  // 防止价格漂移过远（限制在 base 的 95%-105%）
-  const maxPrice = data.base * 1.05
-  const minPrice = data.base * 0.95
+  // 计算新价格
+  let newPrice = data.price + randomChange + trendChange
 
-  if (price > maxPrice) {
-    price = maxPrice
-  } else if (price < minPrice) {
-    price = minPrice
+  // 最大跳动限制（防止断崖式跳变）
+  const maxStep = baseVolatility * 0.5
+  const priceDiff = newPrice - data.price
+  if (Math.abs(priceDiff) > maxStep) {
+    newPrice = data.price + Math.sign(priceDiff) * maxStep
+  }
+
+  // 限制范围（basePrice 的 97%-103%）
+  const maxPrice = data.basePrice * 1.03
+  const minPrice = data.basePrice * 0.97
+
+  if (newPrice > maxPrice) {
+    newPrice = maxPrice
+  } else if (newPrice < minPrice) {
+    newPrice = minPrice
   }
 
   // 根据价格精度返回结果
-  // 小于 1 的资产保留 4 位小数，其他保留 2 位
-  const decimals = data.base < 1 ? 4 : 2
-
-  return Number(price.toFixed(decimals))
+  const decimals = data.basePrice < 1 ? 4 : 2
+  return Number(newPrice.toFixed(decimals))
 }
 
 /**
@@ -157,11 +224,26 @@ function nextPrice(data: SymbolData): number {
  * 每秒调用一次
  */
 export function updateMarket(): Record<string, SymbolData> {
+  // 更新趋势（每小时有概率改变）
+  if (Math.random() < 0.0003) {  // 每秒有 0.03% 概率（约每小时）
+    updateTrends()
+  }
+
+  // 更新所有价格
   Object.values(symbols).forEach((s) => {
     s.price = nextPrice(s)
   })
 
   return symbols
+}
+
+/**
+ * 检查并更新真实价格
+ * 应该定期调用（例如每分钟）
+ */
+export async function updateRealPrices() {
+  const promises = Object.keys(symbols).map(symbol => checkAndUpdateRealPrice(symbol))
+  await Promise.allSettled(promises)
 }
 
 /**
@@ -176,4 +258,50 @@ export function getMarket(): Record<string, SymbolData> {
  */
 export function getSymbolPrice(symbol: string): number | undefined {
   return symbols[symbol]?.price
+}
+
+/**
+ * 获取单个交易对数据
+ */
+export function getSymbolData(symbol: string): SymbolData | undefined {
+  return symbols[symbol]
+}
+
+// 初始化趋势
+initTrends()
+
+// 启动定时更新真实价格（每分钟检查一次）
+let updateInterval: NodeJS.Timeout | null = null
+
+export function startRealPriceUpdater() {
+  if (updateInterval) {
+    console.log('Real price updater already running')
+    return
+  }
+
+  console.log('Starting real price updater...')
+
+  // 立即执行一次
+  updateRealPrices()
+
+  // 每分钟检查一次是否需要更新
+  updateInterval = setInterval(() => {
+    updateRealPrices()
+  }, 60 * 1000)  // 1 分钟
+
+  console.log('Real price updater started (checking every minute)')
+}
+
+export function stopRealPriceUpdater() {
+  if (updateInterval) {
+    clearInterval(updateInterval)
+    updateInterval = null
+    console.log('Real price updater stopped')
+  }
+}
+
+// 自动启动
+if (typeof window === 'undefined') {
+  // 只在服务端启动
+  startRealPriceUpdater()
 }
