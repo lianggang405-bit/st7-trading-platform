@@ -170,7 +170,9 @@ export default function TradingViewKlineChart({
 
     // 倒推生成历史K线
     for (let i = count - 1; i >= 0; i--) {
-      const time = now - (i * intervalMs)
+      const timeMs = now - (i * intervalMs)
+      // 🎯 转换为秒级时间戳（Lightweight Charts标准）
+      const time = Math.floor(timeMs / 1000)
       const volatility = 0.001  // 0.1% 波动
 
       // 基于前一根K线生成新K线
@@ -266,22 +268,35 @@ export default function TradingViewKlineChart({
         console.log(`[TradingViewKlineChart] 生成模拟历史数据: ${historicalCandles.length}根K线`)
       }
 
-      // 🎯 第三步：用历史数据初始化K线聚合器
-      if (historicalCandles.length > 0) {
-        klineAggregator.initHistoricalCandles(symbol, interval, historicalCandles)
-        console.log(`[TradingViewKlineChart] K线聚合器已初始化: ${historicalCandles.length}根历史K线`)
+      // 🎯 第三步：确保 historicalCandles 中的 time 字段是秒级（Lightweight Charts标准）
+      const normalizedCandles = historicalCandles.map(candle => {
+        let timeValue = typeof candle.time === 'number' ? candle.time : Number(candle.time)
+
+        // 检测并转换毫秒级时间戳为秒级
+        // 如果时间戳大于 1e12（10^12），则认为是毫秒级时间戳
+        if (timeValue > 1000000000000) {
+          timeValue = Math.floor(timeValue / 1000)
+        }
+
+        return {
+          ...candle,
+          time: timeValue
+        }
+      })
+
+      // 🎯 用历史数据初始化K线聚合器
+      if (normalizedCandles.length > 0) {
+        klineAggregator.initHistoricalCandles(symbol, interval, normalizedCandles)
+        console.log(`[TradingViewKlineChart] K线聚合器已初始化: ${normalizedCandles.length}根历史K线`)
 
         // 转换为图表格式（确保time是number类型）
-        const chartData = historicalCandles.map(candle => {
-          const timeValue = typeof candle.time === 'number' ? candle.time : Number(candle.time)
-          return {
-            time: timeValue as Time,
-            open: candle.open,
-            high: candle.high,
-            low: candle.low,
-            close: candle.close
-          }
-        })
+        const chartData = normalizedCandles.map(candle => ({
+          time: candle.time as Time,
+          open: candle.open,
+          high: candle.high,
+          low: candle.low,
+          close: candle.close
+        }))
 
         // 设置初始数据
         seriesRef.current.setData(chartData)

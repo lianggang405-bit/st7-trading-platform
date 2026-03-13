@@ -82,9 +82,9 @@ export class KlineAggregator {
         this.saveCandle(symbol, interval, currentCandle)
       }
 
-      // 创建新K线
+      // 创建新K线（确保time是number类型）
       currentCandle = {
-        time: candleTime,
+        time: typeof candleTime === 'number' ? candleTime : Number(candleTime),
         open: price,
         high: price,
         low: price,
@@ -106,7 +106,13 @@ export class KlineAggregator {
     const key = `${symbol}_${interval}`
     const candles = this.candles.get(key) || []
 
-    candles.push(candle)
+    // 确保time字段是number类型
+    const normalizedCandle = {
+      ...candle,
+      time: typeof candle.time === 'number' ? candle.time : Number(candle.time)
+    }
+
+    candles.push(normalizedCandle)
 
     // 限制K线数量
     if (candles.length > this.maxCandles) {
@@ -117,13 +123,16 @@ export class KlineAggregator {
   }
 
   /**
-   * 🎯 计算K线开始时间
-   * @param timestamp 时间戳
+   * 🎯 计算K线开始时间（秒级，Lightweight Charts标准）
+   * @param timestamp 时间戳（毫秒级）
    * @param intervalMs 周期（毫秒）
-   * @returns K线开始时间戳
+   * @returns K线开始时间戳（秒级）
    */
   private getCandleTime(timestamp: number, intervalMs: number): number {
-    return Math.floor(timestamp / intervalMs) * intervalMs
+    // 将毫秒级时间戳转换为秒级（Lightweight Charts标准）
+    const timestampSec = Math.floor(timestamp / 1000)
+    const intervalSec = Math.floor(intervalMs / 1000)
+    return Math.floor(timestampSec / intervalSec) * intervalSec
   }
 
   /**
@@ -137,12 +146,21 @@ export class KlineAggregator {
     const historicalCandles = this.candles.get(key) || []
     const currentCandle = this.currentCandles.get(key)
 
+    // 确保所有K线的time字段都是number类型
+    const normalizedHistorical = historicalCandles.map(candle => ({
+      ...candle,
+      time: typeof candle.time === 'number' ? candle.time : Number(candle.time)
+    }))
+
     // 如果有当前K线，添加到结果中
     if (currentCandle) {
-      return [...historicalCandles, currentCandle]
+      return [...normalizedHistorical, {
+        ...currentCandle,
+        time: typeof currentCandle.time === 'number' ? currentCandle.time : Number(currentCandle.time)
+      }]
     }
 
-    return historicalCandles
+    return normalizedHistorical
   }
 
   /**
@@ -153,7 +171,15 @@ export class KlineAggregator {
    */
   getCurrentCandle(symbol: string, interval: string): KlineCandle | null {
     const key = `${symbol}_${interval}`
-    return this.currentCandles.get(key) || null
+    const candle = this.currentCandles.get(key)
+
+    if (!candle) return null
+
+    // 确保time字段是number类型
+    return {
+      ...candle,
+      time: typeof candle.time === 'number' ? candle.time : Number(candle.time)
+    }
   }
 
   /**
@@ -178,12 +204,28 @@ export class KlineAggregator {
     this.candles.delete(key)
     this.currentCandles.delete(key)
 
+    // 🎯 确保所有历史K线的time字段都是秒级（Lightweight Charts标准）
+    const normalizedCandles = candles.map(candle => {
+      let timeValue = typeof candle.time === 'number' ? candle.time : Number(candle.time)
+
+      // 检测并转换毫秒级时间戳为秒级
+      // 如果时间戳大于 1e12（10^12），则认为是毫秒级时间戳
+      if (timeValue > 1000000000000) {
+        timeValue = Math.floor(timeValue / 1000)
+      }
+
+      return {
+        ...candle,
+        time: timeValue
+      }
+    })
+
     // 保存历史K线
-    this.candles.set(key, candles)
+    this.candles.set(key, normalizedCandles)
 
     // 如果有历史K线，将最后一根作为当前K线的基准
-    if (candles.length > 0) {
-      const lastCandle = candles[candles.length - 1]
+    if (normalizedCandles.length > 0) {
+      const lastCandle = normalizedCandles[normalizedCandles.length - 1]
       this.currentCandles.set(key, { ...lastCandle })
     }
   }

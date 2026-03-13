@@ -324,6 +324,7 @@ export async function fetchBinanceKlines(
       const close = parseFloat(k[4]) || 0
       const volume = parseFloat(k[5]) || 0
 
+      // 🎯 Binance返回的是毫秒级时间戳，转换为秒级（Lightweight Charts标准）
       return {
         time: Math.floor(k[0] / 1000),
         open,
