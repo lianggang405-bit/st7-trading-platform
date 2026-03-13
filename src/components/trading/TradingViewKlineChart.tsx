@@ -59,6 +59,8 @@ export default function TradingViewKlineChart({
 
   // 🎯 初始化图表
   useEffect(() => {
+    console.log(`[TradingViewKlineChart] useEffect触发: symbol=${symbol}, interval=${interval}, height=${height}`)
+
     if (!chartContainerRef.current) {
       console.warn('[TradingViewKlineChart] chartContainerRef.current 为空')
       return
@@ -73,6 +75,9 @@ export default function TradingViewKlineChart({
       console.warn('[TradingViewKlineChart] 容器尺寸为0，无法初始化图表')
       return
     }
+
+    console.log(`[TradingViewKlineChart] 开始创建图表`)
+    isMountedRef.current = true
 
     // 创建图表
     const chart = createChart(chartContainerRef.current, {
@@ -142,14 +147,18 @@ export default function TradingViewKlineChart({
 
     // 清理
     return () => {
+      console.log(`[TradingViewKlineChart] cleanup执行: symbol=${symbol}, interval=${interval}`)
       isMountedRef.current = false
       window.removeEventListener("resize", handleResize)
       if (unsubscribeTickRef.current) {
         unsubscribeTickRef.current()
       }
       if (chartRef.current) {
+        console.log(`[TradingViewKlineChart] 销毁图表`)
         chartRef.current.remove()
       }
+      initialDataLoadedRef.current = false
+      console.log(`[TradingViewKlineChart] cleanup完成`)
     }
   }, [symbol, interval, height])
 
@@ -195,7 +204,17 @@ export default function TradingViewKlineChart({
 
   // 🎯 加载初始数据
   async function loadInitialData() {
-    if (!seriesRef.current || !isMountedRef.current) return
+    console.log(`[TradingViewKlineChart] loadInitialData调用: symbol=${symbol}, interval=${interval}, isMounted=${isMountedRef.current}`)
+
+    if (!seriesRef.current) {
+      console.error('[TradingViewKlineChart] seriesRef.current 为空，无法加载数据')
+      return
+    }
+
+    if (!isMountedRef.current) {
+      console.error('[TradingViewKlineChart] 组件已卸载，取消加载数据')
+      return
+    }
 
     try {
       // 🎯 第一步：从API加载历史K线数据
