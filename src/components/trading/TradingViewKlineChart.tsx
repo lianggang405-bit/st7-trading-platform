@@ -19,6 +19,7 @@ import { createChart, IChartApi, Time } from "lightweight-charts"
 import { klineAggregator, KlineCandle, INTERVAL_MAP, Tick } from "@/lib/kline-aggregator"
 import { onTick } from "@/lib/marketEngine"
 import { useMarketStore } from "@/store/marketStore"
+import { fetchKlines } from "@/lib/kline-data-source"
 
 interface TradingViewKlineChartProps {
   symbol?: string
@@ -139,39 +140,112 @@ export default function TradingViewKlineChart({
     }
   }, [symbol, interval, height])
 
+  // 🎯 生成模拟历史K线数据（当没有真实数据时使用）
+  function generateMockHistoricalCandles(basePrice: number, count: number): KlineCandle[] {
+    const candles: KlineCandle[] = []
+    const now = Date.now()
+    const intervalMs = currentInterval
+
+    // 倒推生成历史K线
+    for (let i = count - 1; i >= 0; i--) {
+      const time = now - (i * intervalMs)
+      const volatility = 0.001  // 0.1% 波动
+
+      // 基于前一根K线生成新K线
+      let open, close, high, low
+
+      if (candles.length === 0) {
+        // 第一根K线
+        open = basePrice
+        const change = (Math.random() - 0.5) * 2 * volatility * basePrice
+        close = open + change
+        high = Math.max(open, close) + Math.random() * volatility * basePrice
+        low = Math.min(open, close) - Math.random() * volatility * basePrice
+      } else {
+        const prev = candles[candles.length - 1]
+        open = prev.close
+        const change = (Math.random() - 0.5) * 2 * volatility * basePrice
+        close = open + change
+        high = Math.max(open, close) + Math.random() * volatility * basePrice
+        low = Math.min(open, close) - Math.random() * volatility * basePrice
+      }
+
+      // 确保数据完整性
+      high = Math.max(high, open, close)
+      low = Math.min(low, open, close)
+
+      candles.push({ time, open, high, low, close })
+    }
+
+    return candles
+  }
+
   // 🎯 加载初始数据
-  function loadInitialData() {
+  async function loadInitialData() {
     if (!seriesRef.current || !isMountedRef.current) return
 
-    // 从K线聚合器获取数据
-    const candles = klineAggregator.getCandles(symbol, interval)
+    try {
+      // 🎯 第一步：从API加载历史K线数据
+      console.log(`[TradingViewKlineChart] 开始加载历史K线数据: ${symbol} ${interval}`)
+      const klineData = await fetchKlines(symbol, interval, limit, true)
 
-    // 转换为图表格式
-    const chartData = candles.map(candle => ({
-      time: candle.time as Time,
-      open: candle.open,
-      high: candle.high,
-      low: candle.low,
-      close: candle.close
-    }))
+      // 🎯 第二步：处理历史数据
+      let historicalCandles: KlineCandle[] = []
 
-    // 设置初始数据
-    seriesRef.current.setData(chartData)
-    initialDataLoadedRef.current = true
+      if (klineData.length > 0) {
+        // 使用真实历史数据
+        historicalCandles = klineData.map(k => ({
+          time: k.time,
+          open: k.open,
+          high: k.high,
+          low: k.low,
+          close: k.close
+        }))
+        console.log(`[TradingViewKlineChart] 加载到真实历史数据: ${historicalCandles.length}根K线`)
+      } else {
+        // 没有真实数据，生成模拟历史数据
+        console.warn(`[TradingViewKlineChart] 没有加载到真实历史数据，生成模拟数据`)
+        historicalCandles = generateMockHistoricalCandles(currentPrice || 50000, limit)
+        console.log(`[TradingViewKlineChart] 生成模拟历史数据: ${historicalCandles.length}根K线`)
+      }
 
-    console.log(`[TradingViewKlineChart] 初始数据加载完成: ${chartData.length}根K线`)
+      // 🎯 第三步：用历史数据初始化K线聚合器
+      if (historicalCandles.length > 0) {
+        klineAggregator.initHistoricalCandles(symbol, interval, historicalCandles)
+        console.log(`[TradingViewKlineChart] K线聚合器已初始化: ${historicalCandles.length}根历史K线`)
 
-    // 🎯 添加实时价格线
-    if (currentPrice > 0 && seriesRef.current) {
-      priceLineRef.current = seriesRef.current.createPriceLine({
-        price: currentPrice,
-        color: "#ff4d4f",
-        lineWidth: 1,
-        lineStyle: 2,
-        axisLabelVisible: true,
-        title: "",
-        lineVisible: true,
-      })
+        // 转换为图表格式
+        const chartData = historicalCandles.map(candle => ({
+          time: candle.time as Time,
+          open: candle.open,
+          high: candle.high,
+          low: candle.low,
+          close: candle.close
+        }))
+
+        // 设置初始数据
+        seriesRef.current.setData(chartData)
+        initialDataLoadedRef.current = true
+
+        console.log(`[TradingViewKlineChart] 初始数据加载完成: ${chartData.length}根K线`)
+
+        // 🎯 添加实时价格线
+        if (currentPrice > 0 && seriesRef.current) {
+          priceLineRef.current = seriesRef.current.createPriceLine({
+            price: currentPrice,
+            color: "#ff4d4f",
+            lineWidth: 1,
+            lineStyle: 2,
+            axisLabelVisible: true,
+            title: "",
+            lineVisible: true,
+          })
+        }
+      } else {
+        console.error(`[TradingViewKlineChart] 没有可用数据`)
+      }
+    } catch (error) {
+      console.error('[TradingViewKlineChart] 加载初始数据失败:', error)
     }
   }
 
