@@ -7,7 +7,7 @@ import { useMarketStore } from "@/store/marketStore"
 
 // 🎯 K线数据结构（统一格式）
 export interface Candle {
-  time: number
+  time: Time  // 使用 lightweight-charts 的 Time 类型
   open: number
   high: number
   low: number
@@ -77,6 +77,7 @@ export default function SimpleKlineChart({
   const priceLineRef = useRef<any>(null)  // 实时价格红线
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastDataRef = useRef<Candle[]>([]) // 保存上一次的数据
+  const lastCandleTimeRef = useRef<Time | null>(null)  // 上一根K线的时间戳（用于检测新K线生成）
 
   // 🎯 从MarketStore读取当前价格（统一行情源）
   const marketStorePrice = useMarketStore((state) => state.getSymbolPrice(symbol))
@@ -160,10 +161,13 @@ export default function SimpleKlineChart({
       const last = lastDataRef.current[lastDataRef.current.length - 1]
       const now = Date.now()
 
+      // 将 Time 类型转换为 number（我们使用的时间戳是 number 类型）
+      const lastTime = typeof last.time === 'number' ? last.time : Number(last.time)
+
       // 如果当前时间超过上一个K线的时间 + 周期
-      if (now - last.time >= intervalMs) {
+      if (now - lastTime >= intervalMs) {
         const newCandle: Candle = {
-          time: now,
+          time: now as Time,
           open: price,
           high: price,
           low: price,
@@ -312,6 +316,11 @@ export default function SimpleKlineChart({
         candleSeries.setData(chartData)
         lastDataRef.current = chartData
 
+        // 🎯 初始化最后一根K线的时间戳
+        if (chartData.length > 0) {
+          lastCandleTimeRef.current = chartData[chartData.length - 1].time
+        }
+
         // 🎯 添加实时价格红线（交易所级）
         if (currentPrice && !priceLineRef.current) {
           const precision = calculatePricePrecision(symbol, interval)
@@ -377,6 +386,9 @@ export default function SimpleKlineChart({
         low: Math.min(lastCandle.low, currentPrice),    // 更新边界
       }
 
+      // 🎯 检测是否生成了新K线（时间戳变化）
+      const isNewCandle = lastCandleTimeRef.current !== null && lastCandle.time !== lastCandleTimeRef.current
+
       // 更新图表
       seriesRef.current.update(updatedCandle)
 
@@ -418,17 +430,14 @@ export default function SimpleKlineChart({
 
       console.log(`[SimpleKlineChart] 实时价格范围: range=${priceRange.toFixed(2)}, high=${maxHigh.toFixed(2)}, low=${minLow.toFixed(2)}`)
 
-      // 🎯 检查是否需要自动滚动
-      const visibleRange = chartRef.current.timeScale().getVisibleRange()
-      const lastTime = lastCandle.time
-      const visibleTimeTo = visibleRange ? (typeof visibleRange.to === 'number' ? visibleRange.to : Number(visibleRange.to)) : 0
-
-      // 如果用户正在查看最新K线（最后10秒内），保持自动滚动
-      const isViewingLatest = lastTime - visibleTimeTo < 10000
-
-      if (isViewingLatest) {
+      // 🎯 只在生成新K线时触发自动滚动（按周期滚动，而非每秒滚动）
+      if (isNewCandle && chartRef.current) {
         chartRef.current.timeScale().scrollToPosition(0, false)  // false = 禁用动画，确保流畅
+        console.log(`[SimpleKlineChart] 新K线生成，自动滚动到最新K线`)
       }
+
+      // 更新上一根K线的时间戳
+      lastCandleTimeRef.current = lastCandle.time
     }
   }, [currentPrice, symbol, interval])
 
