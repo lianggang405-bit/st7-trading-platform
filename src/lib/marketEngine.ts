@@ -184,21 +184,21 @@ async function checkAndUpdateRealPrice(symbol: string) {
 function nextPrice(data: SymbolData): number {
   // 基础波动（随机）
   const baseVolatility = data.basePrice * data.volatility
-  const randomChange = (Math.random() - 0.5) * baseVolatility * 2  // -1x 到 +1x 波动
+  const randomChange = (Math.random() - 0.5) * baseVolatility  // -0.5x 到 +0.5x 波动（减小到原来的一半）
 
-  // 趋势影响
+  // 趋势影响（减小趋势影响）
   let trendChange = 0
   if (data.trend === 'up') {
-    trendChange = baseVolatility * data.trendStrength * 0.5  // 向上趋势
+    trendChange = baseVolatility * data.trendStrength * 0.2  // 向上趋势（减小到 0.2）
   } else if (data.trend === 'down') {
-    trendChange = -baseVolatility * data.trendStrength * 0.5  // 向下趋势
+    trendChange = -baseVolatility * data.trendStrength * 0.2  // 向下趋势（减小到 0.2）
   }
 
   // 计算新价格
   let newPrice = data.price + randomChange + trendChange
 
-  // 最大跳动限制（防止断崖式跳变）
-  const maxStep = baseVolatility * 0.5
+  // 最大跳动限制（更严格的限制，防止断崖式跳变）
+  const maxStep = baseVolatility * 0.25  // 降低到原来的 50%（0.5 → 0.25）
   const priceDiff = newPrice - data.price
   if (Math.abs(priceDiff) > maxStep) {
     newPrice = data.price + Math.sign(priceDiff) * maxStep
