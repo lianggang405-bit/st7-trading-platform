@@ -12,22 +12,46 @@ interface SimpleKlineChartProps {
   currentPrice?: number  // 当前价格（用于确保K线图价格一致）
 }
 
-// 🎯 动态价格轴刻度计算函数
+// 🎯 动态价格轴刻度计算函数（交易所级）
 // 根据当前K线的价格范围动态计算合适的价格轴刻度
-function calculatePriceScale(high: number, low: number): number {
-  const priceRange = high - low
-  const step = priceRange / 8  // 目标是显示8-10个刻度
+function calculatePriceStep(high: number, low: number): number {
+  const range = high - low
+  const step = range / 8  // 目标是显示8-10个刻度
 
-  // 返回一个"好看"的数字（类似股票交易所的价格刻度）
-  if (step < 0.5) return 0.5
-  if (step < 1) return 1
-  if (step < 2) return 2
-  if (step < 5) return 5
-  if (step < 10) return 10
-  if (step < 20) return 20
-  if (step < 50) return 50
-  if (step < 100) return 100
+  if (step < 0.5) return 0.1
+  if (step < 1) return 0.5
+  if (step < 2) return 1
+  if (step < 5) return 2
+  if (step < 10) return 5
+  if (step < 20) return 10
+  if (step < 50) return 20
+  if (step < 100) return 50
   return 100
+}
+
+// 🎯 根据时间周期动态计算价格精度
+function calculatePricePrecision(symbol: string, interval: string): number {
+  // 不同资产类别的基准价格
+  const basePriceMap: { [key: string]: number } = {
+    'BTCUSDT': 62000,
+    'ETHUSDT': 3200,
+    'XAUUSD': 5200,
+    'EURUSD': 1.085,
+    'USOIL': 85,
+  }
+  const basePrice = basePriceMap[symbol] || 1000
+
+  // 根据时间周期设置精度（交易所级）
+  const intervalConfig: { [key: string]: number } = {
+    '1m': basePrice < 10 ? 2 : 1,      // BTC: 1, XAU: 1, EUR: 2
+    '5m': basePrice < 10 ? 2 : 1,      // BTC: 1, XAU: 1, EUR: 2
+    '15m': basePrice < 10 ? 2 : 1,     // BTC: 1, XAU: 1, EUR: 2
+    '1h': basePrice < 10 ? 2 : 0,      // BTC: 0, XAU: 0, EUR: 2
+    '4h': basePrice < 10 ? 1 : 0,      // BTC: 0, XAU: 1, EUR: 1
+    '1d': basePrice < 10 ? 0 : 0,      // BTC: 0, XAU: 0, EUR: 0
+  }
+
+  return intervalConfig[interval] ?? 2
 }
 
 export default function SimpleKlineChart({
@@ -40,6 +64,7 @@ export default function SimpleKlineChart({
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<any>(null)
+  const priceLineRef = useRef<any>(null)  // 实时价格红线
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastDataRef = useRef<any[]>([]) // 保存上一次的数据
 
@@ -67,12 +92,12 @@ export default function SimpleKlineChart({
       },
       rightPriceScale: {
         borderColor: "#374151",
-        mode: 0, // 0 = Normalized Scale（规范化模式，避免跳变）
+        mode: 0, // 0 = Normalized Scale
         scaleMargins: {
-          top: 0.1,    // 顶部留10%缓冲区
-          bottom: 0.1,  // 底部留10%缓冲区（从0.2改为0.1）
+          top: 0.05,    // 顶部留5%缓冲区（减小，让价格轴更紧凑）
+          bottom: 0.05,  // 底部留5%缓冲区
         },
-        autoScale: true, // 启用自动缩放
+        autoScale: true, // 启用自动缩放（关键）
       },
       timeScale: {
         borderColor: "#374151",
@@ -195,6 +220,27 @@ export default function SimpleKlineChart({
         // 首次加载或时间戳变化，重新设置所有数据
         candleSeries.setData(chartData)
         lastDataRef.current = chartData
+
+        // 🎯 添加实时价格红线（交易所级）
+        if (currentPrice) {
+          const precision = calculatePricePrecision(symbol, interval)
+
+          // 如果已经有价格线，先移除
+          if (priceLineRef.current) {
+            candleSeries.removePriceLine(priceLineRef.current)
+          }
+
+          // 添加新的价格线
+          priceLineRef.current = candleSeries.createPriceLine({
+            price: currentPrice,
+            color: "#ff4d4f",  // 红色
+            lineWidth: 1,
+            lineStyle: 2,  // 2 = dashed
+            axisLabelVisible: true,
+            title: "",  // 不显示标题
+            lineVisible: true,
+          })
+        }
       } catch (error) {
         // 静默处理错误，避免控制台刷屏
       }
@@ -230,14 +276,14 @@ export default function SimpleKlineChart({
     }
   }, [symbol, interval, limit, height])
 
-  // 🚀 优化：每秒更新最后一根K线（平滑移动，不是跳动）
+  // 🚀 每秒更新最后一根K线和价格线（交易所级）
   useEffect(() => {
     if (!currentPrice || !seriesRef.current || lastDataRef.current.length === 0 || !chartRef.current) return
 
     const lastCandle = lastDataRef.current[lastDataRef.current.length - 1]
 
     if (lastCandle) {
-      // 🔥 只修改 close 和边界值，不改变 K线形态
+      // 🔥 实时更新当前K线（交易所级）
       const updatedCandle = {
         time: lastCandle.time,
         open: lastCandle.open,
@@ -252,8 +298,26 @@ export default function SimpleKlineChart({
       // 更新缓存
       lastDataRef.current[lastDataRef.current.length - 1] = updatedCandle
 
-      // 🎯 动态调整价格轴（如果价格超出了当前范围）
-      // 计算当前K线数据的最高价和最低价
+      // 🎯 更新实时价格红线
+      if (priceLineRef.current) {
+        // Lightweight Charts 的价格线不支持直接更新价格
+        // 需要先移除再重新添加
+        seriesRef.current.removePriceLine(priceLineRef.current)
+
+        const precision = calculatePricePrecision(symbol, interval)
+
+        priceLineRef.current = seriesRef.current.createPriceLine({
+          price: currentPrice,
+          color: "#ff4d4f",
+          lineWidth: 1,
+          lineStyle: 2,
+          axisLabelVisible: true,
+          title: "",
+          lineVisible: true,
+        })
+      }
+
+      // 🎯 动态调整价格范围（如果价格超出了当前范围）
       const allHighs = lastDataRef.current.map(k => k.high)
       const allLows = lastDataRef.current.map(k => k.low)
       const maxHigh = Math.max(...allHighs, currentPrice)
@@ -268,8 +332,6 @@ export default function SimpleKlineChart({
       const displayLow = minLow - padding
 
       // 🎯 动态调整价格范围
-      // Lightweight Charts 没有直接的 minTickSpacing 属性
-      // 我们通过调整价格范围来模拟这个效果
       const visibleRange = chartRef.current.timeScale().getVisibleRange()
       if (visibleRange) {
         chartRef.current.timeScale().setVisibleLogicalRange({
