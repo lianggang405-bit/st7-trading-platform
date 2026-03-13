@@ -32,6 +32,37 @@ export default function SimpleKlineChart({
   useEffect(() => {
     if (!chartContainerRef.current) return
 
+    // 🎯 根据时间周期设置价格轴刻度
+    // 小周期（1m、5m、15m）使用更小的刻度，大周期（1h、4h、1d）使用更大的刻度
+    const getPriceAxisOptions = (symbol: string, interval: string) => {
+      // 获取基准价格
+      const basePriceMap: { [key: string]: number } = {
+        'BTCUSDT': 62000,
+        'ETHUSDT': 3200,
+        'XAUUSD': 5200,
+        'EURUSD': 1.085,
+        'USOIL': 85,
+      }
+      const basePrice = basePriceMap[symbol] || 1000
+
+      // 根据时间周期设置刻度
+      const intervalConfig: { [key: string]: { minTickSpacing: number } } = {
+        // 小周期：使用更小的刻度（5-10美元为单位）
+        '1m': { minTickSpacing: basePrice * 0.0005 },    // BTC: ~31, XAU: ~2.6
+        '5m': { minTickSpacing: basePrice * 0.001 },     // BTC: ~62, XAU: ~5.2
+        '15m': { minTickSpacing: basePrice * 0.002 },    // BTC: ~124, XAU: ~10.4
+        // 中周期：使用中等刻度
+        '1h': { minTickSpacing: basePrice * 0.005 },     // BTC: ~310, XAU: ~26
+        '4h': { minTickSpacing: basePrice * 0.01 },      // BTC: ~620, XAU: ~52
+        // 大周期：使用较大的刻度
+        '1d': { minTickSpacing: basePrice * 0.02 },      // BTC: ~1240, XAU: ~104
+      }
+
+      return intervalConfig[interval] || { minTickSpacing: basePrice * 0.01 }
+    }
+
+    const priceAxisOptions = getPriceAxisOptions(symbol, interval)
+
     // 创建图表
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
@@ -55,6 +86,7 @@ export default function SimpleKlineChart({
           bottom: 0.2,  // 底部留20%缓冲区，防止价格变化导致缩放
         },
         autoScale: true, // 启用自动缩放
+        ...priceAxisOptions, // 🎯 动态价格轴刻度
       },
       timeScale: {
         borderColor: "#374151",
