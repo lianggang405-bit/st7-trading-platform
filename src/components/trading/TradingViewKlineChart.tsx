@@ -302,13 +302,6 @@ export default function TradingViewKlineChart({
     // Lightweight Charts的autoScale已经自动处理，无需手动调整
   }
 
-  // 🎯 监听symbol/interval变化，重新加载数据
-  useEffect(() => {
-    if (initialDataLoadedRef.current) {
-      loadInitialData()
-    }
-  }, [symbol, interval])
-
   return (
     <div
       ref={chartContainerRef}
