@@ -290,16 +290,48 @@ export default function TradingViewKlineChart({
         console.log(`[TradingViewKlineChart] K线聚合器已初始化: ${normalizedCandles.length}根历史K线`)
 
         // 转换为图表格式（确保time是number类型）
-        const chartData = normalizedCandles.map(candle => ({
-          time: candle.time as Time,
-          open: candle.open,
-          high: candle.high,
-          low: candle.low,
-          close: candle.close
-        }))
+        const chartData = normalizedCandles.map(candle => {
+          // 强制将time转换为纯数字类型
+          let timeNum = candle.time
+          if (typeof timeNum !== 'number' || isNaN(timeNum)) {
+            console.error(`[TradingViewKlineChart] 无效的time字段:`, candle.time)
+            timeNum = Math.floor(Date.now() / 1000)
+          }
+          // 确保是秒级时间戳
+          if (timeNum > 1000000000000) {
+            timeNum = Math.floor(timeNum / 1000)
+          }
+          return {
+            time: timeNum,
+            open: candle.open,
+            high: candle.high,
+            low: candle.low,
+            close: candle.close
+          }
+        })
+
+        console.log(`[TradingViewKlineChart] 准备设置初始数据: ${chartData.length}根K线`)
+        console.log(`[TradingViewKlineChart] 第一根K线:`, JSON.stringify(chartData[0]))
+        console.log(`[TradingViewKlineChart] 最后一根K线:`, JSON.stringify(chartData[chartData.length - 1]))
+
+        // 🎯 最终验证：确保所有time字段都是数字
+        const validChartData = chartData.filter((candle, index) => {
+          const isValid = typeof candle.time === 'number' && !isNaN(candle.time)
+          if (!isValid) {
+            console.error(`[TradingViewKlineChart] 第${index + 1}根K线time字段无效:`, candle.time)
+          }
+          return isValid
+        })
+
+        if (validChartData.length === 0) {
+          console.error('[TradingViewKlineChart] 没有有效的K线数据')
+          return
+        }
+
+        console.log(`[TradingViewKlineChart] 设置初始数据: ${validChartData.length}根有效K线`)
 
         // 设置初始数据
-        seriesRef.current.setData(chartData)
+        seriesRef.current.setData(validChartData)
         initialDataLoadedRef.current = true
 
         console.log(`[TradingViewKlineChart] 初始数据加载完成: ${chartData.length}根K线`)
@@ -335,20 +367,58 @@ export default function TradingViewKlineChart({
 
     if (!currentCandle) return
 
-    // 🎯 调试：打印time字段的类型和值
-    console.log(`[TradingViewKlineChart] handleTickUpdate: time=${currentCandle.time}, type=${typeof currentCandle.time}, value=${JSON.stringify(currentCandle.time)}`)
+    // 🎯 调试：打印完整的currentCandle对象
+    console.log(`[TradingViewKlineChart] handleTickUpdate: currentCandle=`, JSON.stringify(currentCandle))
+    console.log(`[TradingViewKlineChart] handleTickUpdate: time type=${typeof currentCandle.time}, value=${currentCandle.time}, JSON=${JSON.stringify(currentCandle.time)}`)
 
     // 🎯 确保time是number类型
-    const timeValue = typeof currentCandle.time === 'number' ? currentCandle.time : Number(currentCandle.time)
+    let timeValue: number
+    const timeVal = currentCandle.time
+    if (typeof timeVal === 'number' && !isNaN(timeVal)) {
+      timeValue = timeVal
+    } else if (typeof timeVal === 'string') {
+      // 如果是字符串，尝试转换
+      const parsed = parseInt(timeVal, 10)
+      timeValue = isNaN(parsed) ? Math.floor(Date.now() / 1000) : parsed
+    } else if (timeVal && typeof timeVal === 'object' && 'getTime' in timeVal) {
+      // 如果是Date对象，转换为秒级时间戳
+      timeValue = Math.floor((timeVal as any).getTime() / 1000)
+    } else {
+      // 其他情况，尝试转换或使用当前时间
+      const converted = Number(timeVal)
+      timeValue = isNaN(converted) ? Math.floor(Date.now() / 1000) : converted
+    }
 
-    // 更新图表（tick-by-tick更新）
-    seriesRef.current.update({
-      time: timeValue as Time,
+    // 确保是秒级时间戳
+    if (timeValue > 1000000000000) {
+      timeValue = Math.floor(timeValue / 1000)
+    }
+
+    console.log(`[TradingViewKlineChart] handleTickUpdate: final timeValue=${timeValue}, type=${typeof timeValue}`)
+
+    // 🎯 最终保护：确保timeValue是有效的数字类型
+    if (typeof timeValue !== 'number' || isNaN(timeValue)) {
+      console.error(`[TradingViewKlineChart] 无效的timeValue: ${timeValue} (${typeof timeValue})`)
+      timeValue = Math.floor(Date.now() / 1000)
+    }
+
+    // 🎯 构造更新数据对象，确保time是纯数字
+    const updateData = {
+      time: timeValue,
       open: currentCandle.open,
       high: currentCandle.high,
       low: currentCandle.low,
       close: currentCandle.close
-    })
+    }
+
+    console.log(`[TradingViewKlineChart] 更新图表:`, JSON.stringify(updateData))
+
+    // 更新图表（tick-by-tick更新）
+    try {
+      seriesRef.current.update(updateData)
+    } catch (error) {
+      console.error('[TradingViewKlineChart] 更新图表失败:', error)
+    }
 
     // 🎯 更新实时价格线
     if (priceLineRef.current && seriesRef.current) {
