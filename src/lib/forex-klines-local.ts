@@ -131,13 +131,22 @@ function generateKlinesFromBasePrice(
     const open = currentPrice
     const close = open * (1 + priceChange)
 
-    // 生成高低点（使用相对较小的波动）
+    // 生成高低点（使用更合理的上下影线）
     const bodySize = Math.abs(close - open) / open
-    const upperShadow = seededRandom(seed + randomIndex++) * bodySize * 0.8  // 减小上下影线
-    const lowerShadow = seededRandom(seed + randomIndex++) * bodySize * 0.8
 
-    const high = Math.max(open, close) * (1 + upperShadow)
-    const low = Math.min(open, close) * (1 - lowerShadow)
+    // 上下影线基于 volatility，而不是 bodySize
+    // 进一步减小上下影线的大小
+    const shadowVolatility = volatility * 0.08  // 上下影线的最大波动率是基准波动率的 8%
+    const upperShadow = seededRandom(seed + randomIndex++) * shadowVolatility
+    const lowerShadow = seededRandom(seed + randomIndex++) * shadowVolatility
+
+    // 限制上下影线不超过价格变化的 0.8 倍（即上下影线不会超过实体的 80%）
+    const maxShadow = bodySize * 0.8
+    const limitedUpperShadow = Math.min(upperShadow, maxShadow)
+    const limitedLowerShadow = Math.min(lowerShadow, maxShadow)
+
+    const high = Math.max(open, close) * (1 + limitedUpperShadow)
+    const low = Math.min(open, close) * (1 - limitedLowerShadow)
 
     // 确定小数位数
     const decimals = basePrice < 1 ? 5 : 2
@@ -221,11 +230,19 @@ function generateDefaultKlines(
     const close = open * (1 + priceChange)
 
     const bodySize = Math.abs(close - open) / open
-    const upperShadow = Math.random() * bodySize * 2
-    const lowerShadow = Math.random() * bodySize * 2
 
-    const high = Math.max(open, close) * (1 + upperShadow)
-    const low = Math.min(open, close) * (1 - lowerShadow)
+    // 上下影线基于 volatility，而不是 bodySize
+    const shadowVolatility = volatility * 0.08
+    const upperShadow = Math.random() * shadowVolatility
+    const lowerShadow = Math.random() * shadowVolatility
+
+    // 限制上下影线不超过价格变化的 0.8 倍
+    const maxShadow = bodySize * 0.8
+    const limitedUpperShadow = Math.min(upperShadow, maxShadow)
+    const limitedLowerShadow = Math.min(lowerShadow, maxShadow)
+
+    const high = Math.max(open, close) * (1 + limitedUpperShadow)
+    const low = Math.min(open, close) * (1 - limitedLowerShadow)
 
     klines.push({
       time,
