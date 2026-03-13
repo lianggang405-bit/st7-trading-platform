@@ -78,6 +78,7 @@ export default function SimpleKlineChart({
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastDataRef = useRef<Candle[]>([]) // 保存上一次的数据
   const lastCandleTimeRef = useRef<Time | null>(null)  // 上一根K线的时间戳（用于检测新K线生成）
+  const isMountedRef = useRef<boolean>(true)  // 跟踪组件是否已卸载（防止访问已销毁的对象）
 
   // 🎯 从MarketStore读取当前价格（统一行情源）
   const marketStorePrice = useMarketStore((state) => state.getSymbolPrice(symbol))
@@ -208,8 +209,18 @@ export default function SimpleKlineChart({
     // 加载K线数据
     async function loadKlines(forceRefresh: boolean = false) {
       try {
+        // 🎯 检查组件是否已卸载（防止访问已销毁的对象）
+        if (!isMountedRef.current) {
+          return
+        }
+
         // 使用聚合数据源，自动根据交易对类型选择最佳数据源
         const candles = await fetchKlines(symbol, interval, limit, forceRefresh)
+
+        // 🎯 再次检查组件是否已卸载（异步操作返回后）
+        if (!isMountedRef.current) {
+          return
+        }
 
         if (candles.length === 0) {
           return
@@ -298,14 +309,16 @@ export default function SimpleKlineChart({
           // 如果时间戳相同，只更新最后一根K线的价格
           if (lastNewTime === lastOldTime) {
             const lastCandle = chartData[chartData.length - 1]
-            candleSeries.update(lastCandle)
+            if (isMountedRef.current && seriesRef.current) {
+              candleSeries.update(lastCandle)
+            }
             lastDataRef.current = chartData
             return
           }
 
           // 🎯 新K线生成：自动滚动到最新K线
           const isNewCandle = lastNewTime !== lastOldTime
-          if (isNewCandle && chartRef.current) {
+          if (isNewCandle && isMountedRef.current && chartRef.current) {
             // 自动滚动到最新K线（交易所级体验）
             chartRef.current.timeScale().scrollToPosition(0, false)  // false = 禁用动画
             console.log(`[SimpleKlineChart] 新K线生成，自动滚动到最新K线`)
@@ -313,7 +326,9 @@ export default function SimpleKlineChart({
         }
 
         // 首次加载或时间戳变化，重新设置所有数据
-        candleSeries.setData(chartData)
+        if (isMountedRef.current && seriesRef.current) {
+          candleSeries.setData(chartData)
+        }
         lastDataRef.current = chartData
 
         // 🎯 初始化最后一根K线的时间戳
@@ -322,7 +337,7 @@ export default function SimpleKlineChart({
         }
 
         // 🎯 添加实时价格红线（交易所级）
-        if (currentPrice && !priceLineRef.current) {
+        if (currentPrice && !priceLineRef.current && isMountedRef.current && seriesRef.current) {
           const precision = calculatePricePrecision(symbol, interval)
 
           priceLineRef.current = candleSeries.createPriceLine({
@@ -344,11 +359,15 @@ export default function SimpleKlineChart({
     loadKlines(true)
 
     // 定时刷新（每1秒更新，确保当前K线实时更新）
-    intervalRef.current = setInterval(() => loadKlines(true), 1000)
+    intervalRef.current = setInterval(() => {
+      if (isMountedRef.current) {
+        loadKlines(true)
+      }
+    }, 1000)
 
     // 响应式调整大小
     const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
+      if (isMountedRef.current && chartContainerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
           width: chartContainerRef.current.clientWidth
         })
@@ -359,6 +378,7 @@ export default function SimpleKlineChart({
 
     // 清理
     return () => {
+      isMountedRef.current = false  // 标记组件已卸载
       window.removeEventListener("resize", handleResize)
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
@@ -372,6 +392,11 @@ export default function SimpleKlineChart({
 
   // 🚀 每秒更新最后一根K线和价格线（交易所级）
   useEffect(() => {
+    // 🎯 检查组件是否已卸载（防止访问已销毁的对象）
+    if (!isMountedRef.current) {
+      return
+    }
+
     if (!currentPrice || !seriesRef.current || lastDataRef.current.length === 0 || !chartRef.current) return
 
     const lastCandle = lastDataRef.current[lastDataRef.current.length - 1]
@@ -389,8 +414,10 @@ export default function SimpleKlineChart({
       // 🎯 检测是否生成了新K线（时间戳变化）
       const isNewCandle = lastCandleTimeRef.current !== null && lastCandle.time !== lastCandleTimeRef.current
 
-      // 更新图表
-      seriesRef.current.update(updatedCandle)
+      // 更新图表（再次检查组件是否已卸载）
+      if (isMountedRef.current && seriesRef.current) {
+        seriesRef.current.update(updatedCandle)
+      }
 
       // 更新缓存
       lastDataRef.current[lastDataRef.current.length - 1] = updatedCandle
@@ -398,7 +425,7 @@ export default function SimpleKlineChart({
       // 🎯 更新实时价格红线（交易所级）
       // 注意：Lightweight Charts 的价格线不支持直接更新价格
       // 需要先移除再重新添加（这是库的限制，无法优化）
-      if (priceLineRef.current) {
+      if (isMountedRef.current && priceLineRef.current && seriesRef.current) {
         seriesRef.current.removePriceLine(priceLineRef.current)
 
         const precision = calculatePricePrecision(symbol, interval)
@@ -431,7 +458,7 @@ export default function SimpleKlineChart({
       console.log(`[SimpleKlineChart] 实时价格范围: range=${priceRange.toFixed(2)}, high=${maxHigh.toFixed(2)}, low=${minLow.toFixed(2)}`)
 
       // 🎯 只在生成新K线时触发自动滚动（按周期滚动，而非每秒滚动）
-      if (isNewCandle && chartRef.current) {
+      if (isNewCandle && isMountedRef.current && chartRef.current) {
         chartRef.current.timeScale().scrollToPosition(0, false)  // false = 禁用动画，确保流畅
         console.log(`[SimpleKlineChart] 新K线生成，自动滚动到最新K线`)
       }
