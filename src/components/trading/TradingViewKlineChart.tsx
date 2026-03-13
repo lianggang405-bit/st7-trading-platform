@@ -59,7 +59,20 @@ export default function TradingViewKlineChart({
 
   // 🎯 初始化图表
   useEffect(() => {
-    if (!chartContainerRef.current) return
+    if (!chartContainerRef.current) {
+      console.warn('[TradingViewKlineChart] chartContainerRef.current 为空')
+      return
+    }
+
+    // 🎯 检查容器尺寸
+    const containerWidth = chartContainerRef.current.clientWidth
+    const containerHeight = chartContainerRef.current.clientHeight
+    console.log(`[TradingViewKlineChart] 容器尺寸: ${containerWidth}x${containerHeight}`)
+
+    if (containerWidth === 0 || containerHeight === 0) {
+      console.warn('[TradingViewKlineChart] 容器尺寸为0，无法初始化图表')
+      return
+    }
 
     // 创建图表
     const chart = createChart(chartContainerRef.current, {
@@ -243,9 +256,11 @@ export default function TradingViewKlineChart({
         }
       } else {
         console.error(`[TradingViewKlineChart] 没有可用数据`)
+        initialDataLoadedRef.current = false
       }
     } catch (error) {
       console.error('[TradingViewKlineChart] 加载初始数据失败:', error)
+      initialDataLoadedRef.current = false
     }
   }
 
@@ -297,7 +312,20 @@ export default function TradingViewKlineChart({
   return (
     <div
       ref={chartContainerRef}
-      style={{ height: `${height}px` }}
-    />
+      style={{ height: `${height}px`, width: '100%', backgroundColor: '#0f172a' }}
+    >
+      {!initialDataLoadedRef.current && (
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          height: '100%',
+          color: '#6b7280',
+          fontSize: '14px'
+        }}>
+          加载K线数据...
+        </div>
+      )}
+    </div>
   )
 }
