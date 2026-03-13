@@ -4,7 +4,13 @@
  * 真实行情层（每6-12小时更新一次）
  *         ↓
  * 模拟行情层（每秒更新）
+ *         ↓
+ * Tick Stream（实时价格流）
+ *         ↓
+ * Kline Aggregator（K线聚合器）
  */
+
+import { klineAggregator, Tick } from './kline-aggregator'
 
 export type SymbolData = {
   symbol: string
@@ -220,24 +226,6 @@ function nextPrice(data: SymbolData): number {
 }
 
 /**
- * 更新所有交易对价格
- * 每秒调用一次
- */
-export function updateMarket(): Record<string, SymbolData> {
-  // 更新趋势（每小时有概率改变）
-  if (Math.random() < 0.0003) {  // 每秒有 0.03% 概率（约每小时）
-    updateTrends()
-  }
-
-  // 更新所有价格
-  Object.values(symbols).forEach((s) => {
-    s.price = nextPrice(s)
-  })
-
-  return symbols
-}
-
-/**
  * 检查并更新真实价格
  * 应该定期调用（例如每分钟）
  */
@@ -304,4 +292,66 @@ export function stopRealPriceUpdater() {
 if (typeof window === 'undefined') {
   // 只在服务端启动
   startRealPriceUpdater()
+}
+
+// 🎯 Tick回调系统（交易所级）
+// 当价格更新时，触发所有注册的回调函数
+type TickCallback = (tick: Tick) => void
+const tickCallbacks: Set<TickCallback> = new Set()
+
+/**
+ * 注册tick回调
+ * @param callback 回调函数
+ */
+export function onTick(callback: TickCallback): () => void {
+  tickCallbacks.add(callback)
+
+  // 返回取消订阅函数
+  return () => {
+    tickCallbacks.delete(callback)
+  }
+}
+
+/**
+ * 触发tick回调（内部使用）
+ */
+function emitTick(symbol: string, price: number, timestamp: number): void {
+  const tick: Tick = { symbol, price, timestamp }
+
+  // 触发所有回调
+  tickCallbacks.forEach(callback => {
+    try {
+      callback(tick)
+    } catch (error) {
+      console.error('Error in tick callback:', error)
+    }
+  })
+
+  // 🎯 自动更新K线聚合器
+  klineAggregator.processTick(symbol, price, timestamp)
+}
+
+/**
+ * 更新所有交易对价格（增强版）
+ * 每秒调用一次，同时触发tick回调
+ */
+export function updateMarket(): Record<string, SymbolData> {
+  // 更新趋势（每小时有概率改变）
+  if (Math.random() < 0.0003) {  // 每秒有 0.03% 概率（约每小时）
+    updateTrends()
+  }
+
+  // 更新所有价格
+  const timestamp = Date.now()
+  Object.values(symbols).forEach((s) => {
+    const oldPrice = s.price
+    s.price = nextPrice(s)
+
+    // 🎯 只在价格变化时触发tick（优化性能）
+    if (s.price !== oldPrice) {
+      emitTick(s.symbol, s.price, timestamp)
+    }
+  })
+
+  return symbols
 }

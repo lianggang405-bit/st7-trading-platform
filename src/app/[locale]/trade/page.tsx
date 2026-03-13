@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { AuthGuard } from '../../../components/auth-guard';
 import { Price, Change } from '../../../components/data';
-import SimpleKlineChart from '../../../components/trading/SimpleKlineChart';
+import TradingViewKlineChart from '../../../components/trading/TradingViewKlineChart';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { useAuthStore } from '../../../stores/authStore';
@@ -446,12 +446,11 @@ export default function TradePage() {
 
         {/* K线图区域 */}
         {currentSymbol && (
-          <SimpleKlineChart
+          <TradingViewKlineChart
             symbol={currentSymbol}
             interval={timeFrameToInterval(timeframe)}
             height={500}
             limit={200}
-            currentPrice={currentPrice || undefined}  // 传递当前价格（从 marketStore 获取）
           />
         )}
 
