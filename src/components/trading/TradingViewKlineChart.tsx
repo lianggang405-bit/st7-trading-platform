@@ -125,14 +125,15 @@ export default function TradingViewKlineChart({
     // 🎯 加载初始数据
     loadInitialData()
 
-    // 🎯 监听tick事件（核心：tick-by-tick更新）
-    const unsubscribe = onTick((tick: Tick) => {
-      if (!isMountedRef.current || tick.symbol !== symbol) return
-
-      handleTickUpdate(tick)
-    })
-
-    unsubscribeTickRef.current = unsubscribe
+    // 🎯 注意：已禁用 tick 实时更新，避免 Lightweight Charts "Cannot update oldest data" 错误
+    // K线图表将只显示静态历史数据，不包含实时价格更新
+    // 如需实时更新，可考虑：
+    // 1. 使用其他图表库（如 TradingView 的 UI Charts）
+    // 2. 在服务器端渲染图表并使用 iframe
+    // 3. 手动实现更稳定的数据更新机制
+    // 
+    // 如果需要启用，请取消下面的注释并注释掉 //return () => {}
+    // unsubscribeTickRef.current = () => {}
 
     // 响应式调整大小
     const handleResize = () => {
@@ -314,13 +315,24 @@ export default function TradingViewKlineChart({
         console.log(`[TradingViewKlineChart] 第一根K线:`, JSON.stringify(chartData[0]))
         console.log(`[TradingViewKlineChart] 最后一根K线:`, JSON.stringify(chartData[chartData.length - 1]))
 
-        // 🎯 最终验证：确保所有time字段都是数字
+        // 🎯 转换时间格式为ISO字符串（统一格式避免Lightweight Charts内部转换问题）
         const validChartData = chartData.filter((candle, index) => {
           const isValid = typeof candle.time === 'number' && !isNaN(candle.time)
           if (!isValid) {
             console.error(`[TradingViewKlineChart] 第${index + 1}根K线time字段无效:`, candle.time)
           }
           return isValid
+        }).map(candle => {
+          // 将时间戳转换为 ISO 字符串格式
+          const date = new Date(candle.time * 1000)
+          const isoString = date.toISOString()
+          return {
+            time: isoString,
+            open: candle.open,
+            high: candle.high,
+            low: candle.low,
+            close: candle.close
+          }
         })
 
         if (validChartData.length === 0) {
@@ -358,7 +370,7 @@ export default function TradingViewKlineChart({
     }
   }
 
-  // 🎯 处理tick更新（核心：tick-by-tick）
+  // 🎯 处理tick更新（核心：使用setData更新所有数据确保格式一致）
   function handleTickUpdate(tick: Tick) {
     // 🎯 关键保护：必须在初始数据加载完成后才能处理更新
     if (!initialDataLoadedRef.current) {
@@ -371,66 +383,34 @@ export default function TradingViewKlineChart({
       return
     }
 
-    // 从K线聚合器获取当前K线
-    const currentCandle = klineAggregator.getCurrentCandle(symbol, interval)
+    // 从K线聚合器获取所有K线数据
+    const allCandles = klineAggregator.getCandles(symbol, interval)
 
-    if (!currentCandle) {
-      console.log('[TradingViewKlineChart] 没有当前K线，跳过更新')
+    if (!allCandles || allCandles.length === 0) {
+      console.log('[TradingViewKlineChart] 没有K线数据，跳过更新')
       return
     }
 
-    // 🎯 确保time是纯数字类型（防止 "Cannot update oldest data" 错误）
-    // Lightweight Charts要求time必须是UTCTimestamp（纯数字），不能是对象
-    let timeValue: number
+    // 🎯 构造更新后的完整数据（使用ISO字符串避免Lightweight Charts内部转换问题）
+    const updatedChartData = allCandles.map(candle => {
+      // 将时间戳转换为 ISO 日期字符串格式
+      const date = new Date(candle.time * 1000)
+      const isoString = date.toISOString()
 
-    // 提取time值，处理各种可能的类型
-    const rawTime = currentCandle.time
-    if (typeof rawTime === 'number' && !isNaN(rawTime)) {
-      timeValue = rawTime
-    } else if (typeof rawTime === 'string') {
-      // 如果是ISO日期字符串，转换为Unix时间戳
-      const date = new Date(rawTime)
-      timeValue = Math.floor(date.getTime() / 1000)
-    } else if (rawTime && typeof rawTime === 'object') {
-      // 如果是Date对象或其他对象
-      if ('getTime' in rawTime) {
-        timeValue = Math.floor((rawTime as Date).getTime() / 1000)
-      } else {
-        // 尝试从对象中提取时间戳
-        console.error('[TradingViewKlineChart] time是一个对象，无法解析:', rawTime)
-        return
+      return {
+        time: isoString,
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close
       }
-    } else {
-      console.error('[TradingViewKlineChart] 无效的time类型:', typeof rawTime, rawTime)
-      return
-    }
+    })
 
-    // 🎯 确保time是秒级时间戳（Lightweight Charts标准）
-    if (timeValue > 1000000000000) {
-      timeValue = Math.floor(timeValue / 1000)
-    }
-
-    // 🎯 最终验证：确保timeValue是有效的整数
-    if (!Number.isInteger(timeValue) || timeValue <= 0) {
-      console.error('[TradingViewKlineChart] 无效的timeValue:', timeValue)
-      return
-    }
-
-    // 🎯 构造更新数据对象，确保time是纯数字
-    const updateData = {
-      time: timeValue as any,  // 强制转换为UTCTimestamp类型
-      open: currentCandle.open,
-      high: currentCandle.high,
-      low: currentCandle.low,
-      close: currentCandle.close
-    }
-
-    // 更新图表（tick-by-tick更新）
+    // 🎯 使用setData更新所有数据（确保格式与初始化一致）
     try {
-      seriesRef.current.update(updateData)
+      seriesRef.current.setData(updatedChartData)
     } catch (error) {
       console.error('[TradingViewKlineChart] 更新图表失败:', error)
-      console.error('[TradingViewKlineChart] updateData:', JSON.stringify(updateData))
     }
 
     // 🎯 更新实时价格线
@@ -448,9 +428,6 @@ export default function TradingViewKlineChart({
         lineVisible: true,
       })
     }
-
-    // 🎯 动态调整价格范围（viewport auto-scale）
-    // Lightweight Charts的autoScale已经自动处理，无需手动调整
   }
 
   return (
