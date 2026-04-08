@@ -315,7 +315,7 @@ export default function TradingViewKlineChart({
         console.log(`[TradingViewKlineChart] 第一根K线:`, JSON.stringify(chartData[0]))
         console.log(`[TradingViewKlineChart] 最后一根K线:`, JSON.stringify(chartData[chartData.length - 1]))
 
-        // 🎯 转换时间格式为ISO字符串（统一格式避免Lightweight Charts内部转换问题）
+        // 🎯 转换时间格式为 yyyy-mm-dd 格式（Lightweight Charts 标准）
         const validChartData = chartData.filter((candle, index) => {
           const isValid = typeof candle.time === 'number' && !isNaN(candle.time)
           if (!isValid) {
@@ -323,11 +323,14 @@ export default function TradingViewKlineChart({
           }
           return isValid
         }).map(candle => {
-          // 将时间戳转换为 ISO 字符串格式
+          // 将时间戳转换为 yyyy-mm-dd 格式（Lightweight Charts 要求）
           const date = new Date(candle.time * 1000)
-          const isoString = date.toISOString()
+          const year = date.getUTCFullYear()
+          const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+          const day = String(date.getUTCDate()).padStart(2, '0')
+          const dateString = `${year}-${month}-${day}`
           return {
-            time: isoString,
+            time: dateString,
             open: candle.open,
             high: candle.high,
             low: candle.low,
@@ -391,14 +394,17 @@ export default function TradingViewKlineChart({
       return
     }
 
-    // 🎯 构造更新后的完整数据（使用ISO字符串避免Lightweight Charts内部转换问题）
+    // 🎯 构造更新后的完整数据（使用 yyyy-mm-dd 格式）
     const updatedChartData = allCandles.map(candle => {
-      // 将时间戳转换为 ISO 日期字符串格式
+      // 将时间戳转换为 yyyy-mm-dd 格式（Lightweight Charts 要求）
       const date = new Date(candle.time * 1000)
-      const isoString = date.toISOString()
+      const year = date.getUTCFullYear()
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+      const day = String(date.getUTCDate()).padStart(2, '0')
+      const dateString = `${year}-${month}-${day}`
 
       return {
-        time: isoString,
+        time: dateString,
         open: candle.open,
         high: candle.high,
         low: candle.low,
