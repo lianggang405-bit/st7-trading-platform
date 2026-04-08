@@ -94,23 +94,23 @@ export function getIntervalSeconds(interval: string): number {
 
 /**
  * 获取交易对的基础价格（用于生成模拟数据）
- * 优先从 /api/market 获取真实价格
+ * 优先从 /api/market/data 获取真实价格
  */
 export async function getBasePrice(symbol: string): Promise<number> {
   try {
     // 从统一的市场数据源获取价格
-    const response = await fetch('/api/market', {
+    const response = await fetch(`/api/market/data?symbols=${symbol}`, {
       cache: 'no-store',
       signal: AbortSignal.timeout(5000)  // 5秒超时
     })
 
     if (response.ok) {
       const data = await response.json()
-      if (data.success && data.symbols) {
-        const symbolData = data.symbols.find((s: any) => s.symbol === symbol)
-        if (symbolData && symbolData.price > 0) {
-          console.log(`[KlineDataSource] 使用统一市场数据源价格: ${symbol} = ${symbolData.price}`)
-          return symbolData.price
+      if (data.success && data.data && data.data[symbol]) {
+        const price = data.data[symbol].price
+        if (price > 0) {
+          console.log(`[KlineDataSource] 使用统一市场数据源价格: ${symbol} = ${price}`)
+          return price
         }
       }
     }
