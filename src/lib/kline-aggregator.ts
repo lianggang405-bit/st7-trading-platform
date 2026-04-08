@@ -146,17 +146,31 @@ export class KlineAggregator {
     const historicalCandles = this.candles.get(key) || []
     const currentCandle = this.currentCandles.get(key)
 
-    // 确保所有K线的time字段都是number类型
+    // 🎯 确保所有K线的time字段是纯数字类型
+    const normalizeTime = (rawTime: number | any): number => {
+      if (typeof rawTime === 'number' && !isNaN(rawTime)) {
+        // 毫秒转秒
+        if (rawTime > 1000000000000) {
+          return Math.floor(rawTime / 1000)
+        }
+        return rawTime
+      }
+      const converted = Number(rawTime)
+      if (!isNaN(converted)) {
+        return converted > 1000000000000 ? Math.floor(converted / 1000) : converted
+      }
+      return Math.floor(Date.now() / 1000)
+    }
+
     const normalizedHistorical = historicalCandles.map(candle => ({
       ...candle,
-      time: typeof candle.time === 'number' ? candle.time : Number(candle.time)
+      time: normalizeTime(candle.time)
     }))
 
-    // 如果有当前K线，添加到结果中
     if (currentCandle) {
       return [...normalizedHistorical, {
         ...currentCandle,
-        time: typeof currentCandle.time === 'number' ? currentCandle.time : Number(currentCandle.time)
+        time: normalizeTime(currentCandle.time)
       }]
     }
 
@@ -175,10 +189,31 @@ export class KlineAggregator {
 
     if (!candle) return null
 
-    // 确保time字段是number类型
+    // 🎯 确保time字段是纯数字类型（防止Lightweight Charts报错）
+    let timeValue: number
+    const rawTime = candle.time
+
+    if (typeof rawTime === 'number' && !isNaN(rawTime)) {
+      timeValue = rawTime
+    } else {
+      // 尝试转换其他格式
+      const converted = Number(rawTime)
+      if (!isNaN(converted)) {
+        timeValue = converted
+      } else {
+        console.error('[KlineAggregator] getCurrentCandle: 无效的time值:', rawTime)
+        return null
+      }
+    }
+
+    // 确保是秒级时间戳
+    if (timeValue > 1000000000000) {
+      timeValue = Math.floor(timeValue / 1000)
+    }
+
     return {
       ...candle,
-      time: typeof candle.time === 'number' ? candle.time : Number(candle.time)
+      time: timeValue
     }
   }
 
@@ -206,7 +241,20 @@ export class KlineAggregator {
 
     // 🎯 确保所有历史K线的time字段都是秒级（Lightweight Charts标准）
     const normalizedCandles = candles.map(candle => {
-      let timeValue = typeof candle.time === 'number' ? candle.time : Number(candle.time)
+      let timeValue: number
+      const rawTime = candle.time
+
+      if (typeof rawTime === 'number' && !isNaN(rawTime)) {
+        timeValue = rawTime
+      } else {
+        const converted = Number(rawTime)
+        if (!isNaN(converted)) {
+          timeValue = converted
+        } else {
+          console.error('[KlineAggregator] initHistoricalCandles: 无效的time值:', rawTime)
+          return null
+        }
+      }
 
       // 检测并转换毫秒级时间戳为秒级
       // 如果时间戳大于 1e12（10^12），则认为是毫秒级时间戳
@@ -218,7 +266,7 @@ export class KlineAggregator {
         ...candle,
         time: timeValue
       }
-    })
+    }).filter(c => c !== null) as KlineCandle[]
 
     // 保存历史K线
     this.candles.set(key, normalizedCandles)
@@ -226,7 +274,13 @@ export class KlineAggregator {
     // 如果有历史K线，将最后一根作为当前K线的基准
     if (normalizedCandles.length > 0) {
       const lastCandle = normalizedCandles[normalizedCandles.length - 1]
-      this.currentCandles.set(key, { ...lastCandle })
+      this.currentCandles.set(key, {
+        time: lastCandle.time,  // 确保time是纯数字
+        open: lastCandle.open,
+        high: lastCandle.high,
+        low: lastCandle.low,
+        close: lastCandle.close
+      })
     }
   }
 }

@@ -379,58 +379,58 @@ export default function TradingViewKlineChart({
       return
     }
 
-    // 🎯 调试：打印完整的currentCandle对象
-    console.log(`[TradingViewKlineChart] handleTickUpdate: currentCandle=`, JSON.stringify(currentCandle))
-    console.log(`[TradingViewKlineChart] handleTickUpdate: time type=${typeof currentCandle.time}, value=${currentCandle.time}, JSON=${JSON.stringify(currentCandle.time)}`)
-    console.log(`[TradingViewKlineChart] handleTickUpdate: currentCandle keys=`, Object.keys(currentCandle))
-
-    // 🎯 确保time是number类型
+    // 🎯 确保time是纯数字类型（防止 "Cannot update oldest data" 错误）
+    // Lightweight Charts要求time必须是UTCTimestamp（纯数字），不能是对象
     let timeValue: number
-    const timeVal = currentCandle.time
-    if (typeof timeVal === 'number' && !isNaN(timeVal)) {
-      timeValue = timeVal
-    } else if (typeof timeVal === 'string') {
-      // 如果是字符串，尝试转换
-      const parsed = parseInt(timeVal, 10)
-      timeValue = isNaN(parsed) ? Math.floor(Date.now() / 1000) : parsed
-    } else if (timeVal && typeof timeVal === 'object' && 'getTime' in timeVal) {
-      // 如果是Date对象，转换为秒级时间戳
-      timeValue = Math.floor((timeVal as any).getTime() / 1000)
+
+    // 提取time值，处理各种可能的类型
+    const rawTime = currentCandle.time
+    if (typeof rawTime === 'number' && !isNaN(rawTime)) {
+      timeValue = rawTime
+    } else if (typeof rawTime === 'string') {
+      // 如果是ISO日期字符串，转换为Unix时间戳
+      const date = new Date(rawTime)
+      timeValue = Math.floor(date.getTime() / 1000)
+    } else if (rawTime && typeof rawTime === 'object') {
+      // 如果是Date对象或其他对象
+      if ('getTime' in rawTime) {
+        timeValue = Math.floor((rawTime as Date).getTime() / 1000)
+      } else {
+        // 尝试从对象中提取时间戳
+        console.error('[TradingViewKlineChart] time是一个对象，无法解析:', rawTime)
+        return
+      }
     } else {
-      // 其他情况，尝试转换或使用当前时间
-      const converted = Number(timeVal)
-      timeValue = isNaN(converted) ? Math.floor(Date.now() / 1000) : converted
+      console.error('[TradingViewKlineChart] 无效的time类型:', typeof rawTime, rawTime)
+      return
     }
 
-    // 确保是秒级时间戳
+    // 🎯 确保time是秒级时间戳（Lightweight Charts标准）
     if (timeValue > 1000000000000) {
       timeValue = Math.floor(timeValue / 1000)
     }
 
-    console.log(`[TradingViewKlineChart] handleTickUpdate: final timeValue=${timeValue}, type=${typeof timeValue}`)
-
-    // 🎯 最终保护：确保timeValue是有效的数字类型
-    if (typeof timeValue !== 'number' || isNaN(timeValue)) {
-      console.error(`[TradingViewKlineChart] 无效的timeValue: ${timeValue} (${typeof timeValue})`)
-      timeValue = Math.floor(Date.now() / 1000)
+    // 🎯 最终验证：确保timeValue是有效的整数
+    if (!Number.isInteger(timeValue) || timeValue <= 0) {
+      console.error('[TradingViewKlineChart] 无效的timeValue:', timeValue)
+      return
     }
 
     // 🎯 构造更新数据对象，确保time是纯数字
     const updateData = {
-      time: timeValue,
+      time: timeValue as any,  // 强制转换为UTCTimestamp类型
       open: currentCandle.open,
       high: currentCandle.high,
       low: currentCandle.low,
       close: currentCandle.close
     }
 
-    console.log(`[TradingViewKlineChart] 更新图表:`, JSON.stringify(updateData))
-
     // 更新图表（tick-by-tick更新）
     try {
       seriesRef.current.update(updateData)
     } catch (error) {
       console.error('[TradingViewKlineChart] 更新图表失败:', error)
+      console.error('[TradingViewKlineChart] updateData:', JSON.stringify(updateData))
     }
 
     // 🎯 更新实时价格线
