@@ -40,6 +40,7 @@
     "enterEmail": "โปรดป้อนอีเมล",
     "enterPassword": "โปรดป้อนรหัสผ่าน",
     "confirmPassword": "โปรดป้อนรหัสผ่านอีกครั้ง",
+    "confirmPasswordPlaceholder": "โปรดป้อนรหัสผ่านอีกครั้ง",
     "enterConfirmPassword": "โปรดป้อนรหัสผ่านอีกครั้ง",
     "enterInviteCode": "โปรดป้อนรหัสเชิญ (ไม่บังคับ)",
     "enterVerifyCode": "โปรดป้อนรหัสยืนยัน",
@@ -51,7 +52,13 @@
     "createDemoFailed": "การสร้างบัญชีทดลองล้มเหลว โปรดลองอีกครั้งในภายหลัง",
     "enterEmailError": "โปรดป้อนอีเมล",
     "enterPasswordError": "โปรดป้อนรหัสผ่าน",
-    "enterVerifyCodeError": "โปรดป้อนรหัสยืนยัน"
+    "enterVerifyCodeError": "โปรดป้อนรหัสยืนยัน",
+    "inviteCodeOptional": "รหัสเชิญ (ไม่บังคับ)",
+    "inviteCodePlaceholder": "โปรดป้อนรหัสเชิญ (ไม่บังคับ)",
+    "captcha": "รหัสยืนยัน",
+    "captchaPlaceholder": "โปรดป้อนรหัสยืนยัน",
+    "fillAllFields": "โปรดกรอกข้อมูลในช่องที่จำเป็นทั้งหมด",
+    "contactSupportForPassword": "โปรดติดต่อฝ่ายสนับสนุนเพื่อรีเซ็ตรหัสผ่าน"
   },
   "language": {
     "title": "เลือกภาษา",

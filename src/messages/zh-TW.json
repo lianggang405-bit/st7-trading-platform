@@ -30,6 +30,7 @@
     "language": "語言"
   },
   "auth": {
+    "email": "郵箱",
     "emailLogin": "郵箱登入",
     "emailPlaceholder": "請輸入您的郵箱",
     "passwordPlaceholder": "請輸入密碼",
@@ -40,9 +41,15 @@
     "enterEmail": "請輸入您的郵箱",
     "enterPassword": "請輸入密碼",
     "confirmPassword": "請再次輸入密碼",
+    "confirmPasswordPlaceholder": "請再次輸入密碼",
     "enterConfirmPassword": "請再次輸入密碼",
     "enterInviteCode": "請輸入邀請碼（選填）",
     "enterVerifyCode": "請輸入驗證碼",
+    "inviteCodeOptional": "邀請碼（選填）",
+    "inviteCodePlaceholder": "請輸入邀請碼（選填）",
+    "captcha": "驗證碼",
+    "captchaPlaceholder": "請輸入驗證碼",
+    "fillAllFields": "請填寫所有必填項",
     "passwordTooShort": "密碼必須至少 6 個字符",
     "passwordMismatch": "密碼不匹配",
     "verifyCodeError": "驗證碼錯誤",

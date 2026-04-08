@@ -30,6 +30,7 @@
     "language": "Language"
   },
   "auth": {
+    "email": "Email",
     "emailLogin": "Email Login",
     "emailPlaceholder": "Please enter your email",
     "passwordPlaceholder": "Please enter your password",
@@ -40,9 +41,15 @@
     "enterEmail": "Please enter your email",
     "enterPassword": "Please enter your password",
     "confirmPassword": "Please enter your password again",
+    "confirmPasswordPlaceholder": "Please enter your password again",
     "enterConfirmPassword": "Please enter your password again",
     "enterInviteCode": "Please enter invite code (optional)",
     "enterVerifyCode": "Please enter verification code",
+    "inviteCodeOptional": "Invite Code (Optional)",
+    "inviteCodePlaceholder": "Please enter invite code (optional)",
+    "captcha": "Verification Code",
+    "captchaPlaceholder": "Please enter verification code",
+    "fillAllFields": "Please fill in all required fields",
     "passwordTooShort": "Password must be at least 6 characters",
     "passwordMismatch": "Passwords do not match",
     "verifyCodeError": "Verification code is incorrect",

@@ -40,6 +40,7 @@
     "enterEmail": "Bitte geben Sie Ihre E-Mail ein",
     "enterPassword": "Bitte geben Sie Ihr Passwort ein",
     "confirmPassword": "Bitte geben Sie Ihr Passwort erneut ein",
+    "confirmPasswordPlaceholder": "Bitte geben Sie Ihr Passwort erneut ein",
     "enterConfirmPassword": "Bitte geben Sie Ihr Passwort erneut ein",
     "enterInviteCode": "Bitte geben Sie den Einladungscode ein (optional)",
     "enterVerifyCode": "Bitte geben Sie den Bestätigungscode ein",
@@ -51,7 +52,13 @@
     "createDemoFailed": "Erstellung des Demokontos fehlgeschlagen, bitte versuchen Sie es später erneut",
     "enterEmailError": "Bitte geben Sie Ihre E-Mail ein",
     "enterPasswordError": "Bitte geben Sie Ihr Passwort ein",
-    "enterVerifyCodeError": "Bitte geben Sie den Bestätigungscode ein"
+    "enterVerifyCodeError": "Bitte geben Sie den Bestätigungscode ein",
+    "inviteCodeOptional": "Einladungscode (optional)",
+    "inviteCodePlaceholder": "Bitte geben Sie den Einladungscode ein (optional)",
+    "captcha": "Bestätigungscode",
+    "captchaPlaceholder": "Bitte geben Sie den Bestätigungscode ein",
+    "fillAllFields": "Bitte füllen Sie alle Pflichtfelder aus",
+    "contactSupportForPassword": "Bitte kontaktieren Sie den Support, um das Passwort zurückzusetzen"
   },
   "language": {
     "title": "Sprachauswahl",

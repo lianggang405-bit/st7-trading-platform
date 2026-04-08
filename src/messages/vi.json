@@ -40,6 +40,7 @@
     "enterEmail": "Vui lòng nhập email",
     "enterPassword": "Vui lòng nhập mật khẩu",
     "confirmPassword": "Vui lòng nhập lại mật khẩu",
+    "confirmPasswordPlaceholder": "Vui lòng nhập lại mật khẩu",
     "enterConfirmPassword": "Vui lòng nhập lại mật khẩu",
     "enterInviteCode": "Vui lòng nhập mã mời (tùy chọn)",
     "enterVerifyCode": "Vui lòng nhập mã xác minh",
@@ -51,7 +52,13 @@
     "createDemoFailed": "Tạo tài khoản demo thất bại, vui lòng thử lại sau",
     "enterEmailError": "Vui lòng nhập email",
     "enterPasswordError": "Vui lòng nhập mật khẩu",
-    "enterVerifyCodeError": "Vui lòng nhập mã xác minh"
+    "enterVerifyCodeError": "Vui lòng nhập mã xác minh",
+    "inviteCodeOptional": "Mã mời (tùy chọn)",
+    "inviteCodePlaceholder": "Vui lòng nhập mã mời (tùy chọn)",
+    "captcha": "Mã xác minh",
+    "captchaPlaceholder": "Vui lòng nhập mã xác minh",
+    "fillAllFields": "Vui lòng điền tất cả các trường bắt buộc",
+    "contactSupportForPassword": "Vui lòng liên hệ bộ phận hỗ trợ để đặt lại mật khẩu"
   },
   "language": {
     "title": "Chọn ngôn ngữ",

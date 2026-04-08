@@ -40,6 +40,7 @@
     "enterEmail": "Введите электронную почту",
     "enterPassword": "Введите пароль",
     "confirmPassword": "Введите пароль еще раз",
+    "confirmPasswordPlaceholder": "Введите пароль еще раз",
     "enterConfirmPassword": "Введите пароль еще раз",
     "enterInviteCode": "Введите код приглашения (необязательно)",
     "enterVerifyCode": "Введите код подтверждения",
@@ -51,7 +52,13 @@
     "createDemoFailed": "Не удалось создать демо-аккаунт, попробуйте позже",
     "enterEmailError": "Введите электронную почту",
     "enterPasswordError": "Введите пароль",
-    "enterVerifyCodeError": "Введите код подтверждения"
+    "enterVerifyCodeError": "Введите код подтверждения",
+    "inviteCodeOptional": "Код приглашения (необязательно)",
+    "inviteCodePlaceholder": "Введите код приглашения (необязательно)",
+    "captcha": "Код подтверждения",
+    "captchaPlaceholder": "Введите код подтверждения",
+    "fillAllFields": "Пожалуйста, заполните все обязательные поля",
+    "contactSupportForPassword": "Пожалуйста, свяжитесь со службой поддержки для сброса пароля"
   },
   "language": {
     "title": "Выбор языка",

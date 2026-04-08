@@ -360,16 +360,29 @@ export default function TradingViewKlineChart({
 
   // 🎯 处理tick更新（核心：tick-by-tick）
   function handleTickUpdate(tick: Tick) {
-    if (!seriesRef.current || !chartRef.current || !isMountedRef.current) return
+    // 🎯 关键保护：必须在初始数据加载完成后才能处理更新
+    if (!initialDataLoadedRef.current) {
+      console.log('[TradingViewKlineChart] 初始数据未加载完成，跳过tick更新')
+      return
+    }
+
+    if (!seriesRef.current || !chartRef.current || !isMountedRef.current) {
+      console.log('[TradingViewKlineChart] 图表未就绪，跳过tick更新')
+      return
+    }
 
     // 从K线聚合器获取当前K线
     const currentCandle = klineAggregator.getCurrentCandle(symbol, interval)
 
-    if (!currentCandle) return
+    if (!currentCandle) {
+      console.log('[TradingViewKlineChart] 没有当前K线，跳过更新')
+      return
+    }
 
     // 🎯 调试：打印完整的currentCandle对象
     console.log(`[TradingViewKlineChart] handleTickUpdate: currentCandle=`, JSON.stringify(currentCandle))
     console.log(`[TradingViewKlineChart] handleTickUpdate: time type=${typeof currentCandle.time}, value=${currentCandle.time}, JSON=${JSON.stringify(currentCandle.time)}`)
+    console.log(`[TradingViewKlineChart] handleTickUpdate: currentCandle keys=`, Object.keys(currentCandle))
 
     // 🎯 确保time是number类型
     let timeValue: number
