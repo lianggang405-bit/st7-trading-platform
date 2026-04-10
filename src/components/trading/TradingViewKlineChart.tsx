@@ -409,25 +409,14 @@ export default function TradingViewKlineChart({
       return
     }
 
-    // 🎯 构造更新后的完整数据（使用数字时间戳）
-    const updatedChartData = allCandles.map(candle => {
-      // 确保时间戳是秒级整数
-      let timeValue = candle.time
-      if (typeof timeValue === 'string') {
-        timeValue = parseInt(timeValue, 10)
-      }
-      if (timeValue > 1000000000000) {
-        timeValue = Math.floor(timeValue / 1000)
-      }
-
-      return {
-        time: timeValue as any,
-        open: candle.open,
-        high: candle.high,
-        low: candle.low,
-        close: candle.close
-      }
-    })
+    // 🎯 去重：使用Map去除重复时间戳
+    const candleMap = new Map<number, any>()
+    for (const candle of allCandles) {
+      let timeValue = typeof candle.time === 'number' ? candle.time : parseInt(String(candle.time))
+      if (timeValue > 1000000000000) timeValue = Math.floor(timeValue / 1000)
+      candleMap.set(timeValue, { time: timeValue, open: candle.open, high: candle.high, low: candle.low, close: candle.close })
+    }
+    const updatedChartData = Array.from(candleMap.values()).sort((a, b) => a.time - b.time)
 
     // 🎯 使用setData更新所有数据（确保格式与初始化一致）
     try {
