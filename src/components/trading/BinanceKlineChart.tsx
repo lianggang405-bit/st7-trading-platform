@@ -170,7 +170,7 @@ export default function BinanceKlineChart({
     }
 
     console.log(`[BinanceKline] Using mock data for ${symbol}`)
-  }, [symbol, interval, generateMockData])
+  }, [symbol, interval])
 
   // 获取最新K线数据
   const fetchLatestData = useCallback(async () => {
