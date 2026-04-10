@@ -65,17 +65,6 @@ export default function TradingViewKlineChart({
 
   const intervalSeconds = INTERVALS[interval] || INTERVALS['1h']
 
-  // 🎯 获取波浪颜色 - 根据连续涨跌次数
-  const getWaveColor = useCallback((isBullish: boolean, consecutiveCount: number): string => {
-    if (!showWave) {
-      return isBullish ? '#26a69a' : '#ef5350'
-    }
-
-    const colors = isBullish ? WAVE_COLORS.bullish : WAVE_COLORS.bearish
-    const index = Math.min(consecutiveCount, colors.length - 1)
-    return colors[index]
-  }, [showWave])
-
   // 🎯 生成波浪 K 线数据 - 根据连续涨跌设置颜色
   const generateWaveData = useCallback((currentPrice: number, count: number): CandlestickData<Time>[] => {
     const candles: CandlestickData<Time>[] = []
@@ -90,16 +79,15 @@ export default function TradingViewKlineChart({
       const time = (now - i * intervalSeconds) as Time
       const prevPrice = price
 
-      // 模拟价格变化
-      const change = (Math.random() - 0.48) * 2 * volatility * price // 略微偏向涨
-      price = prevPrice * (1 + change)
+      // 模拟价格变化 - 使用固定的微小波动比例
+      const changePercent = (Math.random() - 0.48) * volatility
+      price = prevPrice * (1 + changePercent)
 
-      const isBullish = price >= prevPrice
       const open = prevPrice
       const close = price
 
       // 计算连续涨跌次数
-      if (isBullish) {
+      if (close >= open) {
         consecutiveBullish++
         consecutiveBearish = 0
       } else {
@@ -107,26 +95,22 @@ export default function TradingViewKlineChart({
         consecutiveBullish = 0
       }
 
-      const consecutiveCount = Math.max(consecutiveBullish, consecutiveBearish)
-      const color = getWaveColor(isBullish, consecutiveCount)
-
-      // 阳线（上涨）
-      const bullishColor = isBullish ? color : undefined
-      // 阴线（下跌）
-      const bearishColor = !isBullish ? color : undefined
+      // 计算 high 和 low - 使用固定的小数位数避免溢出
+      const change = Math.abs(close - open) * 0.5
+      const high = Math.max(open, close) + change
+      const low = Math.min(open, close) - change
 
       candles.push({
         time,
         open,
-        high: Math.max(open, close) * (1 + Math.random() * 0.001),
-        low: Math.min(open, close) * (1 - Math.random() * 0.001),
+        high,
+        low,
         close,
-        color: isBullish ? color : color,  // 设置颜色
-      } as CandlestickData<Time>)
+      })
     }
 
     return candles
-  }, [intervalSeconds, getWaveColor])
+  }, [intervalSeconds])
 
   // 🎯 加载数据
   const loadData = useCallback(() => {
@@ -170,11 +154,12 @@ export default function TradingViewKlineChart({
 
     if (currentCandleTime === lastTime) {
       // 更新当前 K 线
+      const change = Math.abs(price - lastCandle.open) * 0.5
       const updated: CandlestickData<Time> = {
         time: lastCandle.time,
         open: lastCandle.open,
-        high: Math.max(lastCandle.high as number, price),
-        low: Math.min(lastCandle.low as number, price),
+        high: Math.max(lastCandle.high as number, price) + change,
+        low: Math.min(lastCandle.low as number, price) - change,
         close: price,
       }
 
@@ -182,11 +167,12 @@ export default function TradingViewKlineChart({
       seriesRef.current.update(updated)
     } else {
       // 新 K 线
+      const change = Math.abs(price - priceRef.current) * 0.5
       const newCandle: CandlestickData<Time> = {
         time: currentCandleTime as Time,
-        open: price,
-        high: price,
-        low: price,
+        open: priceRef.current,
+        high: price + change,
+        low: price - change,
         close: price,
       }
 
