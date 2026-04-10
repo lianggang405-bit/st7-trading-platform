@@ -450,7 +450,6 @@ export default function TradePage() {
             symbol={currentSymbol}
             interval={timeFrameToInterval(timeframe)}
             height={500}
-            limit={200}
           />
         )}
 
