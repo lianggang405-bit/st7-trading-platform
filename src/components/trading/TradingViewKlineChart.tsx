@@ -165,13 +165,14 @@ export default function TradingViewKlineChart({
     const candles: KlineCandle[] = []
     const now = Date.now()
     const intervalMs = currentInterval
+    const volatility = 0.001  // 0.1% 波动
+    const maxDeviation = basePrice * 0.05  // 最多偏离5%
 
     // 倒推生成历史K线
     for (let i = count - 1; i >= 0; i--) {
       const timeMs = now - (i * intervalMs)
       // 🎯 转换为秒级时间戳（Lightweight Charts标准）
       const time = Math.floor(timeMs / 1000)
-      const volatility = 0.001  // 0.1% 波动
 
       // 基于前一根K线生成新K线
       let open, close, high, low
@@ -181,6 +182,8 @@ export default function TradingViewKlineChart({
         open = basePrice
         const change = (Math.random() - 0.5) * 2 * volatility * basePrice
         close = open + change
+        // 限制价格偏离范围
+        close = Math.max(basePrice - maxDeviation, Math.min(basePrice + maxDeviation, close))
         high = Math.max(open, close) + Math.random() * volatility * basePrice
         low = Math.min(open, close) - Math.random() * volatility * basePrice
       } else {
@@ -188,6 +191,8 @@ export default function TradingViewKlineChart({
         open = prev.close
         const change = (Math.random() - 0.5) * 2 * volatility * basePrice
         close = open + change
+        // 限制价格偏离范围
+        close = Math.max(basePrice - maxDeviation, Math.min(basePrice + maxDeviation, close))
         high = Math.max(open, close) + Math.random() * volatility * basePrice
         low = Math.min(open, close) - Math.random() * volatility * basePrice
       }
@@ -412,6 +417,16 @@ export default function TradingViewKlineChart({
 
         console.log(`[TradingViewKlineChart] 初始数据加载完成: ${chartData.length}根K线`)
 
+        // 🎯 移除可能存在的旧价格线（防止重复）
+        if (priceLineRef.current) {
+          try {
+            seriesRef.current.removePriceLine(priceLineRef.current)
+          } catch (e) {
+            // 忽略移除失败
+          }
+          priceLineRef.current = null
+        }
+
         // 🎯 添加实时价格线
         if (currentPrice > 0 && seriesRef.current) {
           priceLineRef.current = seriesRef.current.createPriceLine({
@@ -472,9 +487,15 @@ export default function TradingViewKlineChart({
     }
 
     // 🎯 更新实时价格线
-    if (priceLineRef.current && seriesRef.current) {
-      // Lightweight Charts不支持直接更新价格线，需要先移除再添加
-      seriesRef.current.removePriceLine(priceLineRef.current)
+    if (seriesRef.current) {
+      // 先移除旧的价格线（防止重复）
+      if (priceLineRef.current) {
+        try {
+          seriesRef.current.removePriceLine(priceLineRef.current)
+        } catch (e) {
+          // 忽略移除失败
+        }
+      }
 
       priceLineRef.current = seriesRef.current.createPriceLine({
         price: tick.price,
