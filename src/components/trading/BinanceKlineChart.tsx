@@ -3,7 +3,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { createChart, IChartApi, ISeriesApi, CandlestickData, Time, ColorType, CrosshairMode, CandlestickSeries } from 'lightweight-charts'
 import { useTranslations } from 'next-intl'
-import ChartErrorBoundary from './ChartErrorBoundary'
 
 interface BinanceKlineChartProps {
   symbol?: string  // 例如 'BTCUSDT', 'ETHUSDT'
@@ -411,13 +410,11 @@ export default function BinanceKlineChart({
         </div>
       )}
 
-      <ChartErrorBoundary>
-        <div
-          ref={containerRef}
-          className="w-full rounded-lg overflow-hidden"
-          style={{ height: `${height}px` }}
-        />
-      </ChartErrorBoundary>
+      <div
+        ref={containerRef}
+        className="w-full rounded-lg overflow-hidden"
+        style={{ height: `${height}px` }}
+      />
     </div>
   )
 }
