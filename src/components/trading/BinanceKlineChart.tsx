@@ -138,68 +138,90 @@ export default function BinanceKlineChart({
   const connectWebSocket = useCallback(() => {
     if (wsRef.current) {
       wsRef.current.close()
+      wsRef.current = null
     }
 
-    const wsPath = `${symbol.toLowerCase()}@kline_${interval}`
-    const ws = new WebSocket(`${BINANCE_WS}/${wsPath}`)
+    // 格式化 symbol 为 Binance 格式
+    const binanceSymbol = symbol.toLowerCase().replace('/', '')
+    const wsPath = `${binanceSymbol}@kline_${interval}`
+    
+    console.log(`[BinanceKline] Connecting to: wss://stream.binance.com:9443/${wsPath}`)
 
-    ws.onopen = () => {
-      console.log(`[BinanceKline] WebSocket connected: ${wsPath}`)
-      setIsConnected(true)
-    }
+    try {
+      const ws = new WebSocket(`wss://stream.binance.com:9443/${wsPath}`)
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        if (data.e !== 'kline') return
-
-        const kline = data.k
-        const candle: CandlestickData<Time> = {
-          time: Math.floor(kline.t / 1000) as Time,
-          open: parseFloat(kline.o),
-          high: parseFloat(kline.h),
-          low: parseFloat(kline.l),
-          close: parseFloat(kline.c),
-        }
-
-        const candles = candlesRef.current
-        const lastCandle = candles[candles.length - 1]
-
-        if (lastCandle && candle.time === lastCandle.time) {
-          // 更新当前 K 线
-          candles[candles.length - 1] = candle
-          seriesRef.current?.update(candle)
-        } else if (lastCandle && candle.time > lastCandle.time) {
-          // 新 K 线
-          candles.push(candle)
-          if (candles.length > 200) candles.shift()
-          seriesRef.current?.update(candle)
-        }
-
-        // 更新价格和趋势
-        priceRef.current = candle.close
-        const firstPrice = candles[0].open
-        setPriceChange({
-          value: candle.close - firstPrice,
-          percent: ((candle.close - firstPrice) / firstPrice) * 100,
-        })
-      } catch (error) {
-        console.error('[BinanceKline] Parse error:', error)
+      ws.onopen = () => {
+        console.log(`[BinanceKline] WebSocket connected`)
+        setIsConnected(true)
+        this.reconnectAttempts = 0
       }
-    }
 
-    ws.onerror = (error) => {
-      console.error('[BinanceKline] WebSocket error:', error)
-    }
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          if (data.e !== 'kline') return
 
-    ws.onclose = () => {
-      console.log('[BinanceKline] WebSocket closed')
+          const kline = data.k
+          const candle: CandlestickData<Time> = {
+            time: Math.floor(kline.t / 1000) as Time,
+            open: parseFloat(kline.o),
+            high: parseFloat(kline.h),
+            low: parseFloat(kline.l),
+            close: parseFloat(kline.c),
+          }
+
+          const candles = candlesRef.current
+          const lastCandle = candles[candles.length - 1]
+
+          if (lastCandle && candle.time === lastCandle.time) {
+            // 更新当前 K 线
+            candles[candles.length - 1] = candle
+            seriesRef.current?.update(candle)
+          } else if (lastCandle && candle.time > lastCandle.time) {
+            // 新 K 线
+            candles.push(candle)
+            if (candles.length > 200) candles.shift()
+            seriesRef.current?.update(candle)
+          }
+
+          // 更新价格和趋势
+          priceRef.current = candle.close
+          const firstPrice = candles[0].open
+          setPriceChange({
+            value: candle.close - firstPrice,
+            percent: ((candle.close - firstPrice) / firstPrice) * 100,
+          })
+        } catch (error) {
+          console.error('[BinanceKline] Parse error:', error)
+        }
+      }
+
+      ws.onerror = (error) => {
+        console.warn('[BinanceKline] WebSocket error, will retry...')
+        setIsConnected(false)
+      }
+
+      ws.onclose = () => {
+        console.log('[BinanceKline] WebSocket closed, reconnecting...')
+        setIsConnected(false)
+        wsRef.current = null
+        
+        // 延迟重连
+        setTimeout(() => {
+          if (!wsRef.current) {
+            connectWebSocket()
+          }
+        }, 3000)
+      }
+
+      wsRef.current = ws
+    } catch (error) {
+      console.error('[BinanceKline] Failed to create WebSocket:', error)
       setIsConnected(false)
-      // 5秒后重连
+      
+      // 延迟重试
       setTimeout(connectWebSocket, 5000)
     }
-
-    wsRef.current = ws
   }, [symbol, interval])
 
   // 初始化图表
