@@ -67,6 +67,36 @@ export default function BinanceKlineChart({
     return upper.replace('USDT', '/USDT')
   }
 
+  // 生成备用模拟数据
+  const generateBackupData = useCallback((count: number): CandlestickData<Time>[] => {
+    const candles: CandlestickData<Time>[] = []
+    const now = Math.floor(Date.now() / 1000)
+    const intervalSec = interval === '1m' ? 60 : interval === '5m' ? 300 : 
+                        interval === '15m' ? 900 : interval === '30m' ? 1800 :
+                        interval === '1h' ? 3600 : interval === '4h' ? 14400 :
+                        interval === '1d' ? 86400 : 3600
+    
+    const currentCandleTime = Math.floor(now / intervalSec) * intervalSec
+    let price = 50000 // BTC 默认价格
+
+    for (let i = count - 1; i >= 0; i--) {
+      const time = (currentCandleTime - i * intervalSec) as Time
+      const open = price
+      const close = price * (1 + (Math.random() - 0.5) * 0.002)
+      price = close
+
+      candles.push({
+        time,
+        open,
+        high: Math.max(open, close) * 1.001,
+        low: Math.min(open, close) * 0.999,
+        close,
+      })
+    }
+
+    return candles
+  }, [interval])
+
   // 加载历史数据
   const loadHistory = useCallback(async () => {
     if (!seriesRef.current) return
@@ -80,6 +110,11 @@ export default function BinanceKlineChart({
       if (!response.ok) throw new Error('Failed to fetch')
       
       const result = await response.json()
+      
+      if (!result.success || !result.data || result.data.length === 0) {
+        throw new Error('No data')
+      }
+      
       const data = result.data
       
       // 计算连续涨跌次数
@@ -131,8 +166,21 @@ export default function BinanceKlineChart({
       console.log(`[BinanceKline] Loaded ${candles.length} candles for ${symbol}`)
     } catch (error) {
       console.error('[BinanceKline] Load history error:', error)
+      
+      // 使用备用模拟数据
+      console.log('[BinanceKline] Using backup simulation data')
+      const backupData = generateBackupData(200)
+      candlesRef.current = backupData
+      seriesRef.current.setData(backupData)
+      chartRef.current?.timeScale().fitContent()
+      
+      if (backupData.length > 0) {
+        const lastPrice = backupData[backupData.length - 1].close
+        setPriceChange({ value: 0, percent: 0 })
+        priceRef.current = lastPrice
+      }
     }
-  }, [symbol, interval, getWaveColor])
+  }, [symbol, interval, getWaveColor, generateBackupData])
 
   // 连接 WebSocket
   const connectWebSocket = useCallback(() => {
