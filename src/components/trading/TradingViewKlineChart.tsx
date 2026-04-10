@@ -125,15 +125,12 @@ export default function TradingViewKlineChart({
     // 🎯 加载初始数据
     loadInitialData()
 
-    // 🎯 注意：已禁用 tick 实时更新，避免 Lightweight Charts "Cannot update oldest data" 错误
-    // K线图表将只显示静态历史数据，不包含实时价格更新
-    // 如需实时更新，可考虑：
-    // 1. 使用其他图表库（如 TradingView 的 UI Charts）
-    // 2. 在服务器端渲染图表并使用 iframe
-    // 3. 手动实现更稳定的数据更新机制
-    // 
-    // 如果需要启用，请取消下面的注释并注释掉 //return () => {}
-    // unsubscribeTickRef.current = () => {}
+    // 🎯 订阅 tick 实时更新（使用 setData 更新所有数据以确保格式一致）
+    const unsubscribe = onTick((tick: Tick) => {
+      if (!isMountedRef.current || tick.symbol !== symbol) return
+      handleTickUpdate(tick)
+    })
+    unsubscribeTickRef.current = unsubscribe
 
     // 响应式调整大小
     const handleResize = () => {
