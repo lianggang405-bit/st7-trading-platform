@@ -72,32 +72,25 @@ export default function TradingViewKlineChart({
     const intervalSec = intervalSeconds
     const volatility = 0.002
 
+    // 计算当前K线周期的时间戳
+    const currentCandleTime = Math.floor(now / intervalSec) * intervalSec
+
+    // 从当前周期往前生成历史数据
     let price = currentPrice * 0.98 // 从略低于当前价格开始
-    let consecutiveBullish = 0
-    let consecutiveBearish = 0
 
     for (let i = count - 1; i >= 0; i--) {
-      // 确保 time 是纯数字（秒级时间戳）
-      const timeValue = now - i * intervalSec
+      // 确保时间戳是严格递增的
+      const timeValue = currentCandleTime - i * intervalSec
       const time = timeValue as Time
 
       const prevPrice = price
 
-      // 模拟价格变化 - 使用固定的微小波动比例
+      // 模拟价格变化
       const changePercent = (Math.random() - 0.48) * volatility
       price = prevPrice * (1 + changePercent)
 
       const open = prevPrice
       const close = price
-
-      // 计算连续涨跌次数
-      if (close >= open) {
-        consecutiveBullish++
-        consecutiveBearish = 0
-      } else {
-        consecutiveBearish++
-        consecutiveBullish = 0
-      }
 
       // 计算 high 和 low
       const change = Math.abs(close - open) * 0.5
@@ -187,8 +180,8 @@ export default function TradingViewKlineChart({
         console.warn('[KlineChart] update failed, refreshing data')
         seriesRef.current.setData(candles)
       }
-    } else {
-      // 新 K 线 - 确保 time 是有效数字
+    } else if (currentCandleTime > lastTime) {
+      // 新 K 线 - 时间比最后一根K线更晚
       const newTime = currentCandleTime as Time
       const change = Math.abs(price - prevPrice) * 0.5
       const newCandle: CandlestickData<Time> = {
@@ -210,6 +203,7 @@ export default function TradingViewKlineChart({
         console.warn('[KlineChart] new candle update failed')
       }
     }
+    // 如果 currentCandleTime < lastTime，不做任何操作（时间倒退）
 
     // 更新实时价格线
     if (seriesRef.current && chartRef.current) {
