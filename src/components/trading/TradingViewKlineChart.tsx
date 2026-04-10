@@ -65,10 +65,11 @@ export default function TradingViewKlineChart({
 
   const intervalSeconds = INTERVALS[interval] || INTERVALS['1h']
 
-  // 🎯 生成波浪 K 线数据 - 根据连续涨跌设置颜色
+  // 🎯 生成波浪 K 线数据
   const generateWaveData = useCallback((currentPrice: number, count: number): CandlestickData<Time>[] => {
     const candles: CandlestickData<Time>[] = []
     const now = Math.floor(Date.now() / 1000)
+    const intervalSec = intervalSeconds
     const volatility = 0.002
 
     let price = currentPrice * 0.98 // 从略低于当前价格开始
@@ -76,7 +77,10 @@ export default function TradingViewKlineChart({
     let consecutiveBearish = 0
 
     for (let i = count - 1; i >= 0; i--) {
-      const time = (now - i * intervalSeconds) as Time
+      // 确保 time 是纯数字（秒级时间戳）
+      const timeValue = now - i * intervalSec
+      const time = timeValue as Time
+
       const prevPrice = price
 
       // 模拟价格变化 - 使用固定的微小波动比例
@@ -95,7 +99,7 @@ export default function TradingViewKlineChart({
         consecutiveBullish = 0
       }
 
-      // 计算 high 和 low - 使用固定的小数位数避免溢出
+      // 计算 high 和 low
       const change = Math.abs(close - open) * 0.5
       const high = Math.max(open, close) + change
       const low = Math.min(open, close) - change
@@ -141,11 +145,21 @@ export default function TradingViewKlineChart({
   const updateLastCandle = useCallback((price: number) => {
     if (!seriesRef.current || candlesRef.current.length === 0) return
 
+    const candles = candlesRef.current
     const now = Math.floor(Date.now() / 1000)
-    const currentCandleTime = Math.floor(now / intervalSeconds) * intervalSeconds
-    const lastCandle = candlesRef.current[candlesRef.current.length - 1]
+    const intervalSec = intervalSeconds
+    const currentCandleTime = Math.floor(now / intervalSec) * intervalSec
+    const lastCandle = candles[candles.length - 1]
 
-    const lastTime = typeof lastCandle.time === 'number' ? lastCandle.time : Number(lastCandle.time)
+    // 确保 time 是有效数字
+    let lastTime: number
+    if (typeof lastCandle.time === 'number') {
+      lastTime = lastCandle.time
+    } else if (typeof lastCandle.time === 'string') {
+      lastTime = new Date(lastCandle.time).getTime() / 1000
+    } else {
+      lastTime = now
+    }
 
     // 判断趋势
     const prevPrice = priceRef.current
@@ -155,33 +169,46 @@ export default function TradingViewKlineChart({
     if (currentCandleTime === lastTime) {
       // 更新当前 K 线
       const change = Math.abs(price - lastCandle.open) * 0.5
+      const updatedHigh = Math.max(lastCandle.high as number, price) + change
+      const updatedLow = Math.min(lastCandle.low as number, price) - change
+
       const updated: CandlestickData<Time> = {
-        time: lastCandle.time,
+        time: lastTime as Time,
         open: lastCandle.open,
-        high: Math.max(lastCandle.high as number, price) + change,
-        low: Math.min(lastCandle.low as number, price) - change,
+        high: updatedHigh,
+        low: updatedLow,
         close: price,
       }
 
-      candlesRef.current[candlesRef.current.length - 1] = updated
-      seriesRef.current.update(updated)
+      candles[candles.length - 1] = updated
+      try {
+        seriesRef.current.update(updated)
+      } catch (e) {
+        console.warn('[KlineChart] update failed, refreshing data')
+        seriesRef.current.setData(candles)
+      }
     } else {
-      // 新 K 线
-      const change = Math.abs(price - priceRef.current) * 0.5
+      // 新 K 线 - 确保 time 是有效数字
+      const newTime = currentCandleTime as Time
+      const change = Math.abs(price - prevPrice) * 0.5
       const newCandle: CandlestickData<Time> = {
-        time: currentCandleTime as Time,
-        open: priceRef.current,
+        time: newTime,
+        open: prevPrice,
         high: price + change,
         low: price - change,
         close: price,
       }
 
-      candlesRef.current.push(newCandle)
-      if (candlesRef.current.length > 200) {
-        candlesRef.current.shift()
+      candles.push(newCandle)
+      if (candles.length > 200) {
+        candles.shift()
       }
 
-      seriesRef.current.update(newCandle)
+      try {
+        seriesRef.current.update(newCandle)
+      } catch (e) {
+        console.warn('[KlineChart] new candle update failed')
+      }
     }
 
     // 更新实时价格线
