@@ -54,6 +54,7 @@ export default function BinanceKlineChart({
 
   const [priceChange, setPriceChange] = useState({ value: 0, percent: 0 })
   const [isConnected, setIsConnected] = useState(false)
+  const isDisposedRef = useRef(false)
 
   // 获取波浪颜色
   const getWaveColor = useCallback((isBullish: boolean, consecutiveCount: number): string => {
@@ -106,7 +107,7 @@ export default function BinanceKlineChart({
 
   // 加载历史数据
   const loadHistory = useCallback(async () => {
-    if (!seriesRef.current) return
+    if (!seriesRef.current || isDisposedRef.current) return
 
     const basePrice = DEFAULT_PRICES[symbol.toUpperCase()] || 1000
 
@@ -117,7 +118,7 @@ export default function BinanceKlineChart({
       
       if (response.ok) {
         const result = await response.json()
-        if (result.success && result.data && result.data.length > 0) {
+        if (result.success && result.data && result.data.length > 0 && !isDisposedRef.current) {
           const candles: CandlestickData<Time>[] = result.data.map((k: any) => ({
             time: k.time as Time,
             open: k.open,
@@ -127,8 +128,10 @@ export default function BinanceKlineChart({
           }))
 
           candlesRef.current = candles
-          seriesRef.current.setData(candles)
-          chartRef.current?.timeScale().fitContent()
+          if (!isDisposedRef.current && seriesRef.current) {
+            seriesRef.current.setData(candles)
+            chartRef.current?.timeScale().fitContent()
+          }
           setIsConnected(true)
 
           // 设置涨跌信息
@@ -151,10 +154,14 @@ export default function BinanceKlineChart({
     }
 
     // 使用模拟数据
+    if (isDisposedRef.current) return
+    
     const mockData = generateMockData(basePrice, 200)
     candlesRef.current = mockData
-    seriesRef.current.setData(mockData)
-    chartRef.current?.timeScale().fitContent()
+    if (!isDisposedRef.current && seriesRef.current) {
+      seriesRef.current.setData(mockData)
+      chartRef.current?.timeScale().fitContent()
+    }
     setIsConnected(false)
 
     if (mockData.length > 0) {
@@ -166,7 +173,7 @@ export default function BinanceKlineChart({
 
   // 获取最新K线数据
   const fetchLatestData = useCallback(async () => {
-    if (!seriesRef.current || candlesRef.current.length === 0) return
+    if (!seriesRef.current || !chartRef.current) return
 
     // 限制请求频率（至少5秒一次）
     const now = Date.now()
@@ -174,14 +181,16 @@ export default function BinanceKlineChart({
     lastFetchTimeRef.current = now
 
     try {
+      if (isDisposedRef.current) return
+      
       const response = await fetch(
         `/api/binance/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=2`
       )
       
-      if (!response.ok) return
+      if (!response.ok || isDisposedRef.current) return
       
       const result = await response.json()
-      if (!result.success || !result.data || result.data.length === 0) return
+      if (!result.success || !result.data || result.data.length === 0 || isDisposedRef.current) return
 
       const latest = result.data[result.data.length - 1]
       const candles = candlesRef.current
@@ -190,6 +199,8 @@ export default function BinanceKlineChart({
       // 检查是否需要更新
       if (latest.time === lastCandle.time) {
         // 更新当前K线
+        if (isDisposedRef.current || !seriesRef.current) return
+        
         const updated: CandlestickData<Time> = {
           time: latest.time as Time,
           open: latest.open,
@@ -202,6 +213,8 @@ export default function BinanceKlineChart({
         priceRef.current = latest.close
       } else if (latest.time > lastCandle.time) {
         // 新K线
+        if (isDisposedRef.current || !seriesRef.current) return
+        
         const newCandle: CandlestickData<Time> = {
           time: latest.time as Time,
           open: latest.open,
@@ -225,11 +238,13 @@ export default function BinanceKlineChart({
 
     } catch (error) {
       // 静默失败，使用本地模拟更新
-      if (!isConnected && candlesRef.current.length > 0) {
+      if (!isConnected && candlesRef.current.length > 0 && !isDisposedRef.current) {
         const candles = candlesRef.current
         const lastCandle = candles[candles.length - 1]
         const intervalSec = getIntervalSeconds()
         const currentCandleTime = Math.floor(Date.now() / 1000 / intervalSec) * intervalSec
+
+        if (!seriesRef.current) return
 
         if (currentCandleTime > (lastCandle.time as number)) {
           // 新K线
@@ -275,6 +290,7 @@ export default function BinanceKlineChart({
   // 初始化图表
   useEffect(() => {
     if (!containerRef.current) return
+    isDisposedRef.current = false
 
     const chart = createChart(containerRef.current, {
       width: width || containerRef.current.clientWidth,
@@ -327,9 +343,11 @@ export default function BinanceKlineChart({
     window.addEventListener('resize', handleResize)
 
     return () => {
+      isDisposedRef.current = true
       window.removeEventListener('resize', handleResize)
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current)
+        pollIntervalRef.current = null
       }
       chart.remove()
     }
