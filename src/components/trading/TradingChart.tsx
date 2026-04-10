@@ -5,7 +5,9 @@ import {
   createChart,
   ColorType,
   IChartApi,
-  Time
+  Time,
+  CandlestickSeries,
+  CrosshairMode
 } from 'lightweight-charts'
 
 import { getKlinesWithCache, fetchBinanceKlines, clearKlineCache } from '@/lib/binance-klines'
@@ -205,7 +207,7 @@ export default function TradingChart({
 
     })
 
-    const series = chart.addCandlestickSeries({
+    const series = chart.addSeries(CandlestickSeries, {
 
       upColor: '#00ff9c',
       downColor: '#ff4976',

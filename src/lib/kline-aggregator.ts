@@ -315,6 +315,41 @@ export class KlineAggregator {
       })
     }
   }
+
+  /**
+   * 🎯 获取最后一根K线（当前正在形成的）
+   */
+  getLastCandle(symbol: string, interval: string): KlineCandle | null {
+    const key = `${symbol}_${interval}`
+    return this.currentCandles.get(key) || null
+  }
+
+  /**
+   * 🎯 更新当前K线的收盘价
+   */
+  updatePrice(symbol: string, interval: string, price: number): void {
+    const key = `${symbol}_${interval}`
+    const current = this.currentCandles.get(key)
+
+    if (!current) {
+      // 如果没有当前K线，创建一个新的
+      const time = Math.floor(Date.now() / 1000)
+      this.currentCandles.set(key, {
+        time,
+        open: price,
+        high: price,
+        low: price,
+        close: price
+      })
+      return
+    }
+
+    // 更新K线
+    current.close = price
+    current.high = Math.max(current.high, price)
+    current.low = Math.min(current.low, price)
+    this.currentCandles.set(key, current)
+  }
 }
 
 // 🎯 全局单例（交易所级架构）
