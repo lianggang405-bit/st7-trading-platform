@@ -12,25 +12,29 @@ interface BinanceKlineChartProps {
   showWave?: boolean
 }
 
-// Binance WebSocket 基础 URL
-const BINANCE_WS = 'wss://stream.binance.com:9443/ws'
-
 // 波浪颜色配置
 const WAVE_COLORS = {
   bullish: ['#26a69a', '#3cbdb4', '#52d4ce', '#6beae6', '#84fffe'],
   bearish: ['#ef5350', '#f06b68', '#f28380', '#f59b98', '#ffb3b0'],
 }
 
-// 交易对名称映射
-const SYMBOL_NAMES: Record<string, string> = {
-  'BTCUSDT': 'BTC/USDT',
-  'ETHUSDT': 'ETH/USDT',
-  'BNBUSDT': 'BNB/USDT',
-  'SOLUSDT': 'SOL/USDT',
-  'XRPUSDT': 'XRP/USDT',
-  'ADAUSDT': 'ADA/USDT',
-  'DOGEUSDT': 'DOGE/USDT',
-  'DOTUSDT': 'DOT/USDT',
+// 交易对默认价格映射
+const DEFAULT_PRICES: Record<string, number> = {
+  'BTCUSDT': 65000,
+  'ETHUSDT': 3500,
+  'BNBUSDT': 600,
+  'SOLUSDT': 150,
+  'XRPUSDT': 0.6,
+  'ADAUSDT': 0.5,
+  'DOGEUSDT': 0.15,
+  'DOTUSDT': 7,
+  'MATICUSDT': 0.8,
+  'LTCUSDT': 85,
+  'AVAXUSDT': 35,
+  'LINKUSDT': 15,
+  'ATOMUSDT': 9,
+  'UNIUSDT': 10,
+  'XLMUSDT': 0.12,
 }
 
 export default function BinanceKlineChart({
@@ -43,10 +47,10 @@ export default function BinanceKlineChart({
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
-  const wsRef = useRef<WebSocket | null>(null)
   const candlesRef = useRef<CandlestickData<Time>[]>([])
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const priceRef = useRef<number>(0)
-  const trendRef = useRef<'bullish' | 'bearish'>('bullish')
+  const lastFetchTimeRef = useRef<number>(0)
 
   const [priceChange, setPriceChange] = useState({ value: 0, percent: 0 })
   const [isConnected, setIsConnected] = useState(false)
@@ -60,30 +64,24 @@ export default function BinanceKlineChart({
     return colors[Math.min(consecutiveCount, colors.length - 1)]
   }, [showWave])
 
-  // 格式化交易对名称
-  const formatSymbol = (sym: string) => {
-    const upper = sym.toUpperCase()
-    if (SYMBOL_NAMES[upper]) return SYMBOL_NAMES[upper]
-    return upper.replace('USDT', '/USDT')
-  }
-
-  // 生成备用模拟数据
-  const generateBackupData = useCallback((count: number): CandlestickData<Time>[] => {
+  // 生成模拟数据
+  const generateMockData = useCallback((basePrice: number, count: number): CandlestickData<Time>[] => {
     const candles: CandlestickData<Time>[] = []
     const now = Math.floor(Date.now() / 1000)
-    const intervalSec = interval === '1m' ? 60 : interval === '5m' ? 300 : 
-                        interval === '15m' ? 900 : interval === '30m' ? 1800 :
-                        interval === '1h' ? 3600 : interval === '4h' ? 14400 :
-                        interval === '1d' ? 86400 : 3600
+    const intervalSec = interval === '1' ? 60 : interval === '5' ? 300 : 
+                        interval === '15' ? 900 : interval === '30' ? 1800 :
+                        interval === '60' ? 3600 : interval === '240' ? 14400 :
+                        interval === '1D' ? 86400 : 3600
     
     const currentCandleTime = Math.floor(now / intervalSec) * intervalSec
-    let price = 50000 // BTC 默认价格
+    let price = basePrice * 0.98
 
     for (let i = count - 1; i >= 0; i--) {
       const time = (currentCandleTime - i * intervalSec) as Time
       const open = price
-      const close = price * (1 + (Math.random() - 0.5) * 0.002)
-      price = close
+      const changePercent = (Math.random() - 0.48) * 0.002
+      price = open * (1 + changePercent)
+      const close = price
 
       candles.push({
         time,
@@ -97,180 +95,182 @@ export default function BinanceKlineChart({
     return candles
   }, [interval])
 
+  // 获取时间周期秒数
+  const getIntervalSeconds = useCallback(() => {
+    const map: Record<string, number> = {
+      '1': 60, '5': 300, '15': 900, '30': 1800,
+      '60': 3600, '240': 14400, '1D': 86400, '1W': 604800
+    }
+    return map[interval] || 3600
+  }, [interval])
+
   // 加载历史数据
   const loadHistory = useCallback(async () => {
     if (!seriesRef.current) return
 
+    const basePrice = DEFAULT_PRICES[symbol.toUpperCase()] || 1000
+
     try {
-      // 使用服务器端代理获取数据（解决 CORS 问题）
       const response = await fetch(
         `/api/binance/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=200`
       )
       
-      if (!response.ok) throw new Error('Failed to fetch')
-      
-      const result = await response.json()
-      
-      if (!result.success || !result.data || result.data.length === 0) {
-        throw new Error('No data')
-      }
-      
-      const data = result.data
-      
-      // 计算连续涨跌次数
-      let consecutiveBullish = 0
-      let consecutiveBearish = 0
-      const candles: CandlestickData<Time>[] = []
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data && result.data.length > 0) {
+          const candles: CandlestickData<Time>[] = result.data.map((k: any) => ({
+            time: k.time as Time,
+            open: k.open,
+            high: k.high,
+            low: k.low,
+            close: k.close,
+          }))
 
-      data.forEach((k: any, index: number) => {
-        const open = k.open
-        const close = k.close
-        const isBullish = close >= open
+          candlesRef.current = candles
+          seriesRef.current.setData(candles)
+          chartRef.current?.timeScale().fitContent()
+          setIsConnected(true)
 
-        if (isBullish) {
-          consecutiveBullish++
-          consecutiveBearish = 0
-        } else {
-          consecutiveBearish++
-          consecutiveBullish = 0
+          // 设置涨跌信息
+          if (candles.length > 1) {
+            const firstPrice = candles[0].open
+            const lastPrice = candles[candles.length - 1].close
+            setPriceChange({
+              value: lastPrice - firstPrice,
+              percent: ((lastPrice - firstPrice) / firstPrice) * 100,
+            })
+            priceRef.current = lastPrice
+          }
+
+          console.log(`[BinanceKline] Loaded ${candles.length} candles from API`)
+          return
         }
-
-        const consecutiveCount = Math.max(consecutiveBullish, consecutiveBearish)
-        const color = getWaveColor(isBullish, consecutiveCount)
-
-        candles.push({
-          time: k.time as Time,
-          open,
-          high: k.high,
-          low: k.low,
-          close,
-        })
-      })
-
-      candlesRef.current = candles
-      seriesRef.current.setData(candles)
-      chartRef.current?.timeScale().fitContent()
-
-      // 设置涨跌信息
-      if (candles.length > 1) {
-        const firstPrice = candles[0].open
-        const lastPrice = candles[candles.length - 1].close
-        setPriceChange({
-          value: lastPrice - firstPrice,
-          percent: ((lastPrice - firstPrice) / firstPrice) * 100,
-        })
-        priceRef.current = lastPrice
-        trendRef.current = lastPrice >= firstPrice ? 'bullish' : 'bearish'
       }
-
-      console.log(`[BinanceKline] Loaded ${candles.length} candles for ${symbol}`)
     } catch (error) {
-      console.error('[BinanceKline] Load history error:', error)
-      
-      // 使用备用模拟数据
-      console.log('[BinanceKline] Using backup simulation data')
-      const backupData = generateBackupData(200)
-      candlesRef.current = backupData
-      seriesRef.current.setData(backupData)
-      chartRef.current?.timeScale().fitContent()
-      
-      if (backupData.length > 0) {
-        const lastPrice = backupData[backupData.length - 1].close
-        setPriceChange({ value: 0, percent: 0 })
-        priceRef.current = lastPrice
-      }
-    }
-  }, [symbol, interval, getWaveColor, generateBackupData])
-
-  // 连接 WebSocket
-  const connectWebSocket = useCallback(() => {
-    if (wsRef.current) {
-      wsRef.current.close()
-      wsRef.current = null
+      console.warn('[BinanceKline] API failed, using mock data')
     }
 
-    // 格式化 symbol 为 Binance 格式
-    const binanceSymbol = symbol.toLowerCase().replace('/', '')
-    const wsPath = `${binanceSymbol}@kline_${interval}`
-    
-    console.log(`[BinanceKline] Connecting to: wss://stream.binance.com:9443/${wsPath}`)
+    // 使用模拟数据
+    const mockData = generateMockData(basePrice, 200)
+    candlesRef.current = mockData
+    seriesRef.current.setData(mockData)
+    chartRef.current?.timeScale().fitContent()
+    setIsConnected(false)
+
+    if (mockData.length > 0) {
+      priceRef.current = mockData[mockData.length - 1].close
+    }
+
+    console.log(`[BinanceKline] Using mock data for ${symbol}`)
+  }, [symbol, interval, generateMockData])
+
+  // 获取最新K线数据
+  const fetchLatestData = useCallback(async () => {
+    if (!seriesRef.current || candlesRef.current.length === 0) return
+
+    // 限制请求频率（至少5秒一次）
+    const now = Date.now()
+    if (now - lastFetchTimeRef.current < 5000) return
+    lastFetchTimeRef.current = now
 
     try {
-      const ws = new WebSocket(`wss://stream.binance.com:9443/${wsPath}`)
+      const response = await fetch(
+        `/api/binance/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=2`
+      )
+      
+      if (!response.ok) return
+      
+      const result = await response.json()
+      if (!result.success || !result.data || result.data.length === 0) return
 
-      ws.onopen = () => {
-        console.log(`[BinanceKline] WebSocket connected`)
-        setIsConnected(true)
-        this.reconnectAttempts = 0
+      const latest = result.data[result.data.length - 1]
+      const candles = candlesRef.current
+      const lastCandle = candles[candles.length - 1]
+
+      // 检查是否需要更新
+      if (latest.time === lastCandle.time) {
+        // 更新当前K线
+        const updated: CandlestickData<Time> = {
+          time: latest.time as Time,
+          open: latest.open,
+          high: latest.high,
+          low: latest.low,
+          close: latest.close,
+        }
+        candles[candles.length - 1] = updated
+        seriesRef.current?.update(updated)
+        priceRef.current = latest.close
+      } else if (latest.time > lastCandle.time) {
+        // 新K线
+        const newCandle: CandlestickData<Time> = {
+          time: latest.time as Time,
+          open: latest.open,
+          high: latest.high,
+          low: latest.low,
+          close: latest.close,
+        }
+        candles.push(newCandle)
+        if (candles.length > 200) candles.shift()
+        seriesRef.current?.update(newCandle)
+        priceRef.current = latest.close
       }
 
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data)
-          if (data.e !== 'kline') return
+      // 更新涨跌
+      const firstPrice = candles[0].open
+      const currentPrice = priceRef.current
+      setPriceChange({
+        value: currentPrice - firstPrice,
+        percent: ((currentPrice - firstPrice) / firstPrice) * 100,
+      })
 
-          const kline = data.k
-          const candle: CandlestickData<Time> = {
-            time: Math.floor(kline.t / 1000) as Time,
-            open: parseFloat(kline.o),
-            high: parseFloat(kline.h),
-            low: parseFloat(kline.l),
-            close: parseFloat(kline.c),
+    } catch (error) {
+      // 静默失败，使用本地模拟更新
+      if (!isConnected && candlesRef.current.length > 0) {
+        const candles = candlesRef.current
+        const lastCandle = candles[candles.length - 1]
+        const intervalSec = getIntervalSeconds()
+        const currentCandleTime = Math.floor(Date.now() / 1000 / intervalSec) * intervalSec
+
+        if (currentCandleTime > (lastCandle.time as number)) {
+          // 新K线
+          const change = (Math.random() - 0.5) * 0.002 * priceRef.current
+          const newClose = priceRef.current + change
+          const newCandle: CandlestickData<Time> = {
+            time: currentCandleTime as Time,
+            open: priceRef.current,
+            high: Math.max(priceRef.current, newClose),
+            low: Math.min(priceRef.current, newClose),
+            close: newClose,
           }
+          candles.push(newCandle)
+          if (candles.length > 200) candles.shift()
+          seriesRef.current?.update(newCandle)
+          priceRef.current = newClose
 
-          const candles = candlesRef.current
-          const lastCandle = candles[candles.length - 1]
-
-          if (lastCandle && candle.time === lastCandle.time) {
-            // 更新当前 K 线
-            candles[candles.length - 1] = candle
-            seriesRef.current?.update(candle)
-          } else if (lastCandle && candle.time > lastCandle.time) {
-            // 新 K 线
-            candles.push(candle)
-            if (candles.length > 200) candles.shift()
-            seriesRef.current?.update(candle)
-          }
-
-          // 更新价格和趋势
-          priceRef.current = candle.close
           const firstPrice = candles[0].open
           setPriceChange({
-            value: candle.close - firstPrice,
-            percent: ((candle.close - firstPrice) / firstPrice) * 100,
+            value: newClose - firstPrice,
+            percent: ((newClose - firstPrice) / firstPrice) * 100,
           })
-        } catch (error) {
-          console.error('[BinanceKline] Parse error:', error)
+        } else {
+          // 更新当前K线
+          const change = (Math.random() - 0.5) * 0.001 * priceRef.current
+          const newClose = priceRef.current + change
+          lastCandle.close = newClose
+          lastCandle.high = Math.max(lastCandle.high as number, newClose)
+          lastCandle.low = Math.min(lastCandle.low as number, newClose)
+          seriesRef.current?.update(lastCandle)
+          priceRef.current = newClose
+
+          const firstPrice = candles[0].open
+          setPriceChange({
+            value: newClose - firstPrice,
+            percent: ((newClose - firstPrice) / firstPrice) * 100,
+          })
         }
       }
-
-      ws.onerror = (error) => {
-        console.warn('[BinanceKline] WebSocket error, will retry...')
-        setIsConnected(false)
-      }
-
-      ws.onclose = () => {
-        console.log('[BinanceKline] WebSocket closed, reconnecting...')
-        setIsConnected(false)
-        wsRef.current = null
-        
-        // 延迟重连
-        setTimeout(() => {
-          if (!wsRef.current) {
-            connectWebSocket()
-          }
-        }, 3000)
-      }
-
-      wsRef.current = ws
-    } catch (error) {
-      console.error('[BinanceKline] Failed to create WebSocket:', error)
-      setIsConnected(false)
-      
-      // 延迟重试
-      setTimeout(connectWebSocket, 5000)
     }
-  }, [symbol, interval])
+  }, [symbol, interval, isConnected, getIntervalSeconds])
 
   // 初始化图表
   useEffect(() => {
@@ -315,48 +315,8 @@ export default function BinanceKlineChart({
     // 加载历史数据
     loadHistory()
 
-    // 连接实时数据
-    connectWebSocket()
-
-    // 作为 WebSocket 备份的轮询机制
-    const pollInterval = setInterval(async () => {
-      if (!seriesRef.current) return
-      
-      try {
-        const response = await fetch(
-          `/api/binance/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=1`
-        )
-        if (!response.ok) return
-        
-        const result = await response.json()
-        const latest = result.data?.[0]
-        if (!latest) return
-
-        const candles = candlesRef.current
-        const lastCandle = candles[candles.length - 1]
-        
-        if (lastCandle && latest.time === lastCandle.time) {
-          const updated: CandlestickData<Time> = {
-            time: latest.time as Time,
-            open: latest.open,
-            high: Math.max(lastCandle.high as number, latest.high),
-            low: Math.min(lastCandle.low as number, latest.low),
-            close: latest.close,
-          }
-          candles[candles.length - 1] = updated
-          seriesRef.current?.update(updated)
-          
-          priceRef.current = latest.close
-          const firstPrice = candles[0].open
-          setPriceChange({
-            value: latest.close - firstPrice,
-            percent: ((latest.close - firstPrice) / firstPrice) * 100,
-          })
-        }
-      } catch {
-        // 忽略轮询错误
-      }
-    }, 3000) // 每3秒轮询一次
+    // 启动轮询
+    pollIntervalRef.current = setInterval(fetchLatestData, 3000)
 
     // 响应式
     const handleResize = () => {
@@ -368,13 +328,12 @@ export default function BinanceKlineChart({
 
     return () => {
       window.removeEventListener('resize', handleResize)
-      clearInterval(pollInterval)
-      if (wsRef.current) {
-        wsRef.current.close()
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
       }
       chart.remove()
     }
-  }, [symbol, interval, height, width, loadHistory, connectWebSocket])
+  }, [symbol, interval, height, width, loadHistory, fetchLatestData])
 
   const formatPrice = (price: number) => {
     if (price >= 1000) return price.toFixed(2)
@@ -389,7 +348,7 @@ export default function BinanceKlineChart({
       {/* 头部信息 */}
       <div className="absolute top-2 right-2 z-10 flex items-center gap-3">
         {/* 连接状态 */}
-        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`} />
         
         {/* 涨跌信息 */}
         <div className="bg-[#1a1a2e]/90 px-3 py-1.5 rounded-lg text-right">
@@ -405,7 +364,7 @@ export default function BinanceKlineChart({
       {/* 波浪效果图例 */}
       {showWave && (
         <div className="absolute top-2 left-2 z-10 bg-[#1a1a2e]/90 px-2 py-1 rounded text-xs text-gray-400 flex gap-3">
-          <span>Binance</span>
+          <span>{isConnected ? 'Binance' : 'Simulation'}</span>
           <span className="flex gap-0.5">
             <span className="w-2 h-2 rounded-full bg-[#26a69a]"></span>
             <span className="w-2 h-2 rounded-full bg-[#3cbdb4]"></span>
