@@ -314,6 +314,8 @@ export default function BinanceKlineChart({
       rightPriceScale: {
         borderColor: '#3a3a4e',
       },
+      handleScroll: false,
+      handleScale: false,
     })
 
     const series = chart.addSeries(CandlestickSeries, {
@@ -343,13 +345,25 @@ export default function BinanceKlineChart({
     window.addEventListener('resize', handleResize)
 
     return () => {
+      // 立即标记为已卸载，防止任何更新操作
       isDisposedRef.current = true
       window.removeEventListener('resize', handleResize)
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current)
         pollIntervalRef.current = null
       }
-      chart.remove()
+      // 延迟移除图表，确保绘制完成
+      setTimeout(() => {
+        if (chartRef.current) {
+          try {
+            chartRef.current.remove()
+          } catch (e) {
+            // ignore
+          }
+          chartRef.current = null
+        }
+        seriesRef.current = null
+      }, 100)
     }
   }, [symbol, interval, height, width, loadHistory, fetchLatestData])
 

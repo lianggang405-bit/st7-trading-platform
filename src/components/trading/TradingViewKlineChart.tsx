@@ -288,7 +288,14 @@ export default function TradingViewKlineChart({
     return () => {
       isDisposedRef.current = true
       window.removeEventListener('resize', handleResize)
-      chart.remove()
+      // 延迟移除图表，确保绘制完成
+      setTimeout(() => {
+        try {
+          chart.remove()
+        } catch (e) {
+          // ignore
+        }
+      }, 100)
     }
   }, [symbol, interval, height, width, loadData])
 

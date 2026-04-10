@@ -437,16 +437,18 @@ export default function TradingChart({
       // 移除事件监听
       window.removeEventListener('resize', handleResize)
 
-      // 销毁图表实例
-      if (chartInstance.current) {
-        try {
-          chartInstance.current.remove()
-        } catch (error) {
-          // chart.remove error，静默处理
+      // 延迟移除图表，确保绘制完成
+      setTimeout(() => {
+        if (chartInstance.current) {
+          try {
+            chartInstance.current.remove()
+          } catch (error) {
+            // chart.remove error，静默处理
+          }
+          chartInstance.current = null
         }
-        chartInstance.current = null
-      }
-      seriesRef.current = null
+        seriesRef.current = null
+      }, 100)
 
     }
 
