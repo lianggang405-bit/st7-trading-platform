@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { AuthGuard } from '../../../components/auth-guard';
 import { Price, Change } from '../../../components/data';
-import TradingViewKlineChart from '../../../components/trading/TradingViewKlineChart';
+import BinanceKlineChart from '../../../components/trading/BinanceKlineChart';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { useAuthStore } from '../../../stores/authStore';
@@ -444,11 +444,11 @@ export default function TradePage() {
           </div>
         </div>
 
-        {/* K线图区域 */}
+        {/* K线图区域 - Binance 实时数据 */}
         {currentSymbol && (
-          <TradingViewKlineChart
-            symbol={currentSymbol}
-            interval={timeFrameToInterval(timeframe)}
+          <BinanceKlineChart
+            symbol={currentSymbol.replace('/', '')}
+            interval={timeFrameToInterval(timeframe).replace('m', '').replace('h', 'h').replace('d', 'd').replace('w', 'w')}
             height={500}
           />
         )}
