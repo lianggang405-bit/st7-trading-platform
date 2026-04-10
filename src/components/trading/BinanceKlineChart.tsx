@@ -270,6 +270,46 @@ export default function BinanceKlineChart({
     // 连接实时数据
     connectWebSocket()
 
+    // 作为 WebSocket 备份的轮询机制
+    const pollInterval = setInterval(async () => {
+      if (!seriesRef.current) return
+      
+      try {
+        const response = await fetch(
+          `/api/binance/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=1`
+        )
+        if (!response.ok) return
+        
+        const result = await response.json()
+        const latest = result.data?.[0]
+        if (!latest) return
+
+        const candles = candlesRef.current
+        const lastCandle = candles[candles.length - 1]
+        
+        if (lastCandle && latest.time === lastCandle.time) {
+          const updated: CandlestickData<Time> = {
+            time: latest.time as Time,
+            open: latest.open,
+            high: Math.max(lastCandle.high as number, latest.high),
+            low: Math.min(lastCandle.low as number, latest.low),
+            close: latest.close,
+          }
+          candles[candles.length - 1] = updated
+          seriesRef.current?.update(updated)
+          
+          priceRef.current = latest.close
+          const firstPrice = candles[0].open
+          setPriceChange({
+            value: latest.close - firstPrice,
+            percent: ((latest.close - firstPrice) / firstPrice) * 100,
+          })
+        }
+      } catch {
+        // 忽略轮询错误
+      }
+    }, 3000) // 每3秒轮询一次
+
     // 响应式
     const handleResize = () => {
       if (containerRef.current && chartRef.current) {
@@ -280,6 +320,7 @@ export default function BinanceKlineChart({
 
     return () => {
       window.removeEventListener('resize', handleResize)
+      clearInterval(pollInterval)
       if (wsRef.current) {
         wsRef.current.close()
       }
