@@ -38,52 +38,55 @@ export default function TradingViewKlineChart({
 
   const intervalSeconds = INTERVALS[interval] || INTERVALS['1h']
 
-  // 生成模拟数据
-  const generateMockData = useCallback((basePrice: number, count: number): CandlestickData<Time>[] => {
+  // 生成模拟数据 - 基于当前价格生成连续的历史数据
+  const generateMockData = useCallback((currentPrice: number, count: number): CandlestickData<Time>[] => {
     const candles: CandlestickData<Time>[] = []
     const now = Math.floor(Date.now() / 1000)
-    const volatility = 0.001
+    const volatility = 0.001 // 0.1% 波动率
+
+    // 从当前价格往回生成历史数据
+    let price = currentPrice
 
     for (let i = count - 1; i >= 0; i--) {
       const time = (now - i * intervalSeconds) as Time
-      let price = basePrice
 
-      if (candles.length > 0) {
-        const prevClose = candles[candles.length - 1].close
-        price = prevClose + (Math.random() - 0.5) * volatility * prevClose
-      }
+      // 基于当前价格生成微幅波动的历史数据
+      const change = (Math.random() - 0.5) * 2 * volatility * price
+      price = price - change * (count - i) * 0.1 // 逐渐远离当前价格
 
       const open = price
       const close = price + (Math.random() - 0.5) * volatility * price
-      const high = Math.max(open, close) * (1 + Math.random() * 0.001)
-      const low = Math.min(open, close) * (1 - Math.random() * 0.001)
+      const high = Math.max(open, close) * (1 + Math.random() * 0.0005)
+      const low = Math.min(open, close) * (1 - Math.random() * 0.0005)
 
       candles.push({ time, open, high, low, close })
+    }
+
+    // 最后一根K线的收盘价应该是当前价格
+    if (candles.length > 0) {
+      candles[candles.length - 1].close = currentPrice
+      candles[candles.length - 1].high = Math.max(candles[candles.length - 1].high, currentPrice)
+      candles[candles.length - 1].low = Math.min(candles[candles.length - 1].low, currentPrice)
     }
 
     return candles
   }, [intervalSeconds])
 
-  // 加载数据
+  // 加载数据 - 从 marketStore 获取实时价格
   const loadData = useCallback(async () => {
     if (!seriesRef.current) return
 
-    try {
-      const response = await fetch(`/api/market/data?symbol=${encodeURIComponent(symbol)}`)
-      const data = await response.json()
-      const basePrice = data?.data?.price || 1000
-      const mockData = generateMockData(basePrice, 200)
-      seriesRef.current.setData(mockData)
-      lastCandleRef.current = mockData[mockData.length - 1]
-      priceRef.current = mockData[mockData.length - 1].close
-      chartRef.current?.timeScale().fitContent()
-    } catch (e) {
-      const mockData = generateMockData(1000, 200)
-      seriesRef.current?.setData(mockData)
-      lastCandleRef.current = mockData[mockData.length - 1]
-      priceRef.current = mockData[mockData.length - 1].close
-      chartRef.current?.timeScale().fitContent()
-    }
+    // 从 marketStore 获取当前价格
+    const currentPrice = useMarketStore.getState().symbols[symbol]?.price || 1000
+    const basePrice = currentPrice
+
+    const mockData = generateMockData(basePrice, 200)
+    seriesRef.current.setData(mockData)
+    lastCandleRef.current = mockData[mockData.length - 1]
+    priceRef.current = mockData[mockData.length - 1].close
+    chartRef.current?.timeScale().fitContent()
+
+    console.log(`[KlineChart] 加载数据: ${symbol}, basePrice: ${basePrice}`)
   }, [symbol, generateMockData])
 
   // 更新K线
@@ -187,17 +190,21 @@ export default function TradingViewKlineChart({
     }
   }, [symbol, interval, height, width, loadData])
 
-  // 监听价格变化
+  // 监听价格变化 - 每秒检查一次价格更新
   useEffect(() => {
-    const interval = setInterval(() => {
-      const price = useMarketStore.getState().symbols[symbol]?.price
+    // 初始加载
+    loadData()
+
+    // 监听价格更新
+    const unsubscribe = useMarketStore.subscribe((state) => {
+      const price = state.symbols[symbol]?.price
       if (price && price !== priceRef.current) {
         updateCandle(price)
       }
-    }, 1000)
+    })
 
-    return () => clearInterval(interval)
-  }, [symbol, updateCandle])
+    return () => unsubscribe()
+  }, [symbol, loadData, updateCandle])
 
   return (
     <div className="relative w-full">
