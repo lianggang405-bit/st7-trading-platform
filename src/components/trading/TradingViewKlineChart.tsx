@@ -316,25 +316,44 @@ export default function TradingViewKlineChart({
         console.log(`[TradingViewKlineChart] 最后一根K线:`, JSON.stringify(chartData[chartData.length - 1]))
 
         // 🎯 转换时间格式为 yyyy-mm-dd 格式（Lightweight Charts 标准）
+        // 同时验证所有 OHLC 数据，确保没有 null 或无效值
         const validChartData = chartData.filter((candle, index) => {
-          const isValid = typeof candle.time === 'number' && !isNaN(candle.time)
-          if (!isValid) {
+          // 验证 time 字段
+          if (typeof candle.time !== 'number' || isNaN(candle.time)) {
             console.error(`[TradingViewKlineChart] 第${index + 1}根K线time字段无效:`, candle.time)
+            return false
           }
-          return isValid
+
+          // 验证 OHLC 数据（确保都是有效数字）
+          const ohlcFields: (keyof typeof candle)[] = ['open', 'high', 'low', 'close']
+          for (const field of ohlcFields) {
+            const value = candle[field]
+            if (value === null || value === undefined || typeof value !== 'number' || isNaN(value)) {
+              console.error(`[TradingViewKlineChart] 第${index + 1}根K线 ${field} 字段无效:`, value)
+              return false
+            }
+          }
+
+          return true
         }).map(candle => {
-          // 将时间戳转换为 yyyy-mm-dd 格式（Lightweight Charts 要求）
+          // 将时间戳转换为完整时间字符串格式（Lightweight Charts 支持）
+          // 对于分钟级K线，需要包含小时和分钟信息
           const date = new Date(candle.time * 1000)
           const year = date.getUTCFullYear()
           const month = String(date.getUTCMonth() + 1).padStart(2, '0')
           const day = String(date.getUTCDate()).padStart(2, '0')
-          const dateString = `${year}-${month}-${day}`
+          const hours = String(date.getUTCHours()).padStart(2, '0')
+          const minutes = String(date.getUTCMinutes()).padStart(2, '0')
+          
+          // 使用完整时间字符串格式：yyyy-mm-dd hh:mm
+          const timeString = `${year}-${month}-${day} ${hours}:${minutes}`
+
           return {
-            time: dateString,
-            open: candle.open,
-            high: candle.high,
-            low: candle.low,
-            close: candle.close
+            time: timeString,
+            open: candle.open!,
+            high: candle.high!,
+            low: candle.low!,
+            close: candle.close!
           }
         })
 
@@ -394,17 +413,20 @@ export default function TradingViewKlineChart({
       return
     }
 
-    // 🎯 构造更新后的完整数据（使用 yyyy-mm-dd 格式）
+    // 🎯 构造更新后的完整数据（使用完整时间字符串格式避免重复）
     const updatedChartData = allCandles.map(candle => {
-      // 将时间戳转换为 yyyy-mm-dd 格式（Lightweight Charts 要求）
+      // 将时间戳转换为完整时间字符串格式
       const date = new Date(candle.time * 1000)
       const year = date.getUTCFullYear()
       const month = String(date.getUTCMonth() + 1).padStart(2, '0')
       const day = String(date.getUTCDate()).padStart(2, '0')
-      const dateString = `${year}-${month}-${day}`
+      const hours = String(date.getUTCHours()).padStart(2, '0')
+      const minutes = String(date.getUTCMinutes()).padStart(2, '0')
+
+      const timeString = `${year}-${month}-${day} ${hours}:${minutes}`
 
       return {
-        time: dateString,
+        time: timeString,
         open: candle.open,
         high: candle.high,
         low: candle.low,
