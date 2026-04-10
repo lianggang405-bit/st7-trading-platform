@@ -158,9 +158,15 @@ export default function BinanceKlineChart({
     
     const mockData = generateMockData(basePrice, 200)
     candlesRef.current = mockData
+    console.log(`[BinanceKline] Generated ${mockData.length} mock candles, first: ${JSON.stringify(mockData[0])}, last: ${JSON.stringify(mockData[mockData.length-1])}`)
+    
     if (!isDisposedRef.current && seriesRef.current) {
+      console.log('[BinanceKline] Calling setData on series')
       seriesRef.current.setData(mockData)
       chartRef.current?.timeScale().fitContent()
+      console.log('[BinanceKline] setData completed')
+    } else {
+      console.log(`[BinanceKline] Skipping setData - isDisposed: ${isDisposedRef.current}, seriesRef: ${!!seriesRef.current}`)
     }
     setIsConnected(false)
 
