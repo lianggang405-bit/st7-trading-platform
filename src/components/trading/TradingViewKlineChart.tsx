@@ -59,6 +59,7 @@ export default function TradingViewKlineChart({
   const candlesRef = useRef<CandlestickData<Time>[]>([])
   const priceRef = useRef<number>(0)
   const trendRef = useRef<'bullish' | 'bearish'>('bullish')  // 当前趋势
+  const isDisposedRef = useRef(false)
 
   const [priceChange, setPriceChange] = useState({ value: 0, percent: 0 })
   const t = useTranslations()
@@ -236,6 +237,7 @@ export default function TradingViewKlineChart({
   // 🎯 初始化图表
   useEffect(() => {
     if (!chartContainerRef.current) return
+    isDisposedRef.current = false
 
     const chart = createChart(chartContainerRef.current, {
       width: width || chartContainerRef.current.clientWidth,
@@ -284,6 +286,7 @@ export default function TradingViewKlineChart({
     window.addEventListener('resize', handleResize)
 
     return () => {
+      isDisposedRef.current = true
       window.removeEventListener('resize', handleResize)
       chart.remove()
     }
@@ -292,6 +295,8 @@ export default function TradingViewKlineChart({
   // 监听价格变化
   useEffect(() => {
     const unsubscribe = useMarketStore.subscribe((state) => {
+      if (isDisposedRef.current) return
+      
       const price = state.symbols[symbol]?.price
       if (price && price !== priceRef.current) {
         updateLastCandle(price)

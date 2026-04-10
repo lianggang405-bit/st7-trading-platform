@@ -31,6 +31,7 @@ export default function SimpleKlineChart({
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const lastCandleRef = useRef<CandlestickData<Time> | null>(null)
+  const isDisposedRef = useRef(false)
 
   const intervalSeconds = INTERVALS[interval] || INTERVALS['1h']
 
@@ -63,6 +64,7 @@ export default function SimpleKlineChart({
   // 初始化图表
   useEffect(() => {
     if (!containerRef.current) return
+    isDisposedRef.current = false
 
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
@@ -129,6 +131,7 @@ export default function SimpleKlineChart({
     window.addEventListener('resize', handleResize)
 
     return () => {
+      isDisposedRef.current = true
       window.removeEventListener('resize', handleResize)
       chart.remove()
     }
@@ -139,6 +142,8 @@ export default function SimpleKlineChart({
     if (!seriesRef.current) return
 
     const unsubscribe = useMarketStore.subscribe((state, prevState) => {
+      if (isDisposedRef.current || !seriesRef.current) return
+      
       const symbolData = state.symbols[symbol]
       const prevSymbolData = prevState.symbols[symbol]
       if (!symbolData?.price || symbolData.price === prevSymbolData?.price) return
@@ -154,6 +159,8 @@ export default function SimpleKlineChart({
 
         if (currentCandleTime === lastTime) {
           // 更新当前K线
+          if (isDisposedRef.current || !seriesRef.current) return
+          
           const updated: CandlestickData<Time> = {
             time: lastCandleRef.current.time,
             open: lastCandleRef.current.open,
