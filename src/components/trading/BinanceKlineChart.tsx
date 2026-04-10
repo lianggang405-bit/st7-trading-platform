@@ -12,8 +12,7 @@ interface BinanceKlineChartProps {
   showWave?: boolean
 }
 
-// Binance API 配置
-const BINANCE_API = 'https://api.binance.com'
+// Binance WebSocket 基础 URL
 const BINANCE_WS = 'wss://stream.binance.com:9443/ws'
 
 // 波浪颜色配置
@@ -73,22 +72,24 @@ export default function BinanceKlineChart({
     if (!seriesRef.current) return
 
     try {
+      // 使用服务器端代理获取数据（解决 CORS 问题）
       const response = await fetch(
-        `${BINANCE_API}/api/v3/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=200`
+        `/api/binance/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=200`
       )
       
       if (!response.ok) throw new Error('Failed to fetch')
       
-      const data = await response.json()
+      const result = await response.json()
+      const data = result.data
       
       // 计算连续涨跌次数
       let consecutiveBullish = 0
       let consecutiveBearish = 0
       const candles: CandlestickData<Time>[] = []
 
-      data.forEach((k: any[], index: number) => {
-        const open = parseFloat(k[1])
-        const close = parseFloat(k[4])
+      data.forEach((k: any, index: number) => {
+        const open = k.open
+        const close = k.close
         const isBullish = close >= open
 
         if (isBullish) {
@@ -103,10 +104,10 @@ export default function BinanceKlineChart({
         const color = getWaveColor(isBullish, consecutiveCount)
 
         candles.push({
-          time: Math.floor(k[0] / 1000) as Time,
+          time: k.time as Time,
           open,
-          high: parseFloat(k[2]),
-          low: parseFloat(k[3]),
+          high: k.high,
+          low: k.low,
           close,
         })
       })
