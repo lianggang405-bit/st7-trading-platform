@@ -54,6 +54,7 @@ export default function TradingChart({
   const priceRef = useRef<number>(0)
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const isDisposedRef = useRef(false)
 
   // ✅ 使用外部传入的 timeframe，如果没有则使用内部默认值
   const [internalTimeframe, setInternalTimeframe] = useState<Timeframe>(externalTimeframe || '1M')
@@ -163,6 +164,7 @@ export default function TradingChart({
   }
 
   useEffect(() => {
+    isDisposedRef.current = false
 
     // ✅ 添加挂载标志
     const isMounted = { current: true }
@@ -266,7 +268,7 @@ export default function TradingChart({
     let isWsConnected = false
 
     const connectWebSocket = () => {
-      if (!isMounted.current) return
+      if (isDisposedRef.current || !isMounted.current) return
 
       try {
         ws = new WebSocket(wsUrl)
@@ -290,6 +292,8 @@ export default function TradingChart({
       }
 
       ws.onmessage = (event) => {
+        if (isDisposedRef.current) return
+        
         try {
           const message = JSON.parse(event.data)
 
@@ -310,7 +314,7 @@ export default function TradingChart({
               volume: Number(kline.volume) || 0
             }
 
-            if (chartInstance.current && seriesRef.current) {
+            if (chartInstance.current && seriesRef.current && !isDisposedRef.current) {
               try {
                 seriesRef.current.update(updated)
 
@@ -353,7 +357,7 @@ export default function TradingChart({
 
     // ✅ 降级处理：如果WebSocket连接失败，定期刷新Binance API获取最新价格
     const pollInterval = setInterval(() => {
-      if (!isMounted.current || !chartInstance.current || !seriesRef.current) {
+      if (isDisposedRef.current || !isMounted.current || !chartInstance.current || !seriesRef.current) {
         return
       }
 
@@ -362,19 +366,21 @@ export default function TradingChart({
         // 每5秒刷新一次
         fetchBinanceKlines(symbol, timeframe, 1)
           .then((klines) => {
-            if (klines && klines.length > 0) {
-              const latest = klines[klines.length - 1]
-              const time = latest.time as Time
+            if (isDisposedRef.current || !klines || klines.length === 0) return
+            
+            const latest = klines[klines.length - 1]
+            const time = latest.time as Time
 
-              const updated = {
-                time,
-                open: Number(latest.open),
-                high: Number(latest.high),
-                low: Number(latest.low),
-                close: Number(latest.close),
-                volume: Number(latest.volume) || 0
-              }
+            const updated = {
+              time,
+              open: Number(latest.open),
+              high: Number(latest.high),
+              low: Number(latest.low),
+              close: Number(latest.close),
+              volume: Number(latest.volume) || 0
+            }
 
+            if (!isDisposedRef.current && seriesRef.current) {
               try {
                 seriesRef.current.update(updated)
                 lastCandleRef.current = updated
@@ -407,8 +413,8 @@ export default function TradingChart({
     window.addEventListener('resize', handleResize)
 
     return () => {
-
-      // ✅ 标记组件已卸载
+      // ✅ 标记组件已卸载，防止后续更新
+      isDisposedRef.current = true
       isMounted.current = false
 
       // 关闭 WebSocket 连接
@@ -434,7 +440,7 @@ export default function TradingChart({
       // 销毁图表实例
       if (chartInstance.current) {
         try {
-          chart.remove()
+          chartInstance.current.remove()
         } catch (error) {
           // chart.remove error，静默处理
         }
