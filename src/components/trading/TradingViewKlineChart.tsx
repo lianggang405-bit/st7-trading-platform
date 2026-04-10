@@ -358,10 +358,18 @@ export default function TradingViewKlineChart({
           return
         }
 
-        console.log(`[TradingViewKlineChart] 设置初始数据: ${validChartData.length}根有效K线`)
+        // 🎯 去重：确保没有重复的时间戳
+        const uniqueCandleMap = new Map<number, any>()
+        for (const candle of validChartData) {
+          uniqueCandleMap.set(candle.time, candle)
+        }
+        const uniqueChartData = Array.from(uniqueCandleMap.values()).sort((a, b) => a.time - b.time)
+
+        console.log(`[TradingViewKlineChart] 去重后: ${validChartData.length} -> ${uniqueChartData.length}根K线`)
+        console.log(`[TradingViewKlineChart] 设置初始数据: ${uniqueChartData.length}根有效K线`)
 
         // 设置初始数据
-        seriesRef.current.setData(validChartData)
+        seriesRef.current.setData(uniqueChartData as any)
         initialDataLoadedRef.current = true
 
         console.log(`[TradingViewKlineChart] 初始数据加载完成: ${chartData.length}根K线`)
