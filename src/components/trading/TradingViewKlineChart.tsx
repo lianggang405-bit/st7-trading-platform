@@ -336,20 +336,19 @@ export default function TradingViewKlineChart({
 
           return true
         }).map(candle => {
-          // 将时间戳转换为完整时间字符串格式（Lightweight Charts 支持）
-          // 对于分钟级K线，需要包含小时和分钟信息
-          const date = new Date(candle.time * 1000)
-          const year = date.getUTCFullYear()
-          const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-          const day = String(date.getUTCDate()).padStart(2, '0')
-          const hours = String(date.getUTCHours()).padStart(2, '0')
-          const minutes = String(date.getUTCMinutes()).padStart(2, '0')
-          
-          // 使用完整时间字符串格式：yyyy-mm-dd hh:mm
-          const timeString = `${year}-${month}-${day} ${hours}:${minutes}`
+          // 将时间戳转换为秒级数字（Lightweight Charts 标准）
+          // 确保是整数秒级时间戳
+          let timeValue = candle.time
+          if (typeof timeValue === 'string') {
+            timeValue = parseInt(timeValue, 10)
+          }
+          // 如果是毫秒级时间戳，转为秒级
+          if (timeValue > 1000000000000) {
+            timeValue = Math.floor(timeValue / 1000)
+          }
 
           return {
-            time: timeString,
+            time: timeValue as any, // Lightweight Charts 的 UTCTimestamp 类型
             open: candle.open!,
             high: candle.high!,
             low: candle.low!,
@@ -413,20 +412,19 @@ export default function TradingViewKlineChart({
       return
     }
 
-    // 🎯 构造更新后的完整数据（使用完整时间字符串格式避免重复）
+    // 🎯 构造更新后的完整数据（使用数字时间戳）
     const updatedChartData = allCandles.map(candle => {
-      // 将时间戳转换为完整时间字符串格式
-      const date = new Date(candle.time * 1000)
-      const year = date.getUTCFullYear()
-      const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-      const day = String(date.getUTCDate()).padStart(2, '0')
-      const hours = String(date.getUTCHours()).padStart(2, '0')
-      const minutes = String(date.getUTCMinutes()).padStart(2, '0')
-
-      const timeString = `${year}-${month}-${day} ${hours}:${minutes}`
+      // 确保时间戳是秒级整数
+      let timeValue = candle.time
+      if (typeof timeValue === 'string') {
+        timeValue = parseInt(timeValue, 10)
+      }
+      if (timeValue > 1000000000000) {
+        timeValue = Math.floor(timeValue / 1000)
+      }
 
       return {
-        time: timeString,
+        time: timeValue as any,
         open: candle.open,
         high: candle.high,
         low: candle.low,
