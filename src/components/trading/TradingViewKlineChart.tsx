@@ -334,17 +334,37 @@ export default function TradingViewKlineChart({
           return true
         }).map(candle => {
           // 将时间戳转换为秒级数字（Lightweight Charts 标准）
-          let timeValue = candle.time
-          if (typeof timeValue === 'string') {
-            timeValue = parseInt(timeValue, 10)
-          }
-          if (timeValue > 1000000000000) {
-            timeValue = Math.floor(timeValue / 1000)
+          let timeValue: number
+          const rawTime = candle.time
+
+          if (typeof rawTime === 'number' && !isNaN(rawTime)) {
+            // 已经是数字类型
+            timeValue = rawTime > 1000000000000 ? Math.floor(rawTime / 1000) : rawTime
+          } else if (typeof rawTime === 'string') {
+            // 字符串格式 - 尝试多种解析方式
+            if (rawTime.includes('T') || rawTime.includes('-')) {
+              // ISO格式或日期字符串，使用Date.parse
+              const parsed = Date.parse(rawTime)
+              if (!isNaN(parsed)) {
+                timeValue = Math.floor(parsed / 1000)
+              } else {
+                // 尝试直接解析数字字符串
+                const direct = parseFloat(rawTime)
+                timeValue = isNaN(direct) ? Math.floor(Date.now() / 1000) : (direct > 1000000000000 ? Math.floor(direct / 1000) : direct)
+              }
+            } else {
+              // 纯数字字符串
+              const parsed = parseFloat(rawTime)
+              timeValue = isNaN(parsed) ? Math.floor(Date.now() / 1000) : (parsed > 1000000000000 ? Math.floor(parsed / 1000) : parsed)
+            }
+          } else {
+            // 其他情况使用当前时间
+            timeValue = Math.floor(Date.now() / 1000)
           }
 
           return {
             time: timeValue,
-            _originalTime: candle.time, // 保留原始值用于调试
+            _originalTime: rawTime, // 保留原始值用于调试
             open: candle.open!,
             high: candle.high!,
             low: candle.low!,
