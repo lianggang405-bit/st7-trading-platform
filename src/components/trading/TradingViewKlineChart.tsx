@@ -360,7 +360,21 @@ export default function TradingViewKlineChart({
         // 🎯 去重：确保没有重复的时间戳（基于转换后的time值）
         const uniqueCandleMap = new Map<number, any>()
         for (const candle of validChartData) {
-          const timeKey = typeof candle.time === 'number' ? candle.time : parseInt(String(candle.time))
+          // 安全的timeKey计算
+          let timeKey: number
+          const rawTime = candle.time
+          if (typeof rawTime === 'number' && !isNaN(rawTime)) {
+            // 已经是数字，检查是否毫秒级
+            timeKey = rawTime > 1000000000000 ? Math.floor(rawTime / 1000) : rawTime
+          } else if (typeof rawTime === 'string') {
+            // 字符串格式尝试转换
+            const parsed = Date.parse(rawTime)
+            timeKey = isNaN(parsed) ? Math.floor(Date.now() / 1000) : Math.floor(parsed / 1000)
+          } else {
+            // 其他情况使用当前时间
+            timeKey = Math.floor(Date.now() / 1000)
+          }
+          
           if (uniqueCandleMap.has(timeKey)) {
             console.warn(`[TradingViewKlineChart] 发现重复时间戳: ${timeKey}，跳过`)
             continue
