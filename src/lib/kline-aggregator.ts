@@ -112,6 +112,13 @@ export class KlineAggregator {
       time: typeof candle.time === 'number' ? candle.time : Number(candle.time)
     }
 
+    // 🎯 去重检查：防止重复添加相同时间戳的K线
+    const existingIndex = candles.findIndex(c => c.time === normalizedCandle.time)
+    if (existingIndex >= 0) {
+      console.warn(`[KlineAggregator] saveCandle: 重复K线时间戳 ${normalizedCandle.time}，跳过保存`)
+      return
+    }
+
     candles.push(normalizedCandle)
 
     // 限制K线数量
@@ -162,19 +169,32 @@ export class KlineAggregator {
       return Math.floor(Date.now() / 1000)
     }
 
+    // 🎯 去重：确保返回的数据中没有重复时间戳
+    const uniqueCandleMap = new Map<number, KlineCandle>()
+
     const normalizedHistorical = historicalCandles.map(candle => ({
       ...candle,
       time: normalizeTime(candle.time)
     }))
 
-    if (currentCandle) {
-      return [...normalizedHistorical, {
-        ...currentCandle,
-        time: normalizeTime(currentCandle.time)
-      }]
+    for (const candle of normalizedHistorical) {
+      if (!uniqueCandleMap.has(candle.time)) {
+        uniqueCandleMap.set(candle.time, candle)
+      }
     }
 
-    return normalizedHistorical
+    if (currentCandle) {
+      const normalizedCurrent = {
+        ...currentCandle,
+        time: normalizeTime(currentCandle.time)
+      }
+      // 当前K线不会被历史数据覆盖
+      if (!uniqueCandleMap.has(normalizedCurrent.time)) {
+        uniqueCandleMap.set(normalizedCurrent.time, normalizedCurrent)
+      }
+    }
+
+    return Array.from(uniqueCandleMap.values()).sort((a, b) => a.time - b.time)
   }
 
   /**
@@ -257,7 +277,6 @@ export class KlineAggregator {
       }
 
       // 检测并转换毫秒级时间戳为秒级
-      // 如果时间戳大于 1e12（10^12），则认为是毫秒级时间戳
       if (timeValue > 1000000000000) {
         timeValue = Math.floor(timeValue / 1000)
       }
@@ -268,8 +287,21 @@ export class KlineAggregator {
       }
     }).filter(c => c !== null) as KlineCandle[]
 
+    // 🎯 去重：确保没有重复的时间戳
+    const uniqueCandleMap = new Map<number, KlineCandle>()
+    for (const candle of normalizedCandles) {
+      if (uniqueCandleMap.has(candle.time)) {
+        console.warn(`[KlineAggregator] initHistoricalCandles: 发现重复时间戳 ${candle.time}，跳过`)
+        continue
+      }
+      uniqueCandleMap.set(candle.time, candle)
+    }
+    const uniqueCandles = Array.from(uniqueCandleMap.values()).sort((a, b) => a.time - b.time)
+
+    console.log(`[KlineAggregator] initHistoricalCandles: 去重 ${normalizedCandles.length} -> ${uniqueCandles.length} 根K线`)
+
     // 保存历史K线
-    this.candles.set(key, normalizedCandles)
+    this.candles.set(key, uniqueCandles)
 
     // 如果有历史K线，将最后一根作为当前K线的基准
     if (normalizedCandles.length > 0) {

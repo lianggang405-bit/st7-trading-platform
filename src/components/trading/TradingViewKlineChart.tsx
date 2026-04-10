@@ -334,18 +334,17 @@ export default function TradingViewKlineChart({
           return true
         }).map(candle => {
           // 将时间戳转换为秒级数字（Lightweight Charts 标准）
-          // 确保是整数秒级时间戳
           let timeValue = candle.time
           if (typeof timeValue === 'string') {
             timeValue = parseInt(timeValue, 10)
           }
-          // 如果是毫秒级时间戳，转为秒级
           if (timeValue > 1000000000000) {
             timeValue = Math.floor(timeValue / 1000)
           }
 
           return {
-            time: timeValue as any, // Lightweight Charts 的 UTCTimestamp 类型
+            time: timeValue,
+            _originalTime: candle.time, // 保留原始值用于调试
             open: candle.open!,
             high: candle.high!,
             low: candle.low!,
@@ -358,10 +357,15 @@ export default function TradingViewKlineChart({
           return
         }
 
-        // 🎯 去重：确保没有重复的时间戳
+        // 🎯 去重：确保没有重复的时间戳（基于转换后的time值）
         const uniqueCandleMap = new Map<number, any>()
         for (const candle of validChartData) {
-          uniqueCandleMap.set(candle.time, candle)
+          const timeKey = typeof candle.time === 'number' ? candle.time : parseInt(String(candle.time))
+          if (uniqueCandleMap.has(timeKey)) {
+            console.warn(`[TradingViewKlineChart] 发现重复时间戳: ${timeKey}，跳过`)
+            continue
+          }
+          uniqueCandleMap.set(timeKey, candle)
         }
         const uniqueChartData = Array.from(uniqueCandleMap.values()).sort((a, b) => a.time - b.time)
 
