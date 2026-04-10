@@ -340,26 +340,27 @@ export default function TradingViewKlineChart({
         }).map(candle => {
           // 将时间戳转换为秒级数字（Lightweight Charts 标准）
           let timeValue: number
-          const rawTime = candle.time
+          const rawTime = candle.time as number | string
 
           if (typeof rawTime === 'number' && !isNaN(rawTime)) {
             // 已经是数字类型
             timeValue = rawTime > 1000000000000 ? Math.floor(rawTime / 1000) : rawTime
           } else if (typeof rawTime === 'string') {
             // 字符串格式 - 尝试多种解析方式
-            if (rawTime.includes('T') || rawTime.includes('-')) {
+            const strTime = rawTime as string
+            if (strTime.includes('T') || strTime.includes('-')) {
               // ISO格式或日期字符串，使用Date.parse
-              const parsed = Date.parse(rawTime)
+              const parsed = Date.parse(strTime)
               if (!isNaN(parsed)) {
                 timeValue = Math.floor(parsed / 1000)
               } else {
                 // 尝试直接解析数字字符串
-                const direct = parseFloat(rawTime)
+                const direct = parseFloat(strTime)
                 timeValue = isNaN(direct) ? Math.floor(Date.now() / 1000) : (direct > 1000000000000 ? Math.floor(direct / 1000) : direct)
               }
             } else {
               // 纯数字字符串
-              const parsed = parseFloat(rawTime)
+              const parsed = parseFloat(strTime)
               timeValue = isNaN(parsed) ? Math.floor(Date.now() / 1000) : (parsed > 1000000000000 ? Math.floor(parsed / 1000) : parsed)
             }
           } else {
