@@ -107,7 +107,11 @@ export default function BinanceKlineChart({
 
   // 加载历史数据
   const loadHistory = useCallback(async () => {
-    if (!seriesRef.current || isDisposedRef.current) return
+    // 每次调用时重新获取 ref 的当前值
+    if (!seriesRef.current || isDisposedRef.current) {
+      console.log(`[BinanceKline] loadHistory skipped - seriesRef: ${!!seriesRef.current}, isDisposed: ${isDisposedRef.current}`)
+      return
+    }
 
     const basePrice = DEFAULT_PRICES[symbol.toUpperCase()] || 1000
 
@@ -160,6 +164,7 @@ export default function BinanceKlineChart({
     candlesRef.current = mockData
     console.log(`[BinanceKline] Generated ${mockData.length} mock candles, first: ${JSON.stringify(mockData[0])}, last: ${JSON.stringify(mockData[mockData.length-1])}`)
     
+    // 再次检查 seriesRef.current（因为可能已经改变了）
     if (!isDisposedRef.current && seriesRef.current) {
       console.log('[BinanceKline] Calling setData on series')
       seriesRef.current.setData(mockData)
@@ -175,7 +180,7 @@ export default function BinanceKlineChart({
     }
 
     console.log(`[BinanceKline] Using mock data for ${symbol}`)
-  }, [symbol, interval])
+  }, [symbol, interval, generateMockData])
 
   // 获取最新K线数据
   const fetchLatestData = useCallback(async () => {
@@ -336,11 +341,59 @@ export default function BinanceKlineChart({
     chartRef.current = chart
     seriesRef.current = series
 
-    // 加载历史数据
-    loadHistory()
+    // 立即加载历史数据（使用闭包中的 series）
+    const basePrice = DEFAULT_PRICES[symbol.toUpperCase()] || 1000
+    const loadInitialData = async () => {
+      try {
+        const response = await fetch(
+          `/api/binance/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=200`
+        )
+        
+        if (response.ok && !isDisposedRef.current) {
+          const result = await response.json()
+          if (result.success && result.data && result.data.length > 0) {
+            const candles: CandlestickData<Time>[] = result.data.map((k: any) => ({
+              time: k.time as Time,
+              open: k.open,
+              high: k.high,
+              low: k.low,
+              close: k.close,
+            }))
+            candlesRef.current = candles
+            series.setData(candles)
+            chart.timeScale().fitContent()
+            setIsConnected(true)
+            if (candles.length > 1) {
+              const firstPrice = candles[0].open
+              const lastPrice = candles[candles.length - 1].close
+              setPriceChange({
+                value: lastPrice - firstPrice,
+                percent: ((lastPrice - firstPrice) / firstPrice) * 100,
+              })
+              priceRef.current = lastPrice
+            }
+            console.log(`[BinanceKline] Loaded ${candles.length} candles from API`)
+            return
+          }
+        }
+      } catch (error) {
+        console.warn('[BinanceKline] API failed, using mock data')
+      }
 
-    // 启动轮询
-    pollIntervalRef.current = setInterval(fetchLatestData, 3000)
+      // 使用模拟数据
+      if (isDisposedRef.current) return
+      const mockData = generateMockData(basePrice, 200)
+      candlesRef.current = mockData
+      series.setData(mockData)
+      chart.timeScale().fitContent()
+      setIsConnected(false)
+      if (mockData.length > 0) {
+        priceRef.current = mockData[mockData.length - 1].close
+      }
+      console.log(`[BinanceKline] Using mock data for ${symbol}`)
+    }
+
+    loadInitialData()
 
     // 响应式
     const handleResize = () => {
@@ -371,7 +424,7 @@ export default function BinanceKlineChart({
         seriesRef.current = null
       }, 100)
     }
-  }, [symbol, interval, height, width, loadHistory, fetchLatestData])
+  }, [symbol, interval, height, width, generateMockData])
 
   const formatPrice = (price: number) => {
     if (price >= 1000) return price.toFixed(2)
