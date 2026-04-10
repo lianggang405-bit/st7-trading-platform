@@ -112,39 +112,57 @@ function updateTrends() {
 }
 
 /**
- * 获取真实价格
+ * 获取真实价格（带超时保护）
  * 从外部 API 获取最新真实价格
  */
 async function fetchRealPrice(symbol: string): Promise<number | null> {
   try {
-    if (symbol === 'XAUUSD') {
-      // 黄金 API
-      const res = await fetch('https://api.gold-api.com/price/XAU')
-      if (!res.ok) throw new Error('Gold API failed')
-      const data = await res.json()
-      return data.price
-    } else if (symbol === 'XAGUSD') {
-      // 白银 API
-      const res = await fetch('https://api.gold-api.com/price/XAG')
-      if (!res.ok) throw new Error('Silver API failed')
-      const data = await res.json()
-      return data.price
-    } else if (symbol === 'BTCUSDT' || symbol === 'ETHUSDT' || 
-               symbol === 'LTCUSDT' || symbol === 'SOLUSDT' ||
-               symbol === 'XRPUSDT' || symbol === 'DOGEUSDT' ||
-               symbol === 'ADAUSDT' || symbol === 'DOTUSDT') {
-      // 加密货币 API
-      const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)
-      if (!res.ok) throw new Error('Binance API failed')
-      const data = await res.json()
-      return parseFloat(data.price)
+    // 创建 AbortController 用于超时控制
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
+
+    try {
+      if (symbol === 'XAUUSD') {
+        // 黄金 API
+        const res = await fetch('https://api.gold-api.com/price/XAU', {
+          signal: controller.signal
+        });
+        if (!res.ok) throw new Error('Gold API failed');
+        const data = await res.json();
+        return data.price;
+      } else if (symbol === 'XAGUSD') {
+        // 白银 API
+        const res = await fetch('https://api.gold-api.com/price/XAG', {
+          signal: controller.signal
+        });
+        if (!res.ok) throw new Error('Silver API failed');
+        const data = await res.json();
+        return data.price;
+      } else if (symbol === 'BTCUSDT' || symbol === 'ETHUSDT' ||
+                 symbol === 'LTCUSDT' || symbol === 'SOLUSDT' ||
+                 symbol === 'XRPUSDT' || symbol === 'DOGEUSDT' ||
+                 symbol === 'ADAUSDT' || symbol === 'DOTUSDT') {
+        // 加密货币 API（带超时保护）
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, {
+          signal: controller.signal
+        });
+        if (!res.ok) throw new Error('Binance API failed');
+        const data = await res.json();
+        return parseFloat(data.price);
+      }
+
+      // 其他交易对暂时不更新真实价格
+      return null;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    
-    // 其他交易对暂时不更新真实价格
-    return null
-  } catch (error) {
-    console.error(`Failed to fetch real price for ${symbol}:`, error)
-    return null
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.warn(`fetchRealPrice timeout for ${symbol}`);
+    } else {
+      console.error(`Failed to fetch real price for ${symbol}:`, error);
+    }
+    return null;
   }
 }
 
