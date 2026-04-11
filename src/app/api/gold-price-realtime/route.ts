@@ -1,7 +1,7 @@
 /**
  * 黄金价格实时数据 API
  * 数据源优先级：
- * 1. FreeGoldAPI.com - 免费，无需API Key，每日更新
+ * 1. GoldAPI.io - 专业贵金属 API，需要 Key
  * 2. Yahoo Finance - 黄金期货 GC=F
  * 3. 备用参考价格
  */
@@ -19,52 +19,50 @@ interface GoldPriceResponse {
   unit: string
 }
 
-// FreeGoldAPI 缓存（避免频繁请求）
+// GoldAPI.io API Key
+const GOLDAPI_KEY = 'goldapi-445bbsmmle9lsi-io'
+
+// 缓存（避免频繁请求）
 let cachedGoldPrice: GoldPriceResponse | null = null
 let lastFetchTime = 0
-const CACHE_DURATION = 60 * 60 * 1000 // 1小时缓存
+const CACHE_DURATION = 60 * 1000 // 1分钟缓存（黄金价格变动较频繁）
 
 // 参考价格（备用）
 const REFERENCE_PRICE = 4800
 
 /**
- * 从 FreeGoldAPI 获取黄金价格
+ * 从 GoldAPI.io 获取黄金价格（现货黄金）
  */
-async function fetchFromFreeGoldAPI(): Promise<GoldPriceResponse | null> {
+async function fetchFromGoldAPI(): Promise<GoldPriceResponse | null> {
   try {
-    const response = await fetch('https://freegoldapi.com/data/latest.csv', {
-      cache: 'no-store',
+    const response = await fetch('https://www.goldapi.io/api/XAU/USD', {
+      method: 'GET',
+      headers: {
+        'x-access-token': GOLDAPI_KEY,
+        'Content-Type': 'application/json'
+      },
       signal: AbortSignal.timeout(10000)
     })
 
     if (!response.ok) {
-      console.error('[GoldPrice] FreeGoldAPI CSV failed:', response.status)
+      console.error('[GoldPrice] GoldAPI error:', response.status)
       return null
     }
 
-    const text = await response.text()
-    const lines = text.trim().split('\n')
+    const data = await response.json()
     
-    if (lines.length < 2) {
-      console.error('[GoldPrice] FreeGoldAPI: No data lines')
+    // GoldAPI 返回格式：
+    // { "price": 5059.50, "ch": 10.5, "chp": 0.21, "timestamp": 1771545600, ... }
+    const price = data.price
+    const change = data.ch || 0
+    const changePercent = data.chp || 0
+
+    if (!price || price <= 0) {
+      console.error('[GoldPrice] GoldAPI: Invalid price', price)
       return null
     }
 
-    // 获取最后一行（最新数据）
-    const lastLine = lines[lines.length - 1]
-    const [date, priceStr, source] = lastLine.split(',')
-
-    const price = parseFloat(priceStr)
-    if (isNaN(price) || price <= 0) {
-      console.error('[GoldPrice] FreeGoldAPI: Invalid price', priceStr)
-      return null
-    }
-
-    // 计算与参考价格的对比
-    const change = price - REFERENCE_PRICE
-    const changePercent = (change / REFERENCE_PRICE) * 100
-
-    console.log(`[GoldPrice] FreeGoldAPI: $${price} on ${date}`)
+    console.log(`[GoldPrice] GoldAPI: $${price}`)
 
     return {
       success: true,
@@ -72,18 +70,18 @@ async function fetchFromFreeGoldAPI(): Promise<GoldPriceResponse | null> {
       price,
       change,
       changePercent,
-      timestamp: new Date(date).getTime(),
-      source: source || 'freegoldapi',
+      timestamp: data.timestamp ? data.timestamp * 1000 : Date.now(),
+      source: 'goldapi',
       unit: 'USD/oz'
     }
   } catch (error) {
-    console.error('[GoldPrice] FreeGoldAPI error:', error)
+    console.error('[GoldPrice] GoldAPI error:', error)
     return null
   }
 }
 
 /**
- * 从 Yahoo Finance 获取黄金期货价格
+ * 从 Yahoo Finance 获取黄金期货价格（备用）
  */
 async function fetchFromYahooFinance(): Promise<GoldPriceResponse | null> {
   try {
@@ -145,7 +143,7 @@ async function fetchFromYahooFinance(): Promise<GoldPriceResponse | null> {
  * 获取模拟黄金价格（基于时间的小幅波动）
  */
 function getSimulatedPrice(): GoldPriceResponse {
-  const basePrice = 4800
+  const basePrice = 5000
   // 基于当前小时的小幅随机波动
   const hour = new Date().getHours()
   const variation = Math.sin(hour * 0.5) * 50 + (Math.random() - 0.5) * 20
@@ -167,7 +165,7 @@ function getSimulatedPrice(): GoldPriceResponse {
 
 /**
  * GET /api/gold-price-realtime
- * 获取实时黄金价格
+ * 获取实时黄金价格（现货黄金 XAU/USD）
  */
 export async function GET() {
   // 检查缓存
@@ -177,12 +175,12 @@ export async function GET() {
     return NextResponse.json(cachedGoldPrice)
   }
 
-  // 尝试 FreeGoldAPI（免费，无需 API Key）
-  let result = await fetchFromFreeGoldAPI()
+  // 尝试 GoldAPI.io（专业贵金属 API）
+  let result = await fetchFromGoldAPI()
 
   // 如果失败，尝试 Yahoo Finance
   if (!result) {
-    console.log('[GoldPrice] FreeGoldAPI 失败，尝试 Yahoo Finance...')
+    console.log('[GoldPrice] GoldAPI 失败，尝试 Yahoo Finance...')
     result = await fetchFromYahooFinance()
   }
 
