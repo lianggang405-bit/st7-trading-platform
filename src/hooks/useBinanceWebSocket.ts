@@ -166,8 +166,10 @@ export function useBinanceWebSocket({
       ws.onclose = (event) => {
         console.log(`[BinanceWS] Closed: ${symbol}, code: ${event.code}, reason: ${event.reason}`)
 
-        // 如果是正常关闭码，不重连
+        // code 1000 表示正常关闭，不重连
+        // 如果是手动关闭（manualCloseRef），也不重连
         if (event.code === 1000 || manualCloseRef.current) {
+          console.log(`[BinanceWS] Normal close for ${symbol}, not reconnecting`)
           setIsConnected(false)
           return
         }
