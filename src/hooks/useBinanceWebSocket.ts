@@ -184,7 +184,7 @@ export function useBinanceWebSocket({
         console.log(`[BinanceWS] Closed: ${symbol}, code: ${event.code}, reason: ${event.reason}`)
 
         // code 1000 表示正常关闭，不重连
-        // 如果是手动关闭（manualCloseRef），也不重连
+        // code 1006 表示异常关闭（网络问题），需要重连
         // 如果交易对不支持，不重连
         if (event.code === 1000 || manualCloseRef.current || !isBinanceSupported(symbol)) {
           if (!isBinanceSupported(symbol)) {
@@ -198,12 +198,16 @@ export function useBinanceWebSocket({
 
         setIsConnected(false)
 
-        // 尝试重连（指数退避）
-        if (reconnect && !isUnmountedRef.current && reconnectCountRef.current < maxReconnectAttempts) {
+        // 沙箱环境限制：只尝试少量重连，避免无限循环
+        const maxAttempts = 3
+        if (reconnect && !isUnmountedRef.current && reconnectCountRef.current < maxAttempts) {
           reconnectCountRef.current++
-          const backoffDelay = Math.min(reconnectInterval * Math.pow(1.5, reconnectCountRef.current - 1), 60000)
-          console.log(`[BinanceWS] Reconnecting ${symbol} in ${backoffDelay}ms (attempt ${reconnectCountRef.current})...`)
+          const backoffDelay = Math.min(reconnectInterval * Math.pow(1.5, reconnectCountRef.current - 1), 30000)
+          console.log(`[BinanceWS] Reconnecting ${symbol} in ${backoffDelay}ms (attempt ${reconnectCountRef.current}/${maxAttempts})...`)
           reconnectTimeoutRef.current = setTimeout(connect, backoffDelay)
+        } else if (reconnectCountRef.current >= maxAttempts) {
+          console.log(`[BinanceWS] Max reconnection attempts reached for ${symbol}, using simulated data`)
+          setError('WebSocket failed, using simulated data')
         }
       }
     } catch (e) {
