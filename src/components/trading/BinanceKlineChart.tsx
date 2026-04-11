@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { createChart, IChartApi, ISeriesApi, CandlestickData, Time, ColorType, CrosshairMode } from 'lightweight-charts'
-import { useTranslations } from 'next-intl'
 import { useBinanceWebSocket, BinanceKline } from '@/hooks/useBinanceWebSocket'
+import { useOKXWebSocket, OKXKline } from '@/hooks/useOKXWebSocket'
 import ChartErrorBoundary from './ChartErrorBoundary'
 
 // 默认价格（用于生成模拟数据）
@@ -14,24 +14,14 @@ const DEFAULT_PRICES: Record<string, number> = {
   'XAUUSDT': 2350,
   'SOLUSDT': 150,
   'XRPUSDT': 0.6,
+  'ADAUSDT': 0.45,
+  'DOGEUSDT': 0.08,
+  'DOTUSDT': 7.5,
+  'MATICUSDT': 0.85,
 }
 
 // 币安不支持的交易对（需要使用模拟数据）
 const UNSUPPORTED_SYMBOLS = ['XAUUSD', 'XAU', 'XAGUSD', 'XAG', 'EURUSD', 'GBPUSD', 'USDJPY']
-
-// 转换为币安格式（如果需要）
-function toBinanceSymbol(symbol: string): string {
-  // 如果是不支持的交易对，返回原符号
-  if (UNSUPPORTED_SYMBOLS.includes(symbol.toUpperCase())) {
-    return symbol.toUpperCase()
-  }
-  return symbol.toUpperCase()
-}
-
-// 是否是币安支持的交易对
-function isBinanceSupported(symbol: string): boolean {
-  return !UNSUPPORTED_SYMBOLS.includes(symbol.toUpperCase())
-}
 
 // 时间周期映射
 const INTERVAL_MAP: Record<string, string> = {
@@ -43,6 +33,11 @@ const INTERVAL_MAP: Record<string, string> = {
   '4h': '4h',
   '1d': '1d',
   '1w': '1w',
+}
+
+// 是否是币安支持的交易对
+function isBinanceSupported(symbol: string): boolean {
+  return !UNSUPPORTED_SYMBOLS.includes(symbol.toUpperCase())
 }
 
 // 生成模拟 K 线数据
@@ -98,55 +93,44 @@ export default function BinanceKlineChart({
   width,
   showHeader = true,
 }: BinanceKlineChartProps) {
-  const t = useTranslations('Trade')
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const candlesRef = useRef<CandlestickData<Time>[]>([])
   const isDisposedRef = useRef(false)
+  const priceRef = useRef(0)
 
   const [isConnected, setIsConnected] = useState(false)
+  const [dataSource, setDataSource] = useState<'Binance' | 'OKX' | 'Mock'>('Mock')
   const [priceChange, setPriceChange] = useState({ value: 0, percent: 0 })
 
-  // WebSocket K 线回调
-  const handleKline = useCallback((kline: BinanceKline) => {
+  // 处理 K 线数据更新
+  const handleKlineUpdate = useCallback((candle: CandlestickData<Time>) => {
     if (isDisposedRef.current || !seriesRef.current) return
-
-    const newCandle: CandlestickData<Time> = {
-      time: kline.time as Time,
-      open: kline.open,
-      high: kline.high,
-      low: kline.low,
-      close: kline.close,
-    }
 
     const candles = candlesRef.current
     const lastCandle = candles[candles.length - 1]
 
-    if (kline.isClosed) {
-      // 新K线
-      candles.push(newCandle)
-      if (candles.length > 200) candles.shift()
+    if (lastCandle && lastCandle.time === candle.time) {
+      // 更新当前 K 线
+      candles[candles.length - 1] = candle
     } else {
-      // 更新当前K线
-      if (lastCandle && lastCandle.time === kline.time) {
-        candles[candles.length - 1] = newCandle
-      } else {
-        candles.push(newCandle)
-        if (candles.length > 200) candles.shift()
-      }
+      // 新 K 线
+      candles.push(candle)
+      if (candles.length > 200) candles.shift()
     }
 
     try {
-      seriesRef.current?.update(newCandle)
+      seriesRef.current.update(candle)
+      priceRef.current = candle.close
     } catch (e) {
-      // ignore dispose error
+      // ignore
     }
 
     // 更新涨跌
     if (candles.length > 1) {
       const firstPrice = candles[0].open
-      const currentPrice = kline.close
+      const currentPrice = candle.close
       setPriceChange({
         value: currentPrice - firstPrice,
         percent: ((currentPrice - firstPrice) / firstPrice) * 100,
@@ -154,28 +138,43 @@ export default function BinanceKlineChart({
     }
   }, [])
 
-  // 检查是否使用 WebSocket
-  const useWebSocket = isBinanceSupported(symbol)
-  const wsSymbol = toBinanceSymbol(symbol)
+  // 币安 WebSocket 回调
+  const handleBinanceKline = useCallback((kline: BinanceKline) => {
+    handleKlineUpdate({
+      time: kline.time as Time,
+      open: kline.open,
+      high: kline.high,
+      low: kline.low,
+      close: kline.close,
+    })
+  }, [handleKlineUpdate])
 
-  // 连接币安 WebSocket（仅对支持的交易对）
-  const { isConnected: wsConnected, error: wsError } = useBinanceWebSocket({
-    symbol: wsSymbol,
+  // OKX WebSocket 回调
+  const handleOKXKline = useCallback((kline: OKXKline) => {
+    handleKlineUpdate({
+      time: kline.time as Time,
+      open: kline.open,
+      high: kline.high,
+      low: kline.low,
+      close: kline.close,
+    })
+  }, [handleKlineUpdate])
+
+  // 币安 WebSocket
+  const { isConnected: binanceConnected } = useBinanceWebSocket({
+    symbol,
     interval: INTERVAL_MAP[interval] || interval,
-    onKline: useWebSocket ? handleKline : undefined,
-    reconnect: useWebSocket,
+    onKline: isBinanceSupported(symbol) ? handleBinanceKline : undefined,
+    reconnect: true,
   })
 
-  // 设置 K 线数据到图表
-  const setData = useCallback((candles: CandlestickData<Time>[]) => {
-    if (isDisposedRef.current || !seriesRef.current) return
-    try {
-      seriesRef.current.setData(candles)
-      chartRef.current?.timeScale().fitContent()
-    } catch (e) {
-      // ignore
-    }
-  }, [])
+  // OKX WebSocket（备用）
+  const { isConnected: okxConnected } = useOKXWebSocket({
+    symbol,
+    interval: INTERVAL_MAP[interval] || interval,
+    onKline: handleOKXKline,
+    reconnect: true,
+  })
 
   // 初始化图表
   useEffect(() => {
@@ -220,16 +219,15 @@ export default function BinanceKlineChart({
     chartRef.current = chart
     seriesRef.current = series
 
-    // 加载历史数据
+    // 加载初始数据
     const basePrice = DEFAULT_PRICES[symbol.toUpperCase()]
     const mockData = generateMockKlines(symbol, interval, 200, basePrice)
     candlesRef.current = mockData
-    
+
     try {
       series.setData(mockData)
       chart.timeScale().fitContent()
-      
-      // 设置涨跌
+
       if (mockData.length > 1) {
         const firstPrice = mockData[0].open
         const lastPrice = mockData[mockData.length - 1].close
@@ -237,11 +235,12 @@ export default function BinanceKlineChart({
           value: lastPrice - firstPrice,
           percent: ((lastPrice - firstPrice) / firstPrice) * 100,
         })
+        priceRef.current = lastPrice
       }
-      
-      console.log(`[BinanceKline] Loaded ${mockData.length} candles for ${symbol}`)
+
+      console.log(`[KlineChart] Loaded ${mockData.length} candles for ${symbol}`)
     } catch (e) {
-      console.warn('[BinanceKline] Failed to set data:', e)
+      console.warn('[KlineChart] Failed to set data:', e)
     }
 
     // 响应式
@@ -269,8 +268,17 @@ export default function BinanceKlineChart({
 
   // 更新连接状态
   useEffect(() => {
-    setIsConnected(wsConnected)
-  }, [wsConnected])
+    if (binanceConnected) {
+      setIsConnected(true)
+      setDataSource('Binance')
+    } else if (okxConnected) {
+      setIsConnected(true)
+      setDataSource('OKX')
+    } else {
+      setIsConnected(false)
+      setDataSource('Mock')
+    }
+  }, [binanceConnected, okxConnected])
 
   const formatPrice = (price: number) => {
     if (price >= 1000) return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -281,6 +289,14 @@ export default function BinanceKlineChart({
   const formatChange = (value: number, percent: number) => {
     const sign = value >= 0 ? '+' : ''
     return `${sign}${value.toFixed(2)} (${sign}${percent.toFixed(2)}%)`
+  }
+
+  const getSourceColor = () => {
+    switch (dataSource) {
+      case 'Binance': return 'bg-blue-500/20 text-blue-500'
+      case 'OKX': return 'bg-green-500/20 text-green-500'
+      default: return 'bg-yellow-500/20 text-yellow-500'
+    }
   }
 
   return (
@@ -304,6 +320,9 @@ export default function BinanceKlineChart({
             }`}>
               {isConnected ? 'LIVE' : 'OFFLINE'}
             </span>
+            <span className={`text-xs px-2 py-0.5 rounded ${getSourceColor()}`}>
+              {dataSource}
+            </span>
           </div>
         </div>
       )}
@@ -315,12 +334,6 @@ export default function BinanceKlineChart({
           style={{ height: `${height}px` }}
         />
       </ChartErrorBoundary>
-
-      {wsError && (
-        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-yellow-500/20 text-yellow-500 text-xs px-3 py-1 rounded">
-          WebSocket disconnected, using cached data
-        </div>
-      )}
     </div>
   )
 }
