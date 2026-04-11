@@ -223,16 +223,16 @@ export default function BinanceKlineChart({
     reconnect: true,
   })
 
-  // OKX WebSocket（备用，不支持 XAU 等贵金属）
-  // 检查是否是 OKX 不支持的交易对
-  const isOKXUnsupported = OKX_UNSUPPORTED_SYMBOLS.includes(symbol.toUpperCase())
-  
-  const { isConnected: okxConnected } = useOKXWebSocket({
-    symbol,
-    interval: INTERVAL_MAP[interval] || interval,
-    onKline: isOKXUnsupported ? undefined : handleOKXKline,
-    reconnect: true,
-  })
+  // OKX WebSocket（暂时禁用，因为 K 线频道格式有问题）
+  // 备用数据源主要依赖 Binance 或模拟数据
+  // const isOKXUnsupported = OKX_UNSUPPORTED_SYMBOLS.includes(symbol.toUpperCase())
+  // const { isConnected: okxConnected } = useOKXWebSocket({
+  //   symbol,
+  //   interval: INTERVAL_MAP[interval] || interval,
+  //   onKline: isOKXUnsupported ? undefined : handleOKXKline,
+  //   reconnect: true,
+  // })
+  const okxConnected = false
 
   // 初始化图表
   useEffect(() => {

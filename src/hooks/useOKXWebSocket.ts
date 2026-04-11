@@ -88,19 +88,20 @@ export function useOKXWebSocket({
   const subscribedRef = useRef(false)
 
   // 转换符号格式: BTCUSDT -> BTC-USDT
-  // OKX 黄金符号映射
+  // OKX 符号格式：现货使用 BTC-USDT，永续合约使用 BTC-USDT-SWAP
   const toOKXSymbol = (sym: string): string => {
     const upperSym = sym.toUpperCase()
     
-    // 黄金交易对映射
+    // 黄金交易对映射 - 贵金属使用永续合约
     if (upperSym.startsWith('XAU')) {
-      // 尝试 XAUT-USDT (代币化黄金现货)
-      const okxGoldSymbol = 'XAUT-USDT'
-      console.log(`[OKXWS] Gold symbol mapping: ${sym} -> ${okxGoldSymbol}`)
-      return okxGoldSymbol
+      return 'XAU-USD-SWAP'
+    }
+    if (upperSym.startsWith('XAG')) {
+      return 'XAG-USD-SWAP'
     }
     
-    // 标准转换：移除后缀并重新拼接
+    // 加密货币 - OKX 现货格式
+    // BTCUSDT -> BTC-USDT
     const base = sym.replace(/(USDT|USDC|BTC|ETH|BNB)$/i, '')
     const quote = sym.slice(base.length)
     return `${base}-${quote}`
