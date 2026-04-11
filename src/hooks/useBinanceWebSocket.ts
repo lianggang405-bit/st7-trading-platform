@@ -26,6 +26,15 @@ export interface BinanceTicker {
 
 type MessageHandler = (data: BinanceKline | BinanceTicker) => void
 
+// 币安不支持的交易对列表
+// 贵金属：XAUUSD, XAGUSD 不是币安标准现货交易对
+const UNSUPPORTED_SYMBOLS = ['XAUUSD', 'XAUUSDT', 'XAU', 'XAGUSD', 'XAG', 'EURUSD', 'GBPUSD']
+
+// 检查交易对是否在币安支持
+export function isBinanceSupported(symbol: string): boolean {
+  return !UNSUPPORTED_SYMBOLS.includes(symbol.toUpperCase())
+}
+
 // WebSocket URL
 const BINANCE_WS_BASE = 'wss://stream.binance.com:9443/ws'
 
@@ -62,6 +71,14 @@ export function useBinanceWebSocket({
 
   const connect = useCallback(() => {
     if (isUnmountedRef.current) return
+
+    // 检查是否支持该交易对
+    if (!isBinanceSupported(symbol)) {
+      console.log(`[BinanceWS] Skipping ${symbol} - not supported on Binance`)
+      setIsConnected(false)
+      setError(`${symbol} is not a supported Binance trading pair`)
+      return
+    }
 
     // 如果已经有活跃连接，先关闭
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -168,8 +185,13 @@ export function useBinanceWebSocket({
 
         // code 1000 表示正常关闭，不重连
         // 如果是手动关闭（manualCloseRef），也不重连
-        if (event.code === 1000 || manualCloseRef.current) {
-          console.log(`[BinanceWS] Normal close for ${symbol}, not reconnecting`)
+        // 如果交易对不支持，不重连
+        if (event.code === 1000 || manualCloseRef.current || !isBinanceSupported(symbol)) {
+          if (!isBinanceSupported(symbol)) {
+            console.log(`[BinanceWS] ${symbol} not supported, not reconnecting`)
+          } else {
+            console.log(`[BinanceWS] Normal close for ${symbol}, not reconnecting`)
+          }
           setIsConnected(false)
           return
         }

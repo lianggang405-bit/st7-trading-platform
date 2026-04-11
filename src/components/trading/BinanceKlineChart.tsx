@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { createChart, IChartApi, ISeriesApi, CandlestickData, Time, ColorType, CrosshairMode } from 'lightweight-charts'
-import { useBinanceWebSocket, BinanceKline } from '@/hooks/useBinanceWebSocket'
+import { useBinanceWebSocket, isBinanceSupported, BinanceKline } from '@/hooks/useBinanceWebSocket'
 import { useOKXWebSocket, OKXKline } from '@/hooks/useOKXWebSocket'
 import { useGoldPrice } from '@/hooks/useGoldPrice'
 import { useMarketStore } from '@/store/marketStore'
@@ -33,13 +33,8 @@ const DEFAULT_PRICES: Record<string, number> = {
   'MATICUSDT': 1,
 }
 
-// 币安不支持的交易对（需要使用模拟数据或 OKX）
-// 注意：XAUUSD 和 XAUUSDT 由 OKX WebSocket 处理
-// 但如果 OKX 也不支持，则使用模拟数据
+// 币安不支持的交易对（需要使用模拟数据）
 const UNSUPPORTED_SYMBOLS = ['XAGUSD', 'XAG', 'EURUSD', 'GBPUSD', 'USDJPY']
-
-// OKX 不支持的交易对（黄金等）
-const OKX_UNSUPPORTED_SYMBOLS = ['XAUUSD', 'XAUUSDT', 'XAU', 'XAGUSD', 'XAG']
 
 // 时间周期映射
 const INTERVAL_MAP: Record<string, string> = {
@@ -51,11 +46,6 @@ const INTERVAL_MAP: Record<string, string> = {
   '4h': '4h',
   '1d': '1d',
   '1w': '1w',
-}
-
-// 是否是币安支持的交易对
-function isBinanceSupported(symbol: string): boolean {
-  return !UNSUPPORTED_SYMBOLS.includes(symbol.toUpperCase())
 }
 
 // 生成模拟 K 线数据
