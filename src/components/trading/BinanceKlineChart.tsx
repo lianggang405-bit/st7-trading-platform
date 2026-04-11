@@ -16,6 +16,23 @@ const DEFAULT_PRICES: Record<string, number> = {
   'XRPUSDT': 0.6,
 }
 
+// 币安不支持的交易对（需要使用模拟数据）
+const UNSUPPORTED_SYMBOLS = ['XAUUSD', 'XAU', 'XAGUSD', 'XAG', 'EURUSD', 'GBPUSD', 'USDJPY']
+
+// 转换为币安格式（如果需要）
+function toBinanceSymbol(symbol: string): string {
+  // 如果是不支持的交易对，返回原符号
+  if (UNSUPPORTED_SYMBOLS.includes(symbol.toUpperCase())) {
+    return symbol.toUpperCase()
+  }
+  return symbol.toUpperCase()
+}
+
+// 是否是币安支持的交易对
+function isBinanceSupported(symbol: string): boolean {
+  return !UNSUPPORTED_SYMBOLS.includes(symbol.toUpperCase())
+}
+
 // 时间周期映射
 const INTERVAL_MAP: Record<string, string> = {
   '1m': '1m',
@@ -137,11 +154,16 @@ export default function BinanceKlineChart({
     }
   }, [])
 
-  // 连接币安 WebSocket
+  // 检查是否使用 WebSocket
+  const useWebSocket = isBinanceSupported(symbol)
+  const wsSymbol = toBinanceSymbol(symbol)
+
+  // 连接币安 WebSocket（仅对支持的交易对）
   const { isConnected: wsConnected, error: wsError } = useBinanceWebSocket({
-    symbol,
+    symbol: wsSymbol,
     interval: INTERVAL_MAP[interval] || interval,
-    onKline: handleKline,
+    onKline: useWebSocket ? handleKline : undefined,
+    reconnect: useWebSocket,
   })
 
   // 设置 K 线数据到图表

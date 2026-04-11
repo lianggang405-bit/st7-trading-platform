@@ -102,11 +102,6 @@ export function useBinanceWebSocket({
       const ws = new WebSocket(wsUrl)
       wsRef.current = ws
 
-      // 设置 pong 处理（币安会自动发送 pong）
-      ws.onpong = () => {
-        // console.log(`[BinanceWS] Pong received for ${symbol}`)
-      }
-
       ws.onopen = () => {
         if (isUnmountedRef.current) {
           ws.close()
