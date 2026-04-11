@@ -4,7 +4,17 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import { createChart, IChartApi, ISeriesApi, CandlestickData, Time, ColorType, CrosshairMode } from 'lightweight-charts'
 import { useBinanceWebSocket, BinanceKline } from '@/hooks/useBinanceWebSocket'
 import { useOKXWebSocket, OKXKline } from '@/hooks/useOKXWebSocket'
+import { useGoldPrice } from '@/hooks/useGoldPrice'
 import ChartErrorBoundary from './ChartErrorBoundary'
+
+// 是否是黄金交易对
+function isGoldSymbol(symbol: string): boolean {
+  const upper = symbol.toUpperCase()
+  return upper.startsWith('XAU') || upper === 'GOLD'
+}
+
+// 黄金交易对列表
+const GOLD_SYMBOLS = ['XAUUSD', 'XAUUSDT', 'GOLD']
 
 // 默认价格（用于生成模拟数据）
 // 2026年3月参考价格：BTC ~65000, ETH ~3500, XAU(现货黄金) ~2850
@@ -106,10 +116,36 @@ export default function BinanceKlineChart({
   const candlesRef = useRef<CandlestickData<Time>[]>([])
   const isDisposedRef = useRef(false)
   const priceRef = useRef(0)
+  const goldPriceRef = useRef<number | null>(null)
 
   const [isConnected, setIsConnected] = useState(false)
-  const [dataSource, setDataSource] = useState<'Binance' | 'OKX' | 'Mock' | '模拟'>('Mock')
+  const [dataSource, setDataSource] = useState<'Binance' | 'OKX' | 'Mock' | '模拟' | '实时'>('Mock')
   const [priceChange, setPriceChange] = useState({ value: 0, percent: 0 })
+  const [goldPrice, setGoldPrice] = useState<number | null>(null)
+
+  // 黄金价格 Hook（仅在黄金交易对时使用）
+  const isGold = isGoldSymbol(symbol)
+  const { priceData } = useGoldPrice({
+    refreshInterval: 5 * 60 * 1000, // 5分钟刷新一次
+    onPriceUpdate: (price) => {
+      goldPriceRef.current = price
+      setGoldPrice(price)
+    }
+  })
+
+  // 获取基础价格（优先使用真实黄金价格）
+  const getBasePrice = useCallback(() => {
+    // 如果是黄金交易对且有真实价格
+    if (isGold && goldPriceRef.current) {
+      return goldPriceRef.current
+    }
+    // 否则使用默认价格
+    const defaultPrice = DEFAULT_PRICES[symbol.toUpperCase()]
+    if (defaultPrice) return defaultPrice
+    // 如果是黄金但没有真实价格，返回参考价
+    if (isGold) return 5000
+    return 1000
+  }, [symbol, isGold]) // 使用 isGold 而不是 goldPrice
 
   // 处理 K 线数据更新
   const handleKlineUpdate = useCallback((candle: CandlestickData<Time>) => {
@@ -176,10 +212,13 @@ export default function BinanceKlineChart({
   })
 
   // OKX WebSocket（备用，不支持 XAU 等贵金属）
+  // 检查是否是 OKX 不支持的交易对
+  const isOKXUnsupported = OKX_UNSUPPORTED_SYMBOLS.includes(symbol.toUpperCase())
+  
   const { isConnected: okxConnected } = useOKXWebSocket({
     symbol,
     interval: INTERVAL_MAP[interval] || interval,
-    onKline: !OKX_UNSUPPORTED_SYMBOLS.includes(symbol.toUpperCase()) ? handleOKXKline : undefined,
+    onKline: isOKXUnsupported ? undefined : handleOKXKline,
     reconnect: true,
   })
 
@@ -226,8 +265,8 @@ export default function BinanceKlineChart({
     chartRef.current = chart
     seriesRef.current = series
 
-    // 加载初始数据
-    const basePrice = DEFAULT_PRICES[symbol.toUpperCase()]
+    // 加载初始数据（优先使用真实黄金价格）
+    const basePrice = getBasePrice()
     const mockData = generateMockKlines(symbol, interval, 200, basePrice)
     candlesRef.current = mockData
 
@@ -245,7 +284,8 @@ export default function BinanceKlineChart({
         priceRef.current = lastPrice
       }
 
-      console.log(`[KlineChart] Loaded ${mockData.length} candles for ${symbol}`)
+      const priceSource = isGold && goldPriceRef.current ? ` (真实价格: $${goldPriceRef.current.toFixed(2)})` : ''
+      console.log(`[KlineChart] Loaded ${mockData.length} candles for ${symbol}${priceSource}`)
     } catch (e) {
       console.warn('[KlineChart] Failed to set data:', e)
     }
@@ -275,7 +315,7 @@ export default function BinanceKlineChart({
 
   // 更新连接状态
   useEffect(() => {
-    // XAU 特殊处理：没有可用的实时数据源，使用模拟数据
+    // XAU 特殊处理：使用真实黄金价格
     const isMetalSymbol = symbol.toUpperCase().startsWith('XAU') || symbol.toUpperCase().startsWith('XAG')
     
     if (binanceConnected) {
@@ -284,10 +324,17 @@ export default function BinanceKlineChart({
     } else if (okxConnected) {
       setIsConnected(true)
       setDataSource('OKX')
-    } else {
-      // XAU 系列使用模拟数据
+    } else if (isMetalSymbol && goldPriceRef.current !== null) {
+      // 黄金交易对且有真实价格
+      setIsConnected(true)
+      setDataSource('实时')
+    } else if (isMetalSymbol) {
+      // 黄金交易对但没有真实价格
       setIsConnected(false)
-      setDataSource(isMetalSymbol ? '模拟' : 'Mock')
+      setDataSource('模拟')
+    } else {
+      setIsConnected(false)
+      setDataSource('Mock')
     }
   }, [binanceConnected, okxConnected, symbol])
 
@@ -306,6 +353,7 @@ export default function BinanceKlineChart({
     switch (dataSource) {
       case 'Binance': return 'bg-blue-500/20 text-blue-500'
       case 'OKX': return 'bg-green-500/20 text-green-500'
+      case '实时': return 'bg-emerald-500/20 text-emerald-500'
       case '模拟': return 'bg-orange-500/20 text-orange-500'
       default: return 'bg-yellow-500/20 text-yellow-500'
     }
@@ -315,6 +363,7 @@ export default function BinanceKlineChart({
     switch (dataSource) {
       case 'Binance': return 'Binance'
       case 'OKX': return 'OKX'
+      case '实时': return '实时'
       case '模拟': return '模拟数据'
       default: return 'Mock'
     }
