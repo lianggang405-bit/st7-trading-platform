@@ -48,38 +48,48 @@ export function useBinanceWebSocket({
   onKline,
   onTicker,
   reconnect = true,
-  reconnectInterval = 5000,
+  reconnectInterval = 10000, // 增加重连间隔到10秒
 }: UseBinanceWebSocketOptions) {
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isUnmountedRef = useRef(false)
   const reconnectCountRef = useRef(0)
-  const maxReconnectAttempts = 5
+  const maxReconnectAttempts = 10 // 增加最大重试次数
+  const manualCloseRef = useRef(false)
 
   const connect = useCallback(() => {
     if (isUnmountedRef.current) return
-    
+
+    // 如果已经有活跃连接，先关闭
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      return
+    }
+
     // 清理旧连接
     if (wsRef.current) {
-      wsRef.current.close()
+      try {
+        wsRef.current.close()
+      } catch (e) {
+        // ignore
+      }
       wsRef.current = null
     }
 
     const wsSymbol = symbol.toLowerCase()
-    
+
     // 根据回调选择订阅流
     const streams: string[] = []
-    
+
     if (onKline) {
       streams.push(`${wsSymbol}@kline_${interval}`)
     }
     if (onTicker) {
       streams.push(`${wsSymbol}@ticker`)
     }
-    
+
     if (streams.length === 0) {
       // 如果没有回调，只订阅 ticker
       streams.push(`${wsSymbol}@ticker`)
@@ -92,6 +102,11 @@ export function useBinanceWebSocket({
       const ws = new WebSocket(wsUrl)
       wsRef.current = ws
 
+      // 设置 ping/pong 处理
+      ws.onpong = () => {
+        console.log(`[BinanceWS] Pong received for ${symbol}`)
+      }
+
       ws.onopen = () => {
         if (isUnmountedRef.current) {
           ws.close()
@@ -101,14 +116,28 @@ export function useBinanceWebSocket({
         setIsConnected(true)
         setError(null)
         reconnectCountRef.current = 0
+        manualCloseRef.current = false
+
+        // 启动心跳
+        const pingInterval = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.ping()
+          } else {
+            clearInterval(pingInterval)
+          }
+        }, 30000)
+
+        ws.addEventListener('close', () => {
+          clearInterval(pingInterval)
+        })
       }
 
       ws.onmessage = (event) => {
         if (isUnmountedRef.current) return
-        
+
         try {
           const message = JSON.parse(event.data)
-          
+
           // 处理 K 线数据
           if (message.stream && message.stream.includes('@kline')) {
             const klineData = message.data
@@ -127,7 +156,7 @@ export function useBinanceWebSocket({
               onKline?.(kline)
             }
           }
-          
+
           // 处理 Ticker 数据
           if (message.stream && message.stream.includes('@ticker')) {
             const tickerData = message.data
@@ -143,24 +172,32 @@ export function useBinanceWebSocket({
             onTicker?.(ticker)
           }
         } catch (e) {
-          console.warn('[BinanceWS] Parse error:', e)
+          // 忽略解析错误
         }
       }
 
-      ws.onerror = (e) => {
-        console.warn(`[BinanceWS] Error for ${symbol}:`, e)
+      ws.onerror = () => {
+        console.warn(`[BinanceWS] Error for ${symbol}`)
         setError('Connection error')
       }
 
-      ws.onclose = (e) => {
-        console.log(`[BinanceWS] Closed: ${symbol}, code: ${e.code}`)
+      ws.onclose = (event) => {
+        console.log(`[BinanceWS] Closed: ${symbol}, code: ${event.code}, reason: ${event.reason}`)
+
+        // 如果是正常关闭码，不重连
+        if (event.code === 1000 || manualCloseRef.current) {
+          setIsConnected(false)
+          return
+        }
+
         setIsConnected(false)
-        
-        // 尝试重连
+
+        // 尝试重连（指数退避）
         if (reconnect && !isUnmountedRef.current && reconnectCountRef.current < maxReconnectAttempts) {
           reconnectCountRef.current++
-          console.log(`[BinanceWS] Reconnecting ${symbol} (attempt ${reconnectCountRef.current})...`)
-          reconnectTimeoutRef.current = setTimeout(connect, reconnectInterval)
+          const backoffDelay = Math.min(reconnectInterval * Math.pow(1.5, reconnectCountRef.current - 1), 60000)
+          console.log(`[BinanceWS] Reconnecting ${symbol} in ${backoffDelay}ms (attempt ${reconnectCountRef.current})...`)
+          reconnectTimeoutRef.current = setTimeout(connect, backoffDelay)
         }
       }
     } catch (e) {
@@ -170,18 +207,18 @@ export function useBinanceWebSocket({
   }, [symbol, interval, onKline, onTicker, reconnect, reconnectInterval])
 
   const disconnect = useCallback(() => {
-    isUnmountedRef.current = true
-    
+    manualCloseRef.current = true
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current)
       reconnectTimeoutRef.current = null
     }
-    
+
     if (wsRef.current) {
-      wsRef.current.close()
+      wsRef.current.close(1000, 'Manual disconnect')
       wsRef.current = null
     }
-    
+
     setIsConnected(false)
   }, [])
 
@@ -200,8 +237,10 @@ export function useBinanceWebSocket({
   return {
     isConnected,
     error,
+    disconnect,
     reconnect: () => {
       reconnectCountRef.current = 0
+      manualCloseRef.current = false
       connect()
     },
   }
@@ -216,14 +255,14 @@ export function useBinanceMultiWebSocket(
 ) {
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isUnmountedRef = useRef(false)
 
   const connect = useCallback(() => {
     if (isUnmountedRef.current || symbols.length === 0) return
-    
+
     // 清理旧连接
     if (wsRef.current) {
       wsRef.current.close()
@@ -234,7 +273,7 @@ export function useBinanceMultiWebSocket(
     const streams = symbols
       .map(s => `${s.toLowerCase()}@ticker`)
       .join('/')
-    
+
     const wsUrl = `${BINANCE_WS_BASE}/${streams}`
     console.log(`[BinanceMultiWS] Connecting to ${symbols.length} symbols`)
 
@@ -254,10 +293,10 @@ export function useBinanceMultiWebSocket(
 
       ws.onmessage = (event) => {
         if (isUnmountedRef.current) return
-        
+
         try {
           const message = JSON.parse(event.data)
-          
+
           if (message.stream?.includes('@ticker') && message.data) {
             const tickerData = message.data
             const ticker: BinanceTicker = {
@@ -272,7 +311,7 @@ export function useBinanceMultiWebSocket(
             onTicker?.(ticker)
           }
         } catch (e) {
-          console.warn('[BinanceMultiWS] Parse error:', e)
+          // 忽略解析错误
         }
       }
 
@@ -282,10 +321,10 @@ export function useBinanceMultiWebSocket(
 
       ws.onclose = () => {
         setIsConnected(false)
-        
+
         // 自动重连
         if (!isUnmountedRef.current) {
-          reconnectTimeoutRef.current = setTimeout(connect, 5000)
+          reconnectTimeoutRef.current = setTimeout(connect, 10000)
         }
       }
     } catch (e) {
