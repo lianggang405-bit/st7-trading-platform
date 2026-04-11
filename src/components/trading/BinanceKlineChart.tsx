@@ -5,6 +5,7 @@ import { createChart, IChartApi, ISeriesApi, CandlestickData, Time, ColorType, C
 import { useBinanceWebSocket, BinanceKline } from '@/hooks/useBinanceWebSocket'
 import { useOKXWebSocket, OKXKline } from '@/hooks/useOKXWebSocket'
 import { useGoldPrice } from '@/hooks/useGoldPrice'
+import { useMarketStore } from '@/store/marketStore'
 import ChartErrorBoundary from './ChartErrorBoundary'
 
 // 是否是黄金交易对
@@ -16,20 +17,20 @@ function isGoldSymbol(symbol: string): boolean {
 // 黄金交易对列表
 const GOLD_SYMBOLS = ['XAUUSD', 'XAUUSDT', 'GOLD']
 
-// 默认价格（用于生成模拟数据）
-// 2026年3月参考价格：BTC ~65000, ETH ~3500, XAU(现货黄金) ~2850
+// 默认价格（用于生成模拟数据 - 仅作为后备）
+// 实时价格由 marketStore 提供
 const DEFAULT_PRICES: Record<string, number> = {
-  'BTCUSDT': 65000,
+  'BTCUSDT': 97000,
   'ETHUSDT': 3500,
   'BNBUSDT': 600,
-  'XAUUSDT': 2850,  // 现货黄金（美元/盎司）
-  'XAUUSD': 2850,   // 现货黄金（美元/盎司）
-  'SOLUSDT': 150,
+  'XAUUSDT': 4749,  // 现货黄金（美元/盎司）- 将由 GoldAPI 更新
+  'XAUUSD': 4749,   // 现货黄金（美元/盎司）- 将由 GoldAPI 更新
+  'SOLUSDT': 200,
   'XRPUSDT': 0.6,
-  'ADAUSDT': 0.45,
-  'DOGEUSDT': 0.08,
-  'DOTUSDT': 7.5,
-  'MATICUSDT': 0.85,
+  'ADAUSDT': 1.2,
+  'DOGEUSDT': 0.2,
+  'DOTUSDT': 8,
+  'MATICUSDT': 1,
 }
 
 // 币安不支持的交易对（需要使用模拟数据或 OKX）
@@ -118,6 +119,9 @@ export default function BinanceKlineChart({
   const priceRef = useRef(0)
   const goldPriceRef = useRef<number | null>(null)
 
+  // 使用 marketStore 获取实时价格
+  const marketStore = useMarketStore()
+
   const [isConnected, setIsConnected] = useState(false)
   const [dataSource, setDataSource] = useState<'Binance' | 'OKX' | 'Mock' | '模拟' | '实时'>('Mock')
   const [priceChange, setPriceChange] = useState({ value: 0, percent: 0 })
@@ -133,19 +137,27 @@ export default function BinanceKlineChart({
     }
   })
 
-  // 获取基础价格（优先使用真实黄金价格）
+  // 获取基础价格（优先使用 marketStore 的实时价格）
   const getBasePrice = useCallback(() => {
-    // 如果是黄金交易对且有真实价格
+    // 如果是黄金交易对且有真实价格（来自 GoldAPI）
     if (isGold && goldPriceRef.current) {
       return goldPriceRef.current
     }
+    
+    // 尝试从 marketStore 获取实时价格
+    const marketPrice = marketStore.getSymbolPrice(symbol)
+    if (marketPrice) {
+      return marketPrice
+    }
+    
     // 否则使用默认价格
     const defaultPrice = DEFAULT_PRICES[symbol.toUpperCase()]
     if (defaultPrice) return defaultPrice
+    
     // 如果是黄金但没有真实价格，返回参考价
     if (isGold) return 5000
     return 1000
-  }, [symbol, isGold]) // 使用 isGold 而不是 goldPrice
+  }, [symbol, isGold, marketStore])
 
   // 处理 K 线数据更新
   const handleKlineUpdate = useCallback((candle: CandlestickData<Time>) => {

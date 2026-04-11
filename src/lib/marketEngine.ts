@@ -25,10 +25,11 @@ export type SymbolData = {
 }
 
 // 所有交易对的初始数据
+// 注意：这些是默认价格，系统会定期从外部 API 更新为真实价格
 const symbols: Record<string, SymbolData> = {
   // 加密货币（大波动，3小时更新）
-  BTCUSDT: { symbol: "BTCUSDT", basePrice: 62000, price: 62000, volatility: 0.002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
-  ETHUSDT: { symbol: "ETHUSDT", basePrice: 3200, price: 3200, volatility: 0.002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
+  BTCUSDT: { symbol: "BTCUSDT", basePrice: 97000, price: 97000, volatility: 0.002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
+  ETHUSDT: { symbol: "ETHUSDT", basePrice: 3500, price: 3500, volatility: 0.002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
   LTCUSDT: { symbol: "LTCUSDT", basePrice: 150, price: 150, volatility: 0.0025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
   SOLUSDT: { symbol: "SOLUSDT", basePrice: 200, price: 200, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
   XRPUSDT: { symbol: "XRPUSDT", basePrice: 0.6, price: 0.6, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
@@ -36,8 +37,8 @@ const symbols: Record<string, SymbolData> = {
   ADAUSDT: { symbol: "ADAUSDT", basePrice: 1.2, price: 1.2, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
   DOTUSDT: { symbol: "DOTUSDT", basePrice: 8, price: 8, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
 
-  // 贵金属（中等波动，6小时更新）
-  XAUUSD: { symbol: "XAUUSD", basePrice: 5200, price: 5200, volatility: 0.0008, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 6 * 60 * 60 * 1000, category: 'metal' },
+  // 贵金属（中等波动，6小时更新）- 使用 GoldAPI.io 获取真实价格
+  XAUUSD: { symbol: "XAUUSD", basePrice: 4749, price: 4749, volatility: 0.0008, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 6 * 60 * 60 * 1000, category: 'metal' },
   XAGUSD: { symbol: "XAGUSD", basePrice: 29.5, price: 29.5, volatility: 0.0015, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 6 * 60 * 60 * 1000, category: 'metal' },
 
   // 外汇（小波动，12小时更新）
@@ -114,56 +115,99 @@ function updateTrends() {
 /**
  * 获取真实价格（带超时保护）
  * 从外部 API 获取最新真实价格
+ * 优先级：
+ * 1. GoldAPI.io - 贵金属（XAUUSD, XAGUSD）
+ * 2. Binance - 加密货币
+ * 3. Yahoo Finance - 备用
  */
-async function fetchRealPrice(symbol: string): Promise<number | null> {
+
+// GoldAPI.io API Key
+const GOLDAPI_KEY = 'goldapi-445bbsmmle9lsi-io'
+
+/**
+ * 从 GoldAPI.io 获取贵金属价格
+ */
+async function fetchFromGoldAPI(symbol: string): Promise<number | null> {
   try {
-    // 创建 AbortController 用于超时控制
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
+    // 符号映射：XAUUSD -> XAU, XAGUSD -> XAG
+    const metalSymbol = symbol.replace('USD', '')
+    
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000)
 
     try {
-      if (symbol === 'XAUUSD') {
-        // 黄金 API
-        const res = await fetch('https://api.gold-api.com/price/XAU', {
-          signal: controller.signal
-        });
-        if (!res.ok) throw new Error('Gold API failed');
-        const data = await res.json();
-        return data.price;
-      } else if (symbol === 'XAGUSD') {
-        // 白银 API
-        const res = await fetch('https://api.gold-api.com/price/XAG', {
-          signal: controller.signal
-        });
-        if (!res.ok) throw new Error('Silver API failed');
-        const data = await res.json();
-        return data.price;
-      } else if (symbol === 'BTCUSDT' || symbol === 'ETHUSDT' ||
-                 symbol === 'LTCUSDT' || symbol === 'SOLUSDT' ||
-                 symbol === 'XRPUSDT' || symbol === 'DOGEUSDT' ||
-                 symbol === 'ADAUSDT' || symbol === 'DOTUSDT') {
-        // 加密货币 API（带超时保护）
-        const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, {
-          signal: controller.signal
-        });
-        if (!res.ok) throw new Error('Binance API failed');
-        const data = await res.json();
-        return parseFloat(data.price);
+      const res = await fetch(`https://www.goldapi.io/api/${metalSymbol}/USD`, {
+        headers: {
+          'x-access-token': GOLDAPI_KEY,
+          'Content-Type': 'application/json'
+        },
+        signal: controller.signal
+      })
+
+      if (!res.ok) {
+        console.warn(`[GoldAPI] ${symbol} failed: ${res.status}`)
+        return null
       }
 
-      // 其他交易对暂时不更新真实价格
-      return null;
+      const data = await res.json()
+      return data.price
     } finally {
-      clearTimeout(timeoutId);
+      clearTimeout(timeoutId)
     }
   } catch (error: any) {
     if (error.name === 'AbortError') {
-      console.warn(`fetchRealPrice timeout for ${symbol}`);
+      console.warn(`[GoldAPI] ${symbol} timeout`)
     } else {
-      console.error(`Failed to fetch real price for ${symbol}:`, error);
+      console.warn(`[GoldAPI] ${symbol} failed:`, error.message)
     }
-    return null;
+    return null
   }
+}
+
+/**
+ * 从 Binance 获取加密货币价格
+ */
+async function fetchFromBinance(symbol: string): Promise<number | null> {
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+    try {
+      const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, {
+        signal: controller.signal
+      })
+
+      if (!res.ok) {
+        return null
+      }
+
+      const data = await res.json()
+      return parseFloat(data.price)
+    } finally {
+      clearTimeout(timeoutId)
+    }
+  } catch (error) {
+    return null
+  }
+}
+
+/**
+ * 获取真实价格
+ */
+async function fetchRealPrice(symbol: string): Promise<number | null> {
+  // 贵金属 - 使用 GoldAPI.io
+  if (symbol === 'XAUUSD' || symbol === 'XAGUSD') {
+    return await fetchFromGoldAPI(symbol)
+  }
+
+  // 加密货币 - 使用 Binance
+  const cryptoSymbols = ['BTCUSDT', 'ETHUSDT', 'LTCUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'DOTUSDT']
+  if (cryptoSymbols.includes(symbol)) {
+    return await fetchFromBinance(symbol)
+  }
+
+  // 其他交易对暂时使用模拟价格
+  return null
 }
 
 /**
