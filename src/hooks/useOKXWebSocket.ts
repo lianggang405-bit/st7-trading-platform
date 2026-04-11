@@ -88,9 +88,20 @@ export function useOKXWebSocket({
   const subscribedRef = useRef(false)
 
   // 转换符号格式: BTCUSDT -> BTC-USDT
+  // OKX 黄金符号映射
   const toOKXSymbol = (sym: string): string => {
-    // 移除后缀 USDT/USDC 等
-    const base = sym.replace(/(USDT|USDC|BTC|ETH|BNB)$/, '')
+    const upperSym = sym.toUpperCase()
+    
+    // 黄金交易对映射
+    if (upperSym.startsWith('XAU')) {
+      // 尝试 XAUT-USDT (代币化黄金现货)
+      const okxGoldSymbol = 'XAUT-USDT'
+      console.log(`[OKXWS] Gold symbol mapping: ${sym} -> ${okxGoldSymbol}`)
+      return okxGoldSymbol
+    }
+    
+    // 标准转换：移除后缀并重新拼接
+    const base = sym.replace(/(USDT|USDC|BTC|ETH|BNB)$/i, '')
     const quote = sym.slice(base.length)
     return `${base}-${quote}`
   }
@@ -113,6 +124,13 @@ export function useOKXWebSocket({
 
   const connect = useCallback(() => {
     if (isUnmountedRef.current) return
+    
+    // 如果没有订阅任何数据，跳过连接
+    if (!onKline && !onTicker) {
+      console.log(`[OKXWS] Skipping connect for ${symbol} - no subscription`)
+      setIsConnected(false)
+      return
+    }
 
     // 如果已经有活跃连接，先关闭
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -147,11 +165,10 @@ export function useOKXWebSocket({
       })
     }
 
+    // 如果没有有效通道，跳过
     if (channels.length === 0) {
-      channels.push({
-        channel: `candle${okxInterval.toLowerCase()}`,
-        instId: okxSymbol,
-      })
+      console.log(`[OKXWS] Skipping connect for ${symbol} - no valid channels`)
+      return
     }
 
     console.log(`[OKXWS] Connecting for ${symbol} (${okxSymbol})`)
@@ -186,16 +203,22 @@ export function useOKXWebSocket({
 
         try {
           const message = JSON.parse(event.data)
+          
+          // 调试：打印所有收到的消息
+          if (message.event === 'error') {
+            console.warn(`[OKXWS] Error response for ${symbol}:`, message.msg, message.code)
+          }
 
           // 处理订阅确认
           if (message.event === 'subscribe') {
-            console.log(`[OKXWS] Subscribe confirmed for ${symbol}`)
+            console.log(`[OKXWS] Subscribe confirmed for ${okxSymbol}:`, message.arg)
             subscribedRef.current = true
             return
           }
 
           // 处理 K 线数据
           if (message.data && message.arg?.channel?.startsWith('candle')) {
+            console.log(`[OKXWS] Received ${message.data.length} klines for ${okxSymbol}`)
             for (const klineData of message.data) {
               const kline = parseOKXKline(klineData)
               onKline?.(kline)

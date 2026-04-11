@@ -7,11 +7,13 @@ import { useOKXWebSocket, OKXKline } from '@/hooks/useOKXWebSocket'
 import ChartErrorBoundary from './ChartErrorBoundary'
 
 // 默认价格（用于生成模拟数据）
+// 2026年3月参考价格：BTC ~65000, ETH ~3500, XAU(现货黄金) ~2850
 const DEFAULT_PRICES: Record<string, number> = {
   'BTCUSDT': 65000,
   'ETHUSDT': 3500,
   'BNBUSDT': 600,
-  'XAUUSDT': 2350,
+  'XAUUSDT': 2850,  // 现货黄金（美元/盎司）
+  'XAUUSD': 2850,   // 现货黄金（美元/盎司）
   'SOLUSDT': 150,
   'XRPUSDT': 0.6,
   'ADAUSDT': 0.45,
@@ -20,8 +22,13 @@ const DEFAULT_PRICES: Record<string, number> = {
   'MATICUSDT': 0.85,
 }
 
-// 币安不支持的交易对（需要使用模拟数据）
-const UNSUPPORTED_SYMBOLS = ['XAUUSD', 'XAU', 'XAGUSD', 'XAG', 'EURUSD', 'GBPUSD', 'USDJPY']
+// 币安不支持的交易对（需要使用模拟数据或 OKX）
+// 注意：XAUUSD 和 XAUUSDT 由 OKX WebSocket 处理
+// 但如果 OKX 也不支持，则使用模拟数据
+const UNSUPPORTED_SYMBOLS = ['XAGUSD', 'XAG', 'EURUSD', 'GBPUSD', 'USDJPY']
+
+// OKX 不支持的交易对（黄金等）
+const OKX_UNSUPPORTED_SYMBOLS = ['XAUUSD', 'XAUUSDT', 'XAU', 'XAGUSD', 'XAG']
 
 // 时间周期映射
 const INTERVAL_MAP: Record<string, string> = {
@@ -101,7 +108,7 @@ export default function BinanceKlineChart({
   const priceRef = useRef(0)
 
   const [isConnected, setIsConnected] = useState(false)
-  const [dataSource, setDataSource] = useState<'Binance' | 'OKX' | 'Mock'>('Mock')
+  const [dataSource, setDataSource] = useState<'Binance' | 'OKX' | 'Mock' | '模拟'>('Mock')
   const [priceChange, setPriceChange] = useState({ value: 0, percent: 0 })
 
   // 处理 K 线数据更新
@@ -168,11 +175,11 @@ export default function BinanceKlineChart({
     reconnect: true,
   })
 
-  // OKX WebSocket（备用）
+  // OKX WebSocket（备用，不支持 XAU 等贵金属）
   const { isConnected: okxConnected } = useOKXWebSocket({
     symbol,
     interval: INTERVAL_MAP[interval] || interval,
-    onKline: handleOKXKline,
+    onKline: !OKX_UNSUPPORTED_SYMBOLS.includes(symbol.toUpperCase()) ? handleOKXKline : undefined,
     reconnect: true,
   })
 
@@ -268,6 +275,9 @@ export default function BinanceKlineChart({
 
   // 更新连接状态
   useEffect(() => {
+    // XAU 特殊处理：没有可用的实时数据源，使用模拟数据
+    const isMetalSymbol = symbol.toUpperCase().startsWith('XAU') || symbol.toUpperCase().startsWith('XAG')
+    
     if (binanceConnected) {
       setIsConnected(true)
       setDataSource('Binance')
@@ -275,10 +285,11 @@ export default function BinanceKlineChart({
       setIsConnected(true)
       setDataSource('OKX')
     } else {
+      // XAU 系列使用模拟数据
       setIsConnected(false)
-      setDataSource('Mock')
+      setDataSource(isMetalSymbol ? '模拟' : 'Mock')
     }
-  }, [binanceConnected, okxConnected])
+  }, [binanceConnected, okxConnected, symbol])
 
   const formatPrice = (price: number) => {
     if (price >= 1000) return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -295,7 +306,17 @@ export default function BinanceKlineChart({
     switch (dataSource) {
       case 'Binance': return 'bg-blue-500/20 text-blue-500'
       case 'OKX': return 'bg-green-500/20 text-green-500'
+      case '模拟': return 'bg-orange-500/20 text-orange-500'
       default: return 'bg-yellow-500/20 text-yellow-500'
+    }
+  }
+
+  const getSourceLabel = () => {
+    switch (dataSource) {
+      case 'Binance': return 'Binance'
+      case 'OKX': return 'OKX'
+      case '模拟': return '模拟数据'
+      default: return 'Mock'
     }
   }
 
@@ -321,7 +342,7 @@ export default function BinanceKlineChart({
               {isConnected ? 'LIVE' : 'OFFLINE'}
             </span>
             <span className={`text-xs px-2 py-0.5 rounded ${getSourceColor()}`}>
-              {dataSource}
+              {getSourceLabel()}
             </span>
           </div>
         </div>
