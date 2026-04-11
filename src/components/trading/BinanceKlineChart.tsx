@@ -151,14 +151,23 @@ export default function BinanceKlineChart({
     // 立即加载历史数据（使用闭包中的 series）
     const basePrice = DEFAULT_PRICES[symbol.toUpperCase()] || 1000
     const loadInitialData = async () => {
+      // 检查组件是否已卸载
+      if (isDisposedRef.current) {
+        console.log('[BinanceKline] Skipping load - component disposed')
+        return
+      }
+      
       try {
         const response = await fetch(
           `/api/binance/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=200`
         )
         
-        if (response.ok && !isDisposedRef.current) {
+        // 再次检查组件是否已卸载
+        if (isDisposedRef.current) return
+        
+        if (response.ok) {
           const result = await response.json()
-          if (result.success && result.data && result.data.length > 0) {
+          if (result.success && result.data && result.data.length > 0 && !isDisposedRef.current) {
             const candles: CandlestickData<Time>[] = result.data.map((k: any) => ({
               time: k.time as Time,
               open: k.open,
@@ -167,8 +176,16 @@ export default function BinanceKlineChart({
               close: k.close,
             }))
             candlesRef.current = candles
-            series.setData(candles)
-            chart.timeScale().fitContent()
+            
+            // 使用 try-catch 防止 setData 时组件已卸载
+            try {
+              series.setData(candles)
+              chart.timeScale().fitContent()
+            } catch (e) {
+              console.warn('[BinanceKline] setData failed:', e)
+              return
+            }
+            
             setIsConnected(true)
             if (candles.length > 1) {
               const firstPrice = candles[0].open
@@ -191,8 +208,15 @@ export default function BinanceKlineChart({
       if (isDisposedRef.current) return
       const mockData = generateMockData(basePrice, 200)
       candlesRef.current = mockData
-      series.setData(mockData)
-      chart.timeScale().fitContent()
+      
+      try {
+        series.setData(mockData)
+        chart.timeScale().fitContent()
+      } catch (e) {
+        console.warn('[BinanceKline] setData failed:', e)
+        return
+      }
+      
       setIsConnected(false)
       if (mockData.length > 0) {
         priceRef.current = mockData[mockData.length - 1].close
@@ -218,18 +242,16 @@ export default function BinanceKlineChart({
         clearInterval(pollIntervalRef.current)
         pollIntervalRef.current = null
       }
-      // 延迟移除图表，确保绘制完成
-      setTimeout(() => {
-        if (chartRef.current) {
-          try {
-            chartRef.current.remove()
-          } catch (e) {
-            // ignore
-          }
-          chartRef.current = null
+      // 立即移除图表，避免后续 setData 调用
+      if (chartRef.current) {
+        try {
+          chartRef.current.remove()
+        } catch (e) {
+          // ignore
         }
-        seriesRef.current = null
-      }, 100)
+        chartRef.current = null
+      }
+      seriesRef.current = null
     }
   }, [symbol, interval, height, width, generateMockData])
 
