@@ -102,9 +102,9 @@ export function useBinanceWebSocket({
       const ws = new WebSocket(wsUrl)
       wsRef.current = ws
 
-      // 设置 ping/pong 处理
+      // 设置 pong 处理（币安会自动发送 pong）
       ws.onpong = () => {
-        console.log(`[BinanceWS] Pong received for ${symbol}`)
+        // console.log(`[BinanceWS] Pong received for ${symbol}`)
       }
 
       ws.onopen = () => {
@@ -117,19 +117,6 @@ export function useBinanceWebSocket({
         setError(null)
         reconnectCountRef.current = 0
         manualCloseRef.current = false
-
-        // 启动心跳
-        const pingInterval = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.ping()
-          } else {
-            clearInterval(pingInterval)
-          }
-        }, 30000)
-
-        ws.addEventListener('close', () => {
-          clearInterval(pingInterval)
-        })
       }
 
       ws.onmessage = (event) => {
