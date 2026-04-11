@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { createChart, IChartApi, ISeriesApi, CandlestickData, Time, ColorType, CrosshairMode, CandlestickSeries } from 'lightweight-charts'
+import { createChart, IChartApi, ISeriesApi, CandlestickData, Time, ColorType, CrosshairMode } from 'lightweight-charts'
 import { useTranslations } from 'next-intl'
 
 interface BinanceKlineChartProps {
@@ -136,7 +136,7 @@ export default function BinanceKlineChart({
       handleScale: false,
     })
 
-    const series = chart.addSeries(CandlestickSeries, {
+    const series = chart.addCandlestickSeries({
       upColor: '#26a69a',
       downColor: '#ef5350',
       borderUpColor: '#26a69a',

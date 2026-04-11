@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { createChart, IChartApi, ISeriesApi, CandlestickData, Time, ColorType, CrosshairMode, CandlestickSeries } from 'lightweight-charts'
+import { createChart, IChartApi, ISeriesApi, CandlestickData, Time, ColorType, CrosshairMode } from 'lightweight-charts'
 import { useMarketStore } from '@/store/marketStore'
 
 interface SimpleKlineChartProps {
@@ -90,7 +90,7 @@ export default function SimpleKlineChart({
       },
     })
 
-    const series = chart.addSeries(CandlestickSeries, {
+    const series = chart.addCandlestickSeries( {
       upColor: '#26a69a',
       downColor: '#ef5350',
       borderUpColor: '#26a69a',
