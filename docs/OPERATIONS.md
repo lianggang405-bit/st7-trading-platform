@@ -273,13 +273,51 @@ curl http://localhost:5000/api/market/stats
 
 ```promql
 # 真实源覆盖率过低（持续 10 分钟低于 50%）
-real_source_percent < 50
+# 配合 Prometheus for 条件避免抖动
+(real_source_percent < 50) and (avg_over_time(real_source_percent[10m]) < 50)
 
-# 低波动交易对过多（超过 5 个）
-low_vol_count > 5
+# 低波动交易对过多（持续 15 分钟超过 5 个）
+(low_vol_count > 5) and (avg_over_time(low_vol_count[15m]) > 5)
 
 # 单品种连续失败（超过 5 次）
 miss_count{symbol="XAUUSD"} > 5
+```
+
+#### Prometheus 告警规则示例
+
+```yaml
+groups:
+  - name: market-data-source
+    rules:
+      # 真实源覆盖率过低
+      - alert: MarketRealSourceLow
+        expr: real_source_percent < 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "行情真实源覆盖率低于 50%"
+          description: "{{ $labels.symbol }} 真实源比例: {{ $value }}%"
+
+      # 低波动交易对过多
+      - alert: MarketLowVolHigh
+        expr: low_vol_count > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "低波动交易对数量过多"
+          description: "{{ $value }} 个交易对处于低波动模式"
+
+      # 单品种持续失败
+      - alert: MarketSymbolMissHigh
+        expr: miss_count > 5
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.symbol }} 持续获取真实价格失败"
+          description: "连续失败次数: {{ $value }}"
 ```
 
 **注意**：如果需要更稳定的告警（避免瞬时抖动），建议在监控系统（如 Grafana）中配置：
