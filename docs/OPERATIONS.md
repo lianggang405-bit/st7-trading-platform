@@ -222,6 +222,26 @@ curl http://localhost:5000/api/market/stats
     "XAUUSD": 3,
     "EURUSD": 0
   },
+  "trends": {
+    "15m": {
+      "avgRealSourcePercent": 72.5,
+      "avgDeviation": 0.0234,
+      "peakDeviation": 0.156,
+      "dataPoints": 450
+    },
+    "60m": {
+      "avgRealSourcePercent": 68.3,
+      "avgDeviation": 0.0312,
+      "peakDeviation": 0.289,
+      "dataPoints": 1800
+    },
+    "bySymbol": {
+      "BTCUSDT": {
+        "15m": { "avgRealSourcePercent": 95.2, "avgDeviation": 0.015 },
+        "60m": { "avgRealSourcePercent": 91.8, "avgDeviation": 0.022 }
+      }
+    }
+  },
   "symbols": {
     "BTCUSDT": {
       "basePrice": 97000,
@@ -234,6 +254,37 @@ curl http://localhost:5000/api/market/stats
   }
 }
 ```
+
+#### 指标解读
+
+| dataSource | 状态说明 |
+|------------|---------|
+| `real` | 最近 5 分钟内成功获取并同步了真实价格 |
+| `simulated` | 5 分钟内无真实价格，使用模拟数据 |
+
+| lowVol 状态 | 含义 | 风险等级 |
+|-------------|------|---------|
+| `miss < 3` | 正常模式，波动系数 1.0 | 低 |
+| `miss >= 3` | 低波动模式，波动系数 0.35 | 中（注意观察） |
+
+#### 告警设计建议
+
+基于当前快照指标的告警规则：
+
+```promql
+# 真实源覆盖率过低（持续 10 分钟低于 50%）
+real_source_percent < 50
+
+# 低波动交易对过多（超过 5 个）
+low_vol_count > 5
+
+# 单品种连续失败（超过 5 次）
+miss_count{symbol="XAUUSD"} > 5
+```
+
+**注意**：如果需要更稳定的告警（避免瞬时抖动），建议在监控系统（如 Grafana）中配置：
+- 使用 `avg_over_time()` 聚合 15 分钟窗口
+- 设置持续时间条件（如 `for: 5m`）
 
 #### 指标解读
 
