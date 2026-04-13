@@ -5,6 +5,7 @@
  */
 
 import { create } from "zustand"
+import { subscribeWithSelector } from "zustand/middleware"
 import { updateMarket, SymbolData } from "@/lib/marketEngine"
 
 type MarketState = {
@@ -15,7 +16,8 @@ type MarketState = {
   getAllSymbols: () => Array<{ symbol: string; price: number; change: number; category: string }>
 }
 
-export const useMarketStore = create<MarketState>((set, get) => ({
+export const useMarketStore = create<MarketState>()(
+  subscribeWithSelector((set, get) => ({
   symbols: {},
   isStarted: false,
 
@@ -59,4 +61,7 @@ export const useMarketStore = create<MarketState>((set, get) => ({
 
     return result
   },
-}))
+})))
+
+// 导出 subscribe 类型以供其他组件使用
+export type MarketStoreApi = typeof useMarketStore;

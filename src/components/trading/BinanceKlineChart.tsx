@@ -315,6 +315,81 @@ export default function BinanceKlineChart({
     }
   }, [symbol, interval, height, width])
 
+  // 订阅 marketStore 价格更新（模拟模式下的实时更新）
+  useEffect(() => {
+    if (isDisposedRef.current || !seriesRef.current) return
+
+    // 计算当前 K 线周期（秒）
+    const intervalSeconds =
+      interval === '1m' ? 60 :
+      interval === '5m' ? 300 :
+      interval === '15m' ? 900 :
+      interval === '30m' ? 1800 :
+      interval === '1h' ? 3600 :
+      interval === '4h' ? 14400 :
+      interval === '1d' ? 86400 : 3600
+
+    const unsubscribe = useMarketStore.subscribe(
+      (state) => state.symbols[symbol]?.price,
+      (price, prevPrice) => {
+        if (isDisposedRef.current || !seriesRef.current || !price || price === prevPrice) return
+
+        const now = Math.floor(Date.now() / 1000)
+        const currentCandleTime = Math.floor(now / intervalSeconds) * intervalSeconds
+
+        const candles = candlesRef.current
+        const lastCandle = candles[candles.length - 1]
+        const lastTime = typeof lastCandle?.time === 'number' ? lastCandle.time : Number(lastCandle?.time)
+
+        if (currentCandleTime === lastTime) {
+          // 更新当前 K 线
+          const updated: CandlestickData<Time> = {
+            time: lastCandle.time,
+            open: lastCandle.open,
+            high: Math.max(lastCandle.high, price),
+            low: Math.min(lastCandle.low, price),
+            close: price,
+          }
+          candles[candles.length - 1] = updated
+          try {
+            seriesRef.current?.update(updated)
+            priceRef.current = price
+          } catch (e) {
+            // ignore
+          }
+        } else {
+          // 新 K 线
+          const newCandle: CandlestickData<Time> = {
+            time: currentCandleTime as Time,
+            open: price,
+            high: price,
+            low: price,
+            close: price,
+          }
+          candles.push(newCandle)
+          if (candles.length > 200) candles.shift()
+          try {
+            seriesRef.current?.update(newCandle)
+            priceRef.current = price
+          } catch (e) {
+            // ignore
+          }
+        }
+
+        // 更新涨跌
+        if (candles.length > 1) {
+          const firstPrice = candles[0].open
+          setPriceChange({
+            value: price - firstPrice,
+            percent: ((price - firstPrice) / firstPrice) * 100,
+          })
+        }
+      }
+    )
+
+    return () => unsubscribe()
+  }, [symbol, interval])
+
   // 更新连接状态
   useEffect(() => {
     // XAU 特殊处理：使用真实黄金价格
