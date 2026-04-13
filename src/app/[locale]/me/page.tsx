@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AccountInfo } from '../../../components/account/account-info';
 import { DepositWithdrawButtons } from '../../../components/account/deposit-withdraw-buttons';
@@ -8,7 +9,7 @@ import { FloatingChatButton } from '../../../components/common/floating-chat-but
 import { BottomTab } from '../../../components/layout/bottom-tab';
 import { WithdrawHistory } from '../../../components/account/withdraw-history';
 
-export default function MePage() {
+function MeContent() {
   const searchParams = useSearchParams();
   const tab = searchParams.get('tab');
 
@@ -33,5 +34,21 @@ export default function MePage() {
       {/* 悬浮客服按钮 */}
       <FloatingChatButton />
     </div>
+  );
+}
+
+function MeLoading() {
+  return (
+    <div className="min-h-screen bg-gray-50 pb-20 flex items-center justify-center">
+      <div className="animate-pulse text-gray-500">Loading...</div>
+    </div>
+  );
+}
+
+export default function MePage() {
+  return (
+    <Suspense fallback={<MeLoading />}>
+      <MeContent />
+    </Suspense>
   );
 }
