@@ -1,120 +1,88 @@
+/**
+ * 用户验证 API
+ * 
+ * 安全策略：
+ * 1. 必须从数据库验证用户凭据
+ * 2. 移除所有 mock-success 回退
+ * 3. 失败必须返回真实错误
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/storage/database/supabase-admin-client';
 import bcrypt from 'bcrypt';
-import { findAccountByEmail } from '@/lib/demo-account-storage';
-import { validateUser } from '@/lib/user-mock-data';
+import { generateUserToken } from '@/lib/auth-helper';
+import { errors, successResponse } from '@/lib/api-response';
 
-// POST - 验证用户登录
 export async function POST(request: NextRequest) {
-  const supabase = getSupabaseAdminClient();
-
   try {
     const { email, password } = await request.json();
 
-    if (!email || !password) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: '邮箱和密码为必填项',
-        },
-        { status: 400 }
-      );
+    // 参数校验
+    if (!email) {
+      return errors.missingParam('email');
     }
 
-    // 优先从数据库查找
-    let dbUser = null;
-    let dbError = null;
-
-    if (supabase) {
-      const result = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
-      dbUser = result.data;
-      dbError = result.error;
-    } else {
-      console.warn('[Validate API] Supabase client not initialized, skipping DB check');
+    if (!password) {
+      return errors.missingParam('password');
     }
 
-    console.log('[Validate API] Database query result:', { dbUser, dbError });
+    // 获取数据库客户端
+    const supabase = getSupabaseAdminClient();
 
-    if (dbUser) {
-      // 验证密码
-      const passwordMatch = await bcrypt.compare(password, dbUser.password_hash);
-      console.log('[Validate API] Password match:', passwordMatch);
-
-      if (passwordMatch) {
-        // 更新最后登录时间
-        if (supabase) {
-          await supabase
-            .from('users')
-            .update({ last_login_at: new Date().toISOString() })
-            .eq('id', dbUser.id);
-        }
-
-        return NextResponse.json({
-          success: true,
-          user: {
-            id: dbUser.id,
-            username: dbUser.username,
-            email: dbUser.email,
-            balance: dbUser.balance || 0,
-            accountType: dbUser.account_type || 'demo',
-            createdAt: dbUser.created_at,
-          },
-        });
-      }
+    if (!supabase) {
+      console.error('[Validate API] 数据库未配置');
+      return errors.serviceUnavailable('数据库');
     }
 
-    // 再从文件存储查找（管理端创建的账户）
-    const fileAccount = findAccountByEmail(email);
-    if (fileAccount && fileAccount.password === password) {
-      return NextResponse.json({
-        success: true,
-        user: {
-          id: fileAccount.id,
-          username: fileAccount.email.split('@')[0],
-          email: fileAccount.email,
-          balance: fileAccount.balance,
-          accountType: fileAccount.accountType,
-          createdAt: fileAccount.createdAt,
-        },
-      });
+    // 从数据库查找用户
+    const { data: dbUser, error: dbError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email.toLowerCase().trim())
+      .single();
+
+    if (dbError || !dbUser) {
+      console.log(`[Validate API] 用户不存在: ${email}`);
+      return errors.unauthorized('邮箱或密码错误');
     }
 
-    // 最后从 Mock 数据查找（前端创建的账户）
-    const mockUser = validateUser(email, password);
-    if (mockUser) {
-      return NextResponse.json({
-        success: true,
-        user: {
-          id: mockUser.id,
-          username: mockUser.email.split('@')[0],
-          email: mockUser.email,
-          balance: mockUser.balance,
-          accountType: mockUser.accountType,
-          createdAt: mockUser.createdAt,
-        },
-      });
+    // 验证密码
+    const passwordMatch = await bcrypt.compare(password, dbUser.password_hash);
+
+    if (!passwordMatch) {
+      console.log(`[Validate API] 密码错误: ${email}`);
+      return errors.unauthorized('邮箱或密码错误');
     }
 
-    // 都找不到
-    return NextResponse.json(
-      {
-        success: false,
-        error: '邮箱或密码错误',
+    // 更新最后登录时间
+    await supabase
+      .from('users')
+      .update({ last_login_at: new Date().toISOString() })
+      .eq('id', dbUser.id);
+
+    // 生成 JWT token
+    const token = await generateUserToken(dbUser.id, dbUser.email);
+
+    return successResponse({
+      user: {
+        id: dbUser.id,
+        username: dbUser.username,
+        email: dbUser.email,
+        balance: dbUser.balance || 0,
+        accountType: dbUser.account_type || 'demo',
+        createdAt: dbUser.created_at,
       },
-      { status: 401 }
-    );
-  } catch (error) {
-    console.error('Failed to validate user:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: '验证失败',
-      },
-      { status: 500 }
-    );
+      token,
+    }, { message: '登录成功' });
+
+  } catch (err: any) {
+    console.error('[Validate API] Error:', err);
+    
+    // bcrypt 比较失败
+    if (err.message?.includes('Invalid secret')) {
+      return errors.internalError('密码验证失败');
+    }
+    
+    return errors.internalError('验证失败');
   }
 }

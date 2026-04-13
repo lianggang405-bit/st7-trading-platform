@@ -38,6 +38,8 @@ pnpm dev            # 开发环境（端口 5000）
 pnpm build          # 生产构建
 pnpm lint           # ESLint 检查
 pnpm ts-check       # TypeScript 检查
+pnpm test           # 运行测试
+pnpm security-gate  # 安全门禁检查
 ```
 
 ## 认证体系
@@ -147,6 +149,50 @@ response.cookies.set('admin_token', token, {
 2. **管理员账号**: 必须通过数据库 `admin_users` 表管理，移除环境变量回退
 3. **调试接口**: 生产环境自动禁用
 4. **Cookie**: 始终使用 httpOnly + secure + sameSite 配置
+5. **错误处理**: 使用统一的 `errors` 辅助函数，避免 mock-success 回退
+
+## 统一错误响应
+
+使用 `src/lib/api-response.ts` 中的统一错误处理：
+
+```typescript
+import { errors } from '@/lib/api-response';
+
+// 401 未认证
+return errors.unauthorized('需要登录');
+
+// 403 无权限
+return errors.forbidden('需要管理员权限');
+
+// 400 参数错误
+return errors.missingParam('symbol');
+return errors.invalidParam('orderType', '无效的订单类型');
+
+// 422 业务错误
+return errors.insufficientBalance(available, required);
+return errors.orderNotFound(orderId);
+
+// 500/503 服务错误
+return errors.internalError('服务器错误');
+return errors.serviceUnavailable('数据库');
+```
+
+## 数据仓储层
+
+使用 `src/lib/repository.ts` 中的统一数据访问：
+
+```typescript
+import { userRepository, orderRepository, isDatabaseAvailable } from '@/lib/repository';
+
+// 检查数据库可用性
+const dbAvailable = await isDatabaseAvailable();
+
+// 查询用户
+const user = await userRepository.findById(userId, { allowFallback: false });
+
+// 查询订单
+const orders = await orderRepository.findByUserId(userId);
+```
 
 ## 测试与安全门禁
 
