@@ -1,8 +1,16 @@
+/**
+ * 数据库表结构检查
+ * 
+ * 安全策略：仅开发环境可用
+ */
+
+import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { devOnlyHandler } from '@/lib/dev-check';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // GET - 检查所有可能的表
-export async function GET() {
+export const GET = devOnlyHandler(async (_req: NextRequest) => {
   try {
     const client = getSupabaseClient();
 
@@ -31,7 +39,7 @@ export async function GET() {
           count: count || 0,
           sample: data || [],
           error: error?.message || null,
-          exists: !error || error.code !== '42P01', // 42P01 = relation does not exist
+          exists: !error || error.code !== '42P01',
         };
       } catch (err: any) {
         results[table] = {
@@ -47,14 +55,11 @@ export async function GET() {
       success: true,
       data: results,
     });
-  } catch (error) {
-    console.error('[Check All Tables API] Error:', error);
+  } catch (error: any) {
+    console.error('[Debug] check-all-tables error:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Internal server error',
-      },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }
-}
+});

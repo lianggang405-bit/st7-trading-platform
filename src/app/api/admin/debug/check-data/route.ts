@@ -1,8 +1,16 @@
+/**
+ * 数据库数据检查
+ * 
+ * 安全策略：仅开发环境可用
+ */
+
+import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { devOnlyHandler } from '@/lib/dev-check';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // GET - 检查 Supabase 数据库中的数据
-export async function GET() {
+export const GET = devOnlyHandler(async (_req: NextRequest) => {
   try {
     const client = getSupabaseClient();
 
@@ -37,4 +45,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});

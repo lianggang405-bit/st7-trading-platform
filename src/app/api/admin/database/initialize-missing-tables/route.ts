@@ -1,4 +1,13 @@
+/**
+ * 数据库表初始化
+ * 
+ * 安全策略：
+ * 1. 仅开发环境可用
+ * 2. 仅沙箱环境内访问
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
+import { devAndTrustedHandler } from '@/lib/dev-check';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 const supabase = getSupabaseClient();
@@ -8,7 +17,7 @@ const supabase = getSupabaseClient();
  *
  * 创建缺失的表并插入初始数据
  */
-export async function POST(request: NextRequest) {
+export const POST = devAndTrustedHandler(async (request: NextRequest) => {
   try {
     const { table } = await request.json();
 
@@ -80,7 +89,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * 初始化单个表

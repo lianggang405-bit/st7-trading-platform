@@ -1,8 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { withAdminAuth } from '@/lib/admin-guard';
 
 // GET - 获取管理员列表
-export async function GET() {
+export const GET = withAdminAuth(async (_request: NextRequest, admin) => {
   try {
+    console.log(`[AdminList] 管理员 ${admin.email} 获取列表`);
+    
     // 返回模拟数据
     const admins = [
       {
@@ -36,4 +39,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});

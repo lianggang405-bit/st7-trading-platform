@@ -1,18 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAdminToken } from '@/lib/admin-auth';
+import { withAdminAuth } from '@/lib/admin-guard';
 import { databaseService } from '@/lib/database-service';
 
-export async function POST(req: NextRequest) {
+// POST - 创建市场调控
+export const POST = withAdminAuth(async (req: NextRequest, admin) => {
   try {
-    // 从 cookie 或 header 获取 token
-    const token = req.cookies.get('admin_token')?.value ||
-                  req.headers.get('authorization')?.replace('Bearer ', '');
-
-    const admin = verifyAdminToken(token || '');
-    if (!admin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { action, symbol, beforePrice, afterPrice, changePercent } = await req.json();
 
     if (!action || !['rise', 'fall', 'flat', 'manual'].includes(action)) {
@@ -52,4 +44,4 @@ export async function POST(req: NextRequest) {
     console.error('[Admin Market Adjust] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
+});

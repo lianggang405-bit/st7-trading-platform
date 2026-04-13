@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAdminToken } from '@/lib/admin-auth';
+import { withAdminAuth, type RouteContext } from '@/lib/admin-guard';
 import { databaseService } from '@/lib/database-service';
 
 // DELETE - 删除实名认证申请
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAdminAuth(async (
+  _request: NextRequest,
+  _admin,
+  context?: RouteContext
+) => {
   try {
-    const { id } = await params;
-    const adminToken = request.cookies.get('admin_token')?.value ||
-                      request.headers.get('authorization')?.replace('Bearer ', '');
+    const params = await context?.params;
+    const id = params?.id;
 
-    // 验证管理员权限
-    const admin = verifyAdminToken(adminToken || '');
-    if (!admin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!id) {
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     }
 
     // 删除申请
@@ -33,26 +31,23 @@ export async function DELETE(
     console.error('[Admin KYC DELETE] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
+});
 
 // PATCH - 更新实名认证状态
-export async function PATCH(
+export const PATCH = withAdminAuth(async (
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  admin,
+  context?: RouteContext
+) => {
   try {
-    const { id } = await params;
-    const adminToken = request.cookies.get('admin_token')?.value ||
-                      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    // 验证管理员权限
-    const admin = verifyAdminToken(adminToken || '');
-    if (!admin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    const params = await context?.params;
+    const id = params?.id;
     const body = await request.json();
     const { status, rejectReason } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    }
 
     if (!status || !['approved', 'rejected'].includes(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
@@ -82,4 +77,4 @@ export async function PATCH(
     console.error('[Admin KYC PATCH] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
+});

@@ -1,5 +1,20 @@
+/**
+ * 用户认证辅助函数
+ * 
+ * 迁移到 auth-kernel.ts 的统一认证体系
+ * 保留数据库用户验证功能
+ */
+
 import { NextRequest } from 'next/server';
 import { supabase } from './supabase';
+import { 
+  signAccessToken, 
+  verifyAccessToken, 
+  parseBearerToken,
+  requireAuth,
+  type TokenRole,
+  type JWTPayload 
+} from './auth-kernel';
 
 /**
  * 验证 token 并返回用户 ID
@@ -7,36 +22,18 @@ import { supabase } from './supabase';
  * @returns 用户 ID，如果验证失败则抛出错误
  */
 export async function verifyTokenAndGetUserId(request: NextRequest): Promise<string> {
-  // 从 Authorization header 获取 token
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const token = parseBearerToken(request);
+  if (!token) {
     throw new Error('未提供认证令牌');
   }
 
-  const token = authHeader.substring(7);
-
-  // 简单的 token 验证
-  // 支持两种格式：
-  // 1. token_<user_id>_<timestamp> - Mock token
-  // 2. jwt_token - 实际 JWT token（如果实现的话）
-  
-  if (token.startsWith('mock_token_')) {
-    const match = token.match(/^mock_token_(.+)_(\d+)$/);
-    if (!match) {
-      throw new Error('无效的认证令牌');
-    }
-    return match[1];
+  // 使用新的 JWT 验签
+  const payload = await verifyAccessToken(token, 'user');
+  if (!payload) {
+    throw new Error('无效或过期的认证令牌');
   }
 
-  if (token.startsWith('token_')) {
-    const match = token.match(/^token_(.+)_(\d+)$/);
-    if (!match) {
-      throw new Error('无效的认证令牌');
-    }
-    return match[1];
-  }
-
-  throw new Error('无效的认证令牌');
+  return payload.sub;
 }
 
 /**
@@ -57,3 +54,27 @@ export async function verifyUserExists(userId: string) {
 
   return user;
 }
+
+/**
+ * 生成用户登录 JWT
+ * @param userId 用户 ID
+ * @param email 用户邮箱
+ * @returns JWT token
+ */
+export async function generateUserToken(userId: string, email?: string): Promise<string> {
+  return signAccessToken({
+    sub: userId,
+    role: 'user',
+    email,
+  }, 'user');
+}
+
+// 导出认证内核函数供其他模块使用
+export { 
+  signAccessToken, 
+  verifyAccessToken, 
+  parseBearerToken,
+  requireAuth,
+  type TokenRole,
+  type JWTPayload 
+};

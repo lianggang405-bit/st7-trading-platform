@@ -1,22 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAdminToken } from '@/lib/admin-auth';
+import { withAdminAuth, type RouteContext } from '@/lib/admin-guard';
 import { databaseService } from '@/lib/database-service';
 
-export async function PATCH(
+// PATCH - 更新申请状态
+export const PATCH = withAdminAuth(async (
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  admin,
+  context?: RouteContext
+) => {
   try {
-    // 从 cookie 或 header 获取 token
-    const token = req.cookies.get('admin_token')?.value ||
-                  req.headers.get('authorization')?.replace('Bearer ', '');
-
-    const admin = verifyAdminToken(token || '');
-    if (!admin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { id } = await params;
+    const params = await context?.params;
+    const id = params?.id || (await req.json()).id;
     const { status, rejectReason } = await req.json();
 
     if (!status || !['approved', 'rejected'].includes(status)) {
@@ -47,4 +41,4 @@ export async function PATCH(
     console.error('[Admin Approve] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
+});

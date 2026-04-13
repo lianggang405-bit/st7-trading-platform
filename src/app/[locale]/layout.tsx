@@ -98,8 +98,8 @@ export default async function LocaleLayout({
   const isDev = process.env.NODE_ENV === 'development';
 
   // 调试日志（仅开发环境）
-  if (isDev && messages.common?.login) {
-    console.log('[LocaleLayout] locale:', locale, '| common.login:', messages.common.login);
+  if (isDev && (messages as any).common?.login) {
+    console.log('[LocaleLayout] locale:', locale, '| common.login:', (messages as any).common.login);
   }
 
   return (
