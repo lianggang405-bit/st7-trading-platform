@@ -303,3 +303,79 @@ grep "reconnect" /app/work/logs/bypass/app.log
 - P0 安全整改: JWT 认证、Cookie 安全、调试接口封禁
 - P1 业务可信度: 错误处理、仓储层、回归测试
 - P2 稳定性: KYC 存储、行情服务、数据库迁移、可观测性
+
+---
+
+## 已知问题
+
+### 1. GoldAPI 403 错误（黄金价格）
+
+**触发条件**:
+- API Key 无效或过期
+- API 调用频率超出限制（免费套餐限制）
+- IP 地址被限流
+
+**降级行为**:
+- 黄金价格自动降级到模拟数据
+- 系统日志记录: `[GoldAPI] API error: 403`
+- 前端显示"模拟数据"标签
+
+**恢复条件**:
+1. 检查 `GOLDAPI_KEY` 环境变量是否正确配置
+2. 确认 API Key 在 GoldAPI.io 控制台有效
+3. 如果触达频率限制，等待 1 小时或升级套餐
+
+**手动测试**:
+```bash
+curl -H "x-access-token: $GOLDAPI_KEY" https://www.goldapi.io/api/XAU/USD
+# 正常返回: {"price": 4749.45, ...}
+# 403 错误: {"error":"Forbidden"}
+```
+
+### 2. WebSocket 连接失败（沙箱环境）
+
+**触发条件**:
+- 沙箱网络策略限制外部 WebSocket 连接
+- Binance/OKX 服务器不可达
+
+**降级行为**:
+- 自动进行 5 次重连（指数退避）
+- 重连失败后降级到模拟数据
+- 前端显示"模拟数据"标签
+
+**恢复条件**:
+- 生产环境部署后网络限制解除
+- 或手动配置外部代理
+
+---
+
+## 升级影响说明
+
+### 从旧版本升级到此版本需要注意
+
+| 影响项 | 说明 | 处理方式 |
+|--------|------|---------|
+| **用户 Token** | 所有旧 token 立即失效 | 通知用户重新登录 |
+| **管理员账号** | 必须通过数据库创建 | 参考上方"管理员管理"章节 |
+| **调试接口** | 仅开发环境可用 | 生产环境调用返回 403 |
+| **错误码** | 返回标准 HTTP 状态码 | 前端需更新错误处理逻辑 |
+| **KYC 图片** | 新上传存对象存储 | 历史 base64 数据仍可访问 |
+
+### 兼容性检查清单
+
+```bash
+# 1. 确认环境变量
+echo $JWT_USER_SECRET      # 必须 >= 32 字符
+echo $JWT_ADMIN_SECRET     # 必须 >= 32 字符
+
+# 2. 确认数据库迁移
+npx tsx scripts/run-migrations.ts
+
+# 3. 确认管理员账号
+psql $DATABASE_URL -c "SELECT * FROM admin_users;"
+
+# 4. 测试认证
+curl -X POST http://localhost:5000/api/admin/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"xxx"}'
+```

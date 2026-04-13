@@ -127,3 +127,56 @@ JWT_ADMIN_SECRET=<min 32 chars>
 - Initial release with basic trading functionality
 - KYC application handling (base64 in DB)
 - Admin panel with mock data fallbacks
+
+---
+
+## Upgrade Notes (升级说明)
+
+### Breaking Changes (破坏性变更)
+
+| Item | Old Behavior | New Behavior | Action Required |
+|------|-------------|--------------|-----------------|
+| **User Tokens** | Legacy tokens accepted | All tokens must be HS256 JWT | Users must re-login |
+| **Admin Credentials** | Env variables fallback | Database-only auth | Create admin in `admin_users` table |
+| **Debug APIs** | Open in all envs | Dev-only with auth | Remove or protect production endpoints |
+| **Error Responses** | Mixed formats | Standard `{success, error}` | Update frontend error handling |
+| **KYC Images** | Base64 in DB | Object storage keys | Migration handles legacy data |
+
+### Migration Steps (迁移步骤)
+
+```bash
+# 1. Backup current environment
+cp .env.local .env.local.backup
+
+# 2. Generate new JWT secrets
+openssl rand -base64 32  # For JWT_USER_SECRET
+openssl rand -base64 32  # For JWT_ADMIN_SECRET
+
+# 3. Run database migrations
+npx tsx scripts/run-migrations.ts
+
+# 4. Create admin user (if needed)
+# See docs/OPERATIONS.md for SQL example
+
+# 5. Verify security gate
+pnpm security-gate
+
+# 6. Notify users to re-login
+```
+
+### Rollback (回滚)
+
+> ⚠️ 回滚到此版本将丢失安全加固，不建议在生产环境使用。
+
+```bash
+# Emergency rollback (if needed)
+cp .env.local.backup .env.local
+git checkout v0.1.0
+pnpm install && pnpm build
+```
+
+### Known Issues (已知问题)
+
+1. **GoldAPI 403**: Free tier rate limits may cause 403 errors. System auto-falls back to mock data.
+2. **WebSocket in Sandbox**: External WebSocket connections blocked in sandbox env. Falls back to mock data.
+3. **First Login Required**: All existing users must re-authenticate after upgrade.
