@@ -44,12 +44,6 @@ export default function TradePage() {
   const prevPrice = useRef<number | null>(null);
   const prevPrices = useRef<Record<string, number>>({});
 
-  // 使用 useRef 来避免 symbols 变化导致的无限循环
-  const symbolsRef = useRef(symbols);
-  useEffect(() => {
-    symbolsRef.current = symbols;
-  }, [symbols]);
-
   // 确认对话框状态
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -158,8 +152,7 @@ export default function TradePage() {
     const newPulses: Record<string, 'up' | 'down' | null> = {};
     let hasChange = false;
 
-    const currentSymbols = symbolsRef.current;
-    currentSymbols.forEach((symbol) => {
+    symbols.forEach((symbol) => {
       if (symbol.price !== undefined) {
         const prevSymbolPrice = prevPrices.current[symbol.symbol];
 
@@ -194,12 +187,12 @@ export default function TradePage() {
 
       return () => clearTimeout(timer);
     }
-  }, [currentPrice]);  // 只依赖 currentPrice，而不是 symbols
+  }, [symbols, currentPrice]);
 
   // 监听当前交易对价格变化，触发脉冲动画
   useEffect(() => {
     if (currentSymbol) {
-      const symbolData = symbolsRef.current.find(s => s.symbol === currentSymbol);
+      const symbolData = symbols.find(s => s.symbol === currentSymbol);
       if (symbolData && symbolData.price !== undefined) {
         // 如果有前一次的价格，比较变化
         if (prevPrice.current !== null) {

@@ -30,13 +30,17 @@ export function Price({
     return <span className={`tabular-nums text-gray-400 ${className}`}>--</span>;
   }
 
-  // 确定颜色（基于涨跌）
-  const textColor = change > 0 ? '#16a34a' : change < 0 ? '#dc2626' : '#111827';
+  // 确定颜色（基于涨跌）- 只有非动画状态时才设置颜色
+  // 动画状态时让 CSS 动画控制颜色
+  const showStaticColor = pulse === null;
+  const textColor = showStaticColor
+    ? (change > 0 ? '#16a34a' : change < 0 ? '#dc2626' : '#111827')
+    : undefined;
 
   return (
     <span
-      className={`font-semibold transition tabular-nums ${pulse === 'up' ? 'price-up' : ''} ${pulse === 'down' ? 'price-down' : ''}`}
-      style={{ color: textColor }}
+      className={`font-semibold tabular-nums ${pulse === 'up' ? 'price-up' : ''} ${pulse === 'down' ? 'price-down' : ''}`}
+      style={textColor ? { color: textColor } : undefined}
     >
       {numValue.toFixed(precision)}
     </span>

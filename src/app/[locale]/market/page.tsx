@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
@@ -20,32 +20,12 @@ export default function MarketPage() {
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
 
-  // 使用 useRef 来避免 symbols 变化导致的无限循环
-  const symbolsRef = useRef(symbols);
+  // 根据分类和行情数据过滤
   useEffect(() => {
-    symbolsRef.current = symbols;
-  }, [symbols]);
-
-  // 调试日志
-  useEffect(() => {
-    console.log('[MarketPage] isHydrated:', isHydrated, 'isLogin:', isLogin, 'loaded:', loaded, 'symbols count:', symbols.length);
-  }, [isHydrated, isLogin, loaded, symbols.length]);
-
-  // 标记为已加载（新的 marketStore 会自动更新，不需要手动加载）
-  useEffect(() => {
-    if (isHydrated && !loaded) {
-      setLoaded(true);
-      setLoading(false);
-    }
-  }, [isHydrated, loaded]);
-
-  // 根据分类过滤
-  useEffect(() => {
-    const currentSymbols = symbolsRef.current;
     let filtered: any[] = [];
 
     if (categoryFilter === 'Forex') {
-      filtered = currentSymbols
+      filtered = symbols
         .filter((s: any) => s.category === 'forex')
         .map((s: any) => ({
           symbol: s.symbol,
@@ -53,7 +33,7 @@ export default function MarketPage() {
           change: s.change,
         }));
     } else if (categoryFilter === 'Metal') {
-      filtered = currentSymbols
+      filtered = symbols
         .filter((s: any) => s.category === 'metal')
         .map((s: any) => ({
           symbol: s.symbol,
@@ -61,7 +41,7 @@ export default function MarketPage() {
           change: s.change,
         }));
     } else if (categoryFilter === 'Crypto') {
-      filtered = currentSymbols
+      filtered = symbols
         .filter((s: any) => s.category === 'crypto')
         .map((s: any) => ({
           symbol: s.symbol,
@@ -69,7 +49,7 @@ export default function MarketPage() {
           change: s.change,
         }));
     } else if (categoryFilter === 'Energy') {
-      filtered = currentSymbols
+      filtered = symbols
         .filter((s: any) => s.category === 'energy')
         .map((s: any) => ({
           symbol: s.symbol,
@@ -77,7 +57,7 @@ export default function MarketPage() {
           change: s.change,
         }));
     } else if (categoryFilter === 'CFD') {
-      filtered = currentSymbols
+      filtered = symbols
         .filter((s: any) => s.category === 'cfd')
         .map((s: any) => ({
           symbol: s.symbol,
@@ -87,7 +67,7 @@ export default function MarketPage() {
     }
 
     setFilteredSymbols(filtered);
-  }, [categoryFilter]);  // 只依赖 categoryFilter
+  }, [categoryFilter, symbols]);
 
   const handleSymbolClick = (symbol: string) => {
     // 点击品种跳转到交易页面
