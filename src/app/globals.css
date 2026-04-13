@@ -199,43 +199,37 @@ body {
   display: none;
 }
 
-/* 价格脉冲动画 - 只有数字动，背景不动 */
+/* 价格脉冲动画 - 明暗呼吸效果 */
 @keyframes pricePulseUp {
-  0% {
-    transform: scale(1);
-    color: #16a34a;
+  0%, 100% {
+    opacity: 1;
+    text-shadow: 0 0 0px rgba(22, 163, 74, 0);
   }
-  40% {
-    transform: scale(1.08);
-    color: #22c55e;
-  }
-  100% {
-    transform: scale(1);
-    color: #16a34a;
+  50% {
+    opacity: 0.6;
+    text-shadow: 0 0 8px rgba(22, 163, 74, 0.8);
   }
 }
 
 @keyframes pricePulseDown {
-  0% {
-    transform: scale(1);
-    color: #dc2626;
+  0%, 100% {
+    opacity: 1;
+    text-shadow: 0 0 0px rgba(220, 38, 38, 0);
   }
-  40% {
-    transform: scale(1.08);
-    color: #ef4444;
-  }
-  100% {
-    transform: scale(1);
-    color: #dc2626;
+  50% {
+    opacity: 0.6;
+    text-shadow: 0 0 8px rgba(220, 38, 38, 0.8);
   }
 }
 
 .price-up {
-  animation: pricePulseUp 0.35s ease;
+  animation: pricePulseUp 0.4s ease-in-out;
+  color: #16a34a !important;
 }
 
 .price-down {
-  animation: pricePulseDown 0.35s ease;
+  animation: pricePulseDown 0.4s ease-in-out;
+  color: #dc2626 !important;
 }
 
 /* 自定义滚动条样式 */
