@@ -360,6 +360,50 @@ export function getMarket(): Record<string, SymbolData> {
 }
 
 /**
+ * 获取市场监控统计
+ * 用于运维监控
+ */
+export function getMarketStats(): {
+  realSourceCount: number
+  simulatedCount: number
+  lowVolCount: number
+  realSourcePercent: number
+  missCount: Record<string, number>
+} {
+  const now = Date.now()
+  let realSourceCount = 0
+  let simulatedCount = 0
+  let lowVolCount = 0
+
+  Object.values(symbols).forEach((s) => {
+    // 检查是否使用真实源（5分钟内更新过）
+    const isRealSource = (now - s.lastBaseUpdate) < 5 * 60 * 1000
+    if (isRealSource) {
+      realSourceCount++
+    } else {
+      simulatedCount++
+    }
+
+    // 检查是否处于低波动模式
+    const miss = realSourceMissCount[s.symbol] || 0
+    if (miss >= MISS_THRESHOLD_FOR_LOW_VOL) {
+      lowVolCount++
+    }
+  })
+
+  const total = Object.keys(symbols).length
+  const realSourcePercent = total > 0 ? (realSourceCount / total) * 100 : 0
+
+  return {
+    realSourceCount,
+    simulatedCount,
+    lowVolCount,
+    realSourcePercent: Number(realSourcePercent.toFixed(1)),
+    missCount: { ...realSourceMissCount },
+  }
+}
+
+/**
  * 获取单个交易对价格
  */
 export function getSymbolPrice(symbol: string): number | undefined {

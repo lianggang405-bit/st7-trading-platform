@@ -188,6 +188,92 @@ SELECT id, email, username, created_at FROM admin_users;
 | ERROR | 5xx 错误 ≥ 10 次 | 检查服务状态 |
 | FATAL | 503 错误 ≥ 3 次 | 紧急处理，可能服务不可用 |
 
+### 行情数据源监控
+
+#### 核心指标
+
+| 指标 | 说明 | 告警阈值 |
+|------|------|---------|
+| `real_source_percent` | 使用真实源的交易对比例 | < 50% 持续 10 分钟 |
+| `low_vol_count` | 进入低波动模式的交易对数量 | > 5 个持续 15 分钟 |
+| `miss_count` | 连续获取真实价格失败的次数 | 单品种 ≥ 5 次 |
+
+#### 查看实时状态
+
+```bash
+# 获取行情数据源监控指标
+curl http://localhost:5000/api/market/stats
+```
+
+**返回示例：**
+```json
+{
+  "success": true,
+  "timestamp": 1704067200000,
+  "summary": {
+    "totalSymbols": 26,
+    "realSourceCount": 18,
+    "simulatedCount": 8,
+    "lowVolCount": 2,
+    "realSourcePercent": 69.2
+  },
+  "missCount": {
+    "BTCUSDT": 0,
+    "XAUUSD": 3,
+    "EURUSD": 0
+  },
+  "symbols": {
+    "BTCUSDT": {
+      "basePrice": 97000,
+      "currentPrice": 97085.2,
+      "deviation": 0.088,
+      "updateInterval": "5min",
+      "lastUpdate": "2024-01-01T12:00:00.000Z",
+      "dataSource": "real"
+    }
+  }
+}
+```
+
+#### 指标解读
+
+| dataSource | 状态说明 |
+|------------|---------|
+| `real` | 最近 5 分钟内成功获取并同步了真实价格 |
+| `simulated` | 5 分钟内无真实价格，使用模拟数据 |
+
+| lowVol 状态 | 含义 | 风险等级 |
+|-------------|------|---------|
+| `miss < 3` | 正常模式，波动系数 1.0 | 低 |
+| `miss >= 3` | 低波动模式，波动系数 0.35 | 中（注意观察） |
+
+#### Grafana 监控配置
+
+```promql
+# 真实源覆盖率
+real_source_percent = realSourceCount / totalSymbols * 100
+
+# 低波动交易对数量（超过阈值告警）
+low_vol_count
+
+# 按品种失败计数（用于定位问题）
+miss_count{symbol="XAUUSD"}
+```
+
+#### 日志关键词
+
+监控日志中以下关键词表示异常：
+
+```
+[RealPriceSync] update skipped: both primary and secondary sources unavailable
+```
+
+**处理建议**：
+1. 检查外部 API 可用性（Binance、GoldAPI、CoinGecko、Yahoo）
+2. 检查网络连接和防火墙
+3. 确认 API 密钥未过期（GoldAPI）
+4. 观察 15 分钟内是否自动恢复
+
 ### 日志位置
 
 - 应用日志: `/app/work/logs/bypass/app.log`
