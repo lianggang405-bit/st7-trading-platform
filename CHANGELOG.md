@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-04-14
+
+### Bug Fix - Production Hotfix
+
+#### next-intl 兼容性问题
+- **问题**: `next-intl@3.26.1` 与 Next.js 16.1.1 不兼容
+- **症状**: `Couldn't find next-intl config file` 错误导致 500
+- **修复**:
+  - 降级到 `next-intl@4.8.2`
+  - 创建 `src/i18n/request.ts` 作为配置入口
+  - 更新 `next.config.ts` 插件路径指向 `./src/i18n/request.ts`
+
+#### PM2 端口冲突
+- **问题**: 多进程并发导致 `EADDRINUSE: address already in use :::5000`
+- **症状**: 服务启动失败，502 Bad Gateway
+- **修复**: 清理旧进程，单实例运行
+
+#### 翻译键缺失
+- **问题**: `zh-TW.json` 缺少 `auth.login` 和 `auth.or`
+- **症状**: 页面渲染时 `MISSING_MESSAGE` 警告
+- **修复**: 补全缺失翻译键
+
+### 运维 SOP
+
+```
+# 遇到 502 先查 EADDRINUSE
+ss -ltnp | grep :5000
+pm2 list
+
+# 遇到 digest:2421684278 查 pm2 error.log
+pm2 logs st7-trading-platform --lines 50 --nostream
+```
+
+---
+
 ## [1.0.0-security-hardening] - 2026-02-24
 
 ### Security Hardening - P0
