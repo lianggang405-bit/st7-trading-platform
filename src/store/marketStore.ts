@@ -12,7 +12,7 @@ type MarketState = {
   isStarted: boolean
   start: () => void
   getSymbolPrice: (symbol: string) => number | undefined
-  getAllSymbols: () => Array<{ symbol: string; price: number; change: number }>
+  getAllSymbols: () => Array<{ symbol: string; price: number; change: number; category: string }>
 }
 
 export const useMarketStore = create<MarketState>((set, get) => ({

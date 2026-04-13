@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { AuthGuard } from '../../../components/auth-guard';
 import { PageShell } from '../../../components/layout/page-shell';
@@ -16,57 +16,54 @@ export default function MarketPage() {
   const symbols = marketStore.getAllSymbols();
   const { isHydrated, isLogin } = useAuthStore();
   const [categoryFilter, setCategoryFilter] = useState('Forex');
-  const [filteredSymbols, setFilteredSymbols] = useState<MarketSymbol[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loaded, setLoaded] = useState(false);
 
-  // 根据分类和行情数据过滤
-  useEffect(() => {
-    let filtered: any[] = [];
+  // 使用 useMemo 计算过滤后的数据，只有当 categoryFilter 或 symbols 内容变化时才重新计算
+  const filteredSymbols = useMemo<MarketSymbol[]>(() => {
+    let filtered: MarketSymbol[] = [];
 
     if (categoryFilter === 'Forex') {
       filtered = symbols
-        .filter((s: any) => s.category === 'forex')
-        .map((s: any) => ({
+        .filter((s) => s.category === 'forex')
+        .map((s) => ({
           symbol: s.symbol,
           price: s.price,
           change: s.change,
         }));
     } else if (categoryFilter === 'Metal') {
       filtered = symbols
-        .filter((s: any) => s.category === 'metal')
-        .map((s: any) => ({
+        .filter((s) => s.category === 'metal')
+        .map((s) => ({
           symbol: s.symbol,
           price: s.price,
           change: s.change,
         }));
     } else if (categoryFilter === 'Crypto') {
       filtered = symbols
-        .filter((s: any) => s.category === 'crypto')
-        .map((s: any) => ({
+        .filter((s) => s.category === 'crypto')
+        .map((s) => ({
           symbol: s.symbol,
           price: s.price,
           change: s.change,
         }));
     } else if (categoryFilter === 'Energy') {
       filtered = symbols
-        .filter((s: any) => s.category === 'energy')
-        .map((s: any) => ({
+        .filter((s) => s.category === 'energy')
+        .map((s) => ({
           symbol: s.symbol,
           price: s.price,
           change: s.change,
         }));
     } else if (categoryFilter === 'CFD') {
       filtered = symbols
-        .filter((s: any) => s.category === 'cfd')
-        .map((s: any) => ({
+        .filter((s) => s.category === 'cfd')
+        .map((s) => ({
           symbol: s.symbol,
           price: s.price,
           change: s.change,
         }));
     }
 
-    setFilteredSymbols(filtered);
+    return filtered;
   }, [categoryFilter, symbols]);
 
   const handleSymbolClick = (symbol: string) => {
