@@ -178,6 +178,8 @@ SELECT id, email, username, created_at FROM admin_users;
 
 ## 监控与告警
 
+详细值班播报手册见：[ON-CALL.md](./ON-CALL.md)
+
 ### 告警阈值
 
 | 告警级别 | 触发条件 | 处理建议 |
