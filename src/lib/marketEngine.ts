@@ -241,53 +241,6 @@ async function checkAndUpdateRealPrice(symbol: string) {
 }
 
 /**
- * 模拟价格生成（每秒调用）
- *
- * 核心算法：
- * 1. 随机波动（围绕 basePrice）
- * 2. 趋势影响（上涨/下跌/横盘）
- * 3. 限制范围（base 的 97%-103%）
- * 4. 限制跳动（防止断崖式跳变）
- */
-function nextPrice(data: SymbolData): number {
-  // 基础波动（随机）
-  const baseVolatility = data.basePrice * data.volatility
-  const randomChange = (Math.random() - 0.5) * baseVolatility  // -0.5x 到 +0.5x 波动（减小到原来的一半）
-
-  // 趋势影响（减小趋势影响）
-  let trendChange = 0
-  if (data.trend === 'up') {
-    trendChange = baseVolatility * data.trendStrength * 0.2  // 向上趋势（减小到 0.2）
-  } else if (data.trend === 'down') {
-    trendChange = -baseVolatility * data.trendStrength * 0.2  // 向下趋势（减小到 0.2）
-  }
-
-  // 计算新价格
-  let newPrice = data.price + randomChange + trendChange
-
-  // 最大跳动限制（更严格的限制，防止断崖式跳变）
-  const maxStep = baseVolatility * 0.25  // 降低到原来的 50%（0.5 → 0.25）
-  const priceDiff = newPrice - data.price
-  if (Math.abs(priceDiff) > maxStep) {
-    newPrice = data.price + Math.sign(priceDiff) * maxStep
-  }
-
-  // 限制范围（basePrice 的 97%-103%）
-  const maxPrice = data.basePrice * 1.03
-  const minPrice = data.basePrice * 0.97
-
-  if (newPrice > maxPrice) {
-    newPrice = maxPrice
-  } else if (newPrice < minPrice) {
-    newPrice = minPrice
-  }
-
-  // 根据价格精度返回结果
-  const decimals = data.basePrice < 1 ? 4 : 2
-  return Number(newPrice.toFixed(decimals))
-}
-
-/**
  * 检查并更新真实价格
  * 应该定期调用（例如每分钟）
  */
@@ -416,4 +369,51 @@ export function updateMarket(): Record<string, SymbolData> {
   })
 
   return symbols
+}
+
+/**
+ * 计算下一个价格（高精度版本）
+ * 确保每次调用都有可见的价格变化
+ */
+function nextPrice(data: SymbolData): number {
+  // 根据价格基准值确定显示精度
+  // 外汇（如 EURUSD）：5位小数
+  // 贵金属（如 XAUUSD）：2位小数
+  // 加密货币（如 BTCUSD）：2位小数
+  const decimals = data.basePrice >= 1 ? 5 : 4
+
+  // 基础波动
+  const baseVolatility = data.basePrice * data.volatility
+  const randomChange = (Math.random() - 0.5) * baseVolatility * 2  // 扩大波动范围
+
+  // 趋势影响
+  let trendChange = 0
+  if (data.trend === 'up') {
+    trendChange = baseVolatility * data.trendStrength * 0.3
+  } else if (data.trend === 'down') {
+    trendChange = -baseVolatility * data.trendStrength * 0.3
+  }
+
+  // 计算新价格
+  let newPrice = data.price + randomChange + trendChange
+
+  // 最大跳动限制
+  const maxStep = baseVolatility * 0.5
+  const priceDiff = newPrice - data.price
+  if (Math.abs(priceDiff) > maxStep) {
+    newPrice = data.price + Math.sign(priceDiff) * maxStep
+  }
+
+  // 限制范围（basePrice 的 97%-103%）
+  const maxPrice = data.basePrice * 1.03
+  const minPrice = data.basePrice * 0.97
+
+  if (newPrice > maxPrice) {
+    newPrice = maxPrice
+  } else if (newPrice < minPrice) {
+    newPrice = minPrice
+  }
+
+  // 高精度返回，确保价格变化可见
+  return Number(newPrice.toFixed(decimals))
 }
