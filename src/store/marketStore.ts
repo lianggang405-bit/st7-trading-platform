@@ -11,15 +11,18 @@ import { updateMarket, SymbolData } from "@/lib/marketEngine"
 type MarketState = {
   symbols: Record<string, SymbolData>
   isStarted: boolean
+  basePriceSynced: boolean
   start: () => void
   getSymbolPrice: (symbol: string) => number | undefined
   getAllSymbols: () => Array<{ symbol: string; price: number; change: number; category: string }>
+  syncBasePrices: () => Promise<void>
 }
 
 export const useMarketStore = create<MarketState>()(
   subscribeWithSelector((set, get) => ({
   symbols: {},
   isStarted: false,
+  basePriceSynced: false,
 
   // 启动行情系统（每秒更新一次）
   start: () => {
@@ -31,11 +34,45 @@ export const useMarketStore = create<MarketState>()(
     const data = updateMarket()
     set({ symbols: data, isStarted: true })
 
-    // 每秒更新一次
+    // 每秒更新一次模拟价格
     setInterval(() => {
       const data = updateMarket()
       set({ symbols: { ...data } })
     }, 1000)
+
+    // 每 5 分钟同步一次基准价（从服务端获取真实价格）
+    setInterval(() => {
+      get().syncBasePrices()
+    }, 5 * 60 * 1000)
+  },
+
+  // 同步基准价（从服务端获取真实价格更新）
+  syncBasePrices: async () => {
+    try {
+      const response = await fetch('/api/market/base-prices')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.basePrices) {
+          const currentSymbols = get().symbols
+          const updatedSymbols = { ...currentSymbols }
+
+          Object.entries(data.basePrices).forEach(([symbol, basePrice]) => {
+            if (updatedSymbols[symbol]) {
+              // 平滑调整 basePrice（与服务端同步时直接更新）
+              updatedSymbols[symbol] = {
+                ...updatedSymbols[symbol],
+                basePrice: basePrice as number,
+              }
+            }
+          })
+
+          set({ symbols: updatedSymbols, basePriceSynced: true })
+          console.log('[MarketStore] 基准价同步完成')
+        }
+      }
+    } catch (error) {
+      console.warn('[MarketStore] 基准价同步失败:', error)
+    }
   },
 
   // 获取单个交易对价格
