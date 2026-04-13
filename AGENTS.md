@@ -147,3 +147,46 @@ response.cookies.set('admin_token', token, {
 2. **管理员账号**: 必须通过数据库 `admin_users` 表管理，移除环境变量回退
 3. **调试接口**: 生产环境自动禁用
 4. **Cookie**: 始终使用 httpOnly + secure + sameSite 配置
+
+## 测试与安全门禁
+
+### 安全回归测试
+
+```bash
+# 运行安全回归测试
+pnpm test
+
+# 测试文件位置
+__tests__/security-regression.test.ts
+```
+
+覆盖场景：
+1. 管理员登录成功/失败
+2. 过期 token 拒绝
+3. role 越权拒绝
+4. JWT 防伪造（篡改 payload、伪造 token）
+5. Cookie 安全配置验证
+
+### 密钥轮换演练
+
+```bash
+# 运行密钥轮换验证
+npx tsx scripts/key-rotation-test.ts
+```
+
+验证行为：
+- 旧密钥签发的 token 在轮换后失效
+- 新密钥可以正常签发和验签
+
+### 发布门禁
+
+```bash
+# 运行完整安全门禁检查
+pnpm security-gate
+```
+
+检查项：
+1. JWT 环境变量已配置且长度 >= 32
+2. admin/user 密钥已分离
+3. 无默认凭据残留
+4. TypeScript 编译通过
