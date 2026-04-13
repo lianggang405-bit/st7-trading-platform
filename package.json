@@ -1,6 +1,7 @@
 {
-  "name": "projects",
-  "version": "0.1.0",
+  "name": "@trading-platform/core",
+  "version": "1.0.0-security-hardening",
+  "description": "加密货币/贵金属交易平台 - 安全加固版本",
   "private": true,
   "scripts": {
     "build": "bash ./scripts/build.sh",
