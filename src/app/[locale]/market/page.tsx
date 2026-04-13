@@ -7,17 +7,33 @@ import { PageShell } from '../../../components/layout/page-shell';
 import { MarketHeader } from '../../../components/market/market-header';
 import { MarketList, MarketSymbol } from '../../../components/market/market-list';
 import { useAuthStore } from '../../../stores/authStore';
-import { useMarketStore } from '../../../store/marketStore';
+import { useMarketStore } from '@/store/marketStore';
 
 export default function MarketPage() {
   const router = useRouter();
   const pathname = usePathname();
   const marketStore = useMarketStore();
-  const symbols = marketStore.getAllSymbols();
+  // 使用选择器订阅 symbols 状态变化
+  const symbolsData = useMarketStore((state) => state.symbols);
   const { isHydrated, isLogin } = useAuthStore();
   const [categoryFilter, setCategoryFilter] = useState('Forex');
 
-  // 使用 useMemo 计算过滤后的数据，只有当 categoryFilter 或 symbols 内容变化时才重新计算
+  // 从 symbolsData 转换为数组
+  const symbols = useMemo(() => {
+    const result: Array<{ symbol: string; price: number; change: number; category: string }> = [];
+    Object.values(symbolsData).forEach((s) => {
+      const change = ((s.price - s.basePrice) / s.basePrice) * 100;
+      result.push({
+        symbol: s.symbol,
+        price: s.price,
+        change: Number(change.toFixed(4)),
+        category: s.category,
+      });
+    });
+    return result;
+  }, [symbolsData]);
+
+  // 使用 useMemo 计算过滤后的数据
   const filteredSymbols = useMemo<MarketSymbol[]>(() => {
     let filtered: MarketSymbol[] = [];
 
