@@ -15,8 +15,15 @@ export default getRequestConfig(async ({ requestLocale }) => {
     locale = defaultLocale;
   }
 
-  const messagesPath = join(process.cwd(), 'src', 'messages', `${locale}.json`);
-  const messages = JSON.parse(readFileSync(messagesPath, 'utf-8'));
+  // Load messages based on locale
+  let messages;
+  try {
+    const messagesPath = join(process.cwd(), 'src', 'messages', `${locale}.json`);
+    messages = JSON.parse(readFileSync(messagesPath, 'utf-8'));
+  } catch {
+    // Fallback to empty messages if file not found
+    messages = {};
+  }
 
   return {
     locale,
