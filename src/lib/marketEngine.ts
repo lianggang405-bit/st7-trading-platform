@@ -26,48 +26,49 @@ export type SymbolData = {
 
 // 所有交易对的初始数据
 // 注意：这些是默认价格，系统会定期从外部 API 更新为真实价格
+// 同步频率：Crypto 5分钟、Metal 3分钟、Energy 15分钟、Forex/CFD 30分钟
 const symbols: Record<string, SymbolData> = {
-  // 加密货币（大波动，3小时更新）
-  BTCUSDT: { symbol: "BTCUSDT", basePrice: 97000, price: 97000, volatility: 0.002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
-  ETHUSDT: { symbol: "ETHUSDT", basePrice: 3500, price: 3500, volatility: 0.002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
-  LTCUSDT: { symbol: "LTCUSDT", basePrice: 150, price: 150, volatility: 0.0025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
-  SOLUSDT: { symbol: "SOLUSDT", basePrice: 200, price: 200, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
-  XRPUSDT: { symbol: "XRPUSDT", basePrice: 0.6, price: 0.6, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
-  DOGEUSDT: { symbol: "DOGEUSDT", basePrice: 0.2, price: 0.2, volatility: 0.004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
-  ADAUSDT: { symbol: "ADAUSDT", basePrice: 1.2, price: 1.2, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
-  DOTUSDT: { symbol: "DOTUSDT", basePrice: 8, price: 8, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 60 * 1000, category: 'crypto' },
+  // 加密货币（大波动，5分钟更新）
+  BTCUSDT: { symbol: "BTCUSDT", basePrice: 97000, price: 97000, volatility: 0.002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 5 * 60 * 1000, category: 'crypto' },
+  ETHUSDT: { symbol: "ETHUSDT", basePrice: 3500, price: 3500, volatility: 0.002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 5 * 60 * 1000, category: 'crypto' },
+  LTCUSDT: { symbol: "LTCUSDT", basePrice: 150, price: 150, volatility: 0.0025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 5 * 60 * 1000, category: 'crypto' },
+  SOLUSDT: { symbol: "SOLUSDT", basePrice: 200, price: 200, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 5 * 60 * 1000, category: 'crypto' },
+  XRPUSDT: { symbol: "XRPUSDT", basePrice: 0.6, price: 0.6, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 5 * 60 * 1000, category: 'crypto' },
+  DOGEUSDT: { symbol: "DOGEUSDT", basePrice: 0.2, price: 0.2, volatility: 0.004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 5 * 60 * 1000, category: 'crypto' },
+  ADAUSDT: { symbol: "ADAUSDT", basePrice: 1.2, price: 1.2, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 5 * 60 * 1000, category: 'crypto' },
+  DOTUSDT: { symbol: "DOTUSDT", basePrice: 8, price: 8, volatility: 0.003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 5 * 60 * 1000, category: 'crypto' },
 
-  // 贵金属（中等波动，6小时更新）- 使用 GoldAPI.io 获取真实价格
-  XAUUSD: { symbol: "XAUUSD", basePrice: 4749, price: 4749, volatility: 0.0008, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 6 * 60 * 60 * 1000, category: 'metal' },
-  XAGUSD: { symbol: "XAGUSD", basePrice: 29.5, price: 29.5, volatility: 0.0015, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 6 * 60 * 60 * 1000, category: 'metal' },
+  // 贵金属（中等波动，3分钟更新）
+  XAUUSD: { symbol: "XAUUSD", basePrice: 4749, price: 4749, volatility: 0.0008, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 1000, category: 'metal' },
+  XAGUSD: { symbol: "XAGUSD", basePrice: 29.5, price: 29.5, volatility: 0.0015, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 3 * 60 * 1000, category: 'metal' },
 
-  // 外汇（小波动，12小时更新）
-  EURUSD: { symbol: "EURUSD", basePrice: 1.085, price: 1.085, volatility: 0.0002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
-  GBPUSD: { symbol: "GBPUSD", basePrice: 1.265, price: 1.265, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
-  USDJPY: { symbol: "USDJPY", basePrice: 149.8, price: 149.8, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
-  USDCHF: { symbol: "USDCHF", basePrice: 0.884, price: 0.884, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
-  AUDUSD: { symbol: "AUDUSD", basePrice: 0.655, price: 0.655, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
-  NZDUSD: { symbol: "NZDUSD", basePrice: 0.609, price: 0.609, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
-  USDCAD: { symbol: "USDCAD", basePrice: 1.366, price: 1.366, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
-  EURGBP: { symbol: "EURGBP", basePrice: 0.859, price: 0.859, volatility: 0.0002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
-  EURJPY: { symbol: "EURJPY", basePrice: 162.5, price: 162.5, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
-  GBPJPY: { symbol: "GBPJPY", basePrice: 189.5, price: 189.5, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
-  AUDJPY: { symbol: "AUDJPY", basePrice: 98.2, price: 98.2, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
-  CADJPY: { symbol: "CADJPY", basePrice: 110.5, price: 110.5, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
-  CHFJPY: { symbol: "CHFJPY", basePrice: 169.5, price: 169.5, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'forex' },
+  // 外汇（小波动，30分钟更新）
+  EURUSD: { symbol: "EURUSD", basePrice: 1.085, price: 1.085, volatility: 0.0002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'forex' },
+  GBPUSD: { symbol: "GBPUSD", basePrice: 1.265, price: 1.265, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'forex' },
+  USDJPY: { symbol: "USDJPY", basePrice: 149.8, price: 149.8, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'forex' },
+  USDCHF: { symbol: "USDCHF", basePrice: 0.884, price: 0.884, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'forex' },
+  AUDUSD: { symbol: "AUDUSD", basePrice: 0.655, price: 0.655, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'forex' },
+  NZDUSD: { symbol: "NZDUSD", basePrice: 0.609, price: 0.609, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'forex' },
+  USDCAD: { symbol: "USDCAD", basePrice: 1.366, price: 1.366, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'forex' },
+  EURGBP: { symbol: "EURGBP", basePrice: 0.859, price: 0.859, volatility: 0.0002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'forex' },
+  EURJPY: { symbol: "EURJPY", basePrice: 162.5, price: 162.5, volatility: 0.00025, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'forex' },
+  GBPJPY: { symbol: "GBPJPY", basePrice: 189.5, price: 189.5, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'forex' },
+  AUDJPY: { symbol: "AUDJPY", basePrice: 98.2, price: 98.2, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'forex' },
+  CADJPY: { symbol: "CADJPY", basePrice: 110.5, price: 110.5, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'forex' },
+  CHFJPY: { symbol: "CHFJPY", basePrice: 169.5, price: 169.5, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'forex' },
 
-  // 能源（中等波动，6小时更新）
-  USOIL: { symbol: "USOIL", basePrice: 85, price: 85, volatility: 0.001, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 6 * 60 * 60 * 1000, category: 'energy' },
-  UKOIL: { symbol: "UKOIL", basePrice: 87.8, price: 87.8, volatility: 0.001, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 6 * 60 * 60 * 1000, category: 'energy' },
-  NGAS: { symbol: "NGAS", basePrice: 2.8, price: 2.8, volatility: 0.002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 6 * 60 * 60 * 1000, category: 'energy' },
+  // 能源（中等波动，15分钟更新）
+  USOIL: { symbol: "USOIL", basePrice: 85, price: 85, volatility: 0.001, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 15 * 60 * 1000, category: 'energy' },
+  UKOIL: { symbol: "UKOIL", basePrice: 87.8, price: 87.8, volatility: 0.001, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 15 * 60 * 1000, category: 'energy' },
+  NGAS: { symbol: "NGAS", basePrice: 2.8, price: 2.8, volatility: 0.002, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 15 * 60 * 1000, category: 'energy' },
 
-  // 指数（小波动，12小时更新）
-  US500: { symbol: "US500", basePrice: 5200, price: 5200, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'cfd' },
-  ND100: { symbol: "ND100", basePrice: 18500, price: 18500, volatility: 0.0004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'cfd' },
-  AUS200: { symbol: "AUS200", basePrice: 7807, price: 7807, volatility: 0.0004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'cfd' },
-  UK100: { symbol: "UK100", basePrice: 8098, price: 8098, volatility: 0.0004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'cfd' },
-  GER40: { symbol: "GER40", basePrice: 17814, price: 17814, volatility: 0.0004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'cfd' },
-  JPN225: { symbol: "JPN225", basePrice: 40034, price: 40034, volatility: 0.0005, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 12 * 60 * 60 * 1000, category: 'cfd' },
+  // 指数（小波动，30分钟更新）
+  US500: { symbol: "US500", basePrice: 5200, price: 5200, volatility: 0.0003, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'cfd' },
+  ND100: { symbol: "ND100", basePrice: 18500, price: 18500, volatility: 0.0004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'cfd' },
+  AUS200: { symbol: "AUS200", basePrice: 7807, price: 7807, volatility: 0.0004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'cfd' },
+  UK100: { symbol: "UK100", basePrice: 8098, price: 8098, volatility: 0.0004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'cfd' },
+  GER40: { symbol: "GER40", basePrice: 17814, price: 17814, volatility: 0.0004, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'cfd' },
+  JPN225: { symbol: "JPN225", basePrice: 40034, price: 40034, volatility: 0.0005, trend: 'neutral', trendStrength: 0.5, lastBaseUpdate: 0, updateInterval: 30 * 60 * 1000, category: 'cfd' },
 }
 
 /**
@@ -192,23 +193,117 @@ async function fetchFromBinance(symbol: string): Promise<number | null> {
 }
 
 /**
- * 获取真实价格
+ * 真实价格返回类型
  */
-async function fetchRealPrice(symbol: string): Promise<number | null> {
-  // 贵金属 - 使用 GoldAPI.io
+interface RealPriceResult {
+  price: number
+  source: string
+}
+
+/**
+ * 从 CoinGecko 获取加密货币价格（备用源）
+ */
+async function fetchFromCoinGecko(symbol: string): Promise<number | null> {
+  try {
+    // 符号映射
+    const symbolMap: Record<string, string> = {
+      'BTCUSDT': 'bitcoin',
+      'ETHUSDT': 'ethereum',
+      'LTCUSDT': 'litecoin',
+      'SOLUSDT': 'solana',
+      'XRPUSDT': 'ripple',
+      'DOGEUSDT': 'dogecoin',
+      'ADAUSDT': 'cardano',
+      'DOTUSDT': 'polkadot',
+    }
+    const coinId = symbolMap[symbol]
+    if (!coinId) return null
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000)
+
+    try {
+      const res = await fetch(
+        `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`,
+        { signal: controller.signal }
+      )
+
+      if (!res.ok) return null
+      const data = await res.json()
+      return data[coinId]?.usd ?? null
+    } finally {
+      clearTimeout(timeoutId)
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 从 Yahoo Finance 获取价格（通用备用源）
+ */
+async function fetchFromYahoo(symbol: string): Promise<number | null> {
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000)
+
+    // Yahoo 外汇格式
+    let yahooSymbol = symbol.replace('USD', '=X')
+    if (symbol === 'XAUUSD') yahooSymbol = 'XAUUSD=X'
+    if (symbol === 'XAGUSD') yahooSymbol = 'XAGUSD=X'
+
+    try {
+      const res = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=1d&range=1d`,
+        { signal: controller.signal }
+      )
+
+      if (!res.ok) return null
+      const data = await res.json()
+      const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice
+      return price ? parseFloat(price) : null
+    } finally {
+      clearTimeout(timeoutId)
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 获取真实价格（双源主备机制）
+ * @returns 价格和来源，或 null（两个源都失败）
+ */
+async function fetchRealPrice(symbol: string): Promise<RealPriceResult | null> {
+  // 贵金属 - 主 GoldAPI，备 Yahoo
   if (symbol === 'XAUUSD' || symbol === 'XAGUSD') {
-    return await fetchFromGoldAPI(symbol)
+    const primary = await fetchFromGoldAPI(symbol)
+    if (primary !== null) return { price: primary, source: 'goldapi' }
+    const secondary = await fetchFromYahoo(symbol)
+    if (secondary !== null) return { price: secondary, source: 'yahoo' }
+    return null
   }
 
-  // 加密货币 - 使用 Binance
+  // 加密货币 - 主 Binance，备 CoinGecko
   const cryptoSymbols = ['BTCUSDT', 'ETHUSDT', 'LTCUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'DOTUSDT']
   if (cryptoSymbols.includes(symbol)) {
-    return await fetchFromBinance(symbol)
+    const primary = await fetchFromBinance(symbol)
+    if (primary !== null) return { price: primary, source: 'binance' }
+    const secondary = await fetchFromCoinGecko(symbol)
+    if (secondary !== null) return { price: secondary, source: 'coingecko' }
+    return null
   }
 
-  // 其他交易对暂时使用模拟价格
+  // 其他交易对 - 使用 Yahoo 做真实锚点
+  const yahooPrice = await fetchFromYahoo(symbol)
+  if (yahooPrice !== null) return { price: yahooPrice, source: 'yahoo' }
   return null
 }
+
+// 连续真实源失败计数（用于动态收敛模拟波动）
+const realSourceMissCount: Record<string, number> = {}
+const MISS_THRESHOLD_FOR_LOW_VOL = 3
+const LOW_VOL_MULTIPLIER = 0.35
 
 /**
  * 平滑调整 basePrice
@@ -230,12 +325,20 @@ async function checkAndUpdateRealPrice(symbol: string) {
   const now = Date.now()
   if (now - data.lastBaseUpdate > data.updateInterval) {
     // 时间到了，获取真实价格
-    const realPrice = await fetchRealPrice(symbol)
-    if (realPrice !== null) {
+    const real = await fetchRealPrice(symbol)
+    if (real !== null) {
       // 平滑调整，避免跳空
-      adjustBasePrice(data, realPrice)
+      adjustBasePrice(data, real.price)
       data.lastBaseUpdate = now
-      console.log(`Updated ${symbol} basePrice to ${data.basePrice.toFixed(2)} (real: ${realPrice.toFixed(2)})`)
+      // 重置失败计数
+      realSourceMissCount[symbol] = 0
+      console.log(`[RealPriceSync] ${symbol} updated from ${real.source}: base=${data.basePrice.toFixed(4)} real=${real.price.toFixed(4)}`)
+    } else {
+      // 两个源都失败，累加失败计数
+      realSourceMissCount[symbol] = (realSourceMissCount[symbol] || 0) + 1
+      const missCount = realSourceMissCount[symbol]
+      const lowVol = missCount >= MISS_THRESHOLD_FOR_LOW_VOL
+      console.warn(`[RealPriceSync] ${symbol} update skipped: both primary and secondary sources unavailable (miss=${missCount}, lowVol=${lowVol})`)
     }
   }
 }
@@ -374,16 +477,18 @@ export function updateMarket(): Record<string, SymbolData> {
 /**
  * 计算下一个价格（高精度版本）
  * 确保每次调用都有可见的价格变化
+ * 连续真实源失败时会自动缩小波动
  */
 function nextPrice(data: SymbolData): number {
   // 根据价格基准值确定显示精度
-  // 外汇（如 EURUSD）：5位小数
-  // 贵金属（如 XAUUSD）：2位小数
-  // 加密货币（如 BTCUSD）：2位小数
   const decimals = data.basePrice >= 1 ? 5 : 4
 
+  // 检查是否需要低波动模式
+  const missCount = realSourceMissCount[data.symbol] || 0
+  const volatilityMultiplier = missCount >= MISS_THRESHOLD_FOR_LOW_VOL ? LOW_VOL_MULTIPLIER : 1
+
   // 基础波动
-  const baseVolatility = data.basePrice * data.volatility
+  const baseVolatility = data.basePrice * data.volatility * volatilityMultiplier
   const randomChange = (Math.random() - 0.5) * baseVolatility * 2  // 扩大波动范围
 
   // 趋势影响
