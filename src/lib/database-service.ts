@@ -28,8 +28,8 @@ export interface DatabaseApplication {
   bank_account?: string;
   real_name?: string;
   id_card?: string;
-  id_card_front_url?: string; // 证件照正面图片 (Base64 字符串，以 data:image/ 开头)
-  id_card_back_url?: string;  // 证件照反面图片 (Base64 字符串，以 data:image/ 开头)
+  id_card_front_url?: string; // 证件照正面图片存储 key（对象存储）
+  id_card_back_url?: string;  // 证件照反面图片存储 key（对象存储）
   reject_reason?: string;
   created_at: string;
   updated_at: string;

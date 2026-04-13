@@ -194,6 +194,51 @@ const user = await userRepository.findById(userId, { allowFallback: false });
 const orders = await orderRepository.findByUserId(userId);
 ```
 
+## 文件存储
+
+KYC 认证图片使用对象存储（不存储 base64）：
+
+```typescript
+import { uploadBase64Image, generateFileUrl, StoragePaths } from '@/lib/file-storage';
+
+// 上传图片
+const key = await uploadBase64Image(base64Data, StoragePaths.KYC_FRONT, userId);
+
+// 生成访问 URL
+const url = await generateFileUrl(key, 3600);
+```
+
+## 可观测性
+
+使用 `src/lib/observability.ts` 进行日志和告警：
+
+```typescript
+import { logInfo, logError, getRequestId, getAlertStatus } from '@/lib/observability';
+
+// 记录日志
+logInfo('API request received', { path: '/api/orders' });
+
+// 获取请求 ID
+const requestId = getRequestId(request);
+
+// 获取告警状态
+const status = getAlertStatus();
+```
+
+## 数据库迁移
+
+使用规范化迁移脚本：
+
+```bash
+# 运行所有待应用迁移
+npx tsx scripts/run-migrations.ts
+
+# 运行到指定版本
+npx tsx scripts/run-migrations.ts --to=001
+```
+
+迁移文件位置：`supabase/migrations/`
+
 ## 测试与安全门禁
 
 ### 安全回归测试
