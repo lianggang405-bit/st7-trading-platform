@@ -173,20 +173,47 @@ async function fetchFromBinance(symbol: string): Promise<number | null> {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 5000)
 
+    // 尝试主 API
     try {
       const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, {
         signal: controller.signal
       })
 
-      if (!res.ok) {
-        return null
+      if (res.ok) {
+        const data = await res.json()
+        const price = parseFloat(data.price)
+        // 验证价格合理性（避免返回错误数据）
+        if (price > 0) {
+          // BTC 应在 50000-200000 之间，ETH 应在 1000-10000 之间
+          if (symbol === 'BTCUSDT' && (price < 50000 || price > 200000)) {
+            console.warn(`[Binance] ${symbol} price ${price} out of reasonable range, rejecting`)
+            return null
+          }
+          if (symbol === 'ETHUSDT' && (price < 1000 || price > 10000)) {
+            console.warn(`[Binance] ${symbol} price ${price} out of reasonable range, rejecting`)
+            return null
+          }
+          return price
+        }
       }
-
-      const data = await res.json()
-      return parseFloat(data.price)
-    } finally {
-      clearTimeout(timeoutId)
+    } catch (binanceErr) {
+      console.warn(`[Binance] Primary API failed for ${symbol}, trying alternative...`)
     }
+
+    // 尝试备用 API (Binance US 或其他)
+    try {
+      const altRes = await fetch(`https://api.binance.us/api/v3/ticker/price?symbol=${symbol}`, {
+        signal: controller.signal
+      })
+      if (altRes.ok) {
+        const data = await altRes.json()
+        return parseFloat(data.price)
+      }
+    } catch {
+      // 备用也失败
+    }
+
+    return null
   } catch (error) {
     return null
   }
@@ -247,10 +274,41 @@ async function fetchFromYahoo(symbol: string): Promise<number | null> {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 8000)
 
-    // Yahoo 外汇格式
-    let yahooSymbol = symbol.replace('USD', '=X')
-    if (symbol === 'XAUUSD') yahooSymbol = 'XAUUSD=X'
-    if (symbol === 'XAGUSD') yahooSymbol = 'XAGUSD=X'
+    // Yahoo 外汇符号映射（USD 在前面的要反向）
+    const yahooSymbolMap: Record<string, string> = {
+      // USD 在前面的货币对（需要用 1/price）
+      'USDJPY': 'USDJPY=X',
+      'USDCHF': 'USDCHF=X',
+      'USDCAD': 'USDCAD=X',
+      // USD 在后面的货币对（直接使用）
+      'EURUSD': 'EURUSD=X',
+      'GBPUSD': 'GBPUSD=X',
+      'AUDUSD': 'AUDUSD=X',
+      'NZDUSD': 'NZDUSD=X',
+      // 交叉盘
+      'EURGBP': 'EURGBP=X',
+      'EURJPY': 'EURJPY=X',
+      'GBPJPY': 'GBPJPY=X',
+      'AUDJPY': 'AUDJPY=X',
+      'CADJPY': 'CADJPY=X',
+      'CHFJPY': 'CHFJPY=X',
+      // 贵金属
+      'XAUUSD': 'XAUUSD=X',
+      'XAGUSD': 'XAGUSD=X',
+      // 指数（使用 CFD 代码）
+      'US500': '^SPX',
+      'ND100': '^NDX',
+      'AUS200': '^AXJO',
+      'UK100': '^FTSE',
+      'GER40': '^GDAXI',
+      'JPN225': '^N225',
+      // 能源
+      'USOIL': 'CL=F',
+      'UKOIL': 'BZ=F',
+      'NGAS': 'NG=F',
+    }
+
+    const yahooSymbol = yahooSymbolMap[symbol] || `${symbol}=X`
 
     try {
       const res = await fetch(
@@ -260,8 +318,18 @@ async function fetchFromYahoo(symbol: string): Promise<number | null> {
 
       if (!res.ok) return null
       const data = await res.json()
-      const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice
-      return price ? parseFloat(price) : null
+
+      // 尝试获取正确的价格字段
+      const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice ||
+                    data?.chart?.result?.[0]?.meta?.previousClose ||
+                    data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close?.[0]
+
+      if (!price) return null
+
+      const parsedPrice = parseFloat(price)
+      if (isNaN(parsedPrice) || parsedPrice <= 0) return null
+
+      return parsedPrice
     } finally {
       clearTimeout(timeoutId)
     }
