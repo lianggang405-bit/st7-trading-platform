@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { getMarket, getMarketStats } from '@/lib/marketEngine'
+import { getMarket, getMarketStats, updaterStarted } from '@/lib/marketEngine'
 
 export async function GET() {
   try {
@@ -43,6 +43,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       timestamp: Date.now(),
+      updaterStarted,
       summary: {
         totalSymbols: Object.keys(symbols).length,
         realSourceCount: stats.realSourceCount,

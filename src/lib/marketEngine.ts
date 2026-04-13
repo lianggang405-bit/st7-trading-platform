@@ -505,7 +505,7 @@ initTrends()
 // 启动定时更新真实价格（每分钟检查一次）
 let updateInterval: NodeJS.Timeout | null = null
 
-export function startRealPriceUpdater() {
+function startUpdater() {
   if (updateInterval) {
     console.log('Real price updater already running')
     return
@@ -534,7 +534,7 @@ export function stopRealPriceUpdater() {
 
 // 注意：不再在模块加载时自动启动
 // 改为在运行时通过 ensureUpdaterStarted() 惰性启动
-// 查看文件底部的 startRealPriceUpdaterIfNeeded 函数
+// 查看文件底部的 startRealPriceUpdater 函数
 
 // 🎯 Tick回调系统（交易所级）
 // 当价格更新时，触发所有注册的回调函数
@@ -650,17 +650,17 @@ function nextPrice(data: SymbolData): number {
 // ============= 运行时惰性启动机制 =============
 // 确保只在请求处理时启动，不在构建阶段执行
 
-let updaterStarted = false
+export let updaterStarted = false;
 
 /**
  * 惰性启动行情更新器
  * 只在首次调用时启动，之后忽略
  */
-export function startRealPriceUpdaterIfNeeded(): void {
-  if (updaterStarted) return
-  if (typeof window !== 'undefined') return  // 只在服务端
+export function startRealPriceUpdater(): void {
+  if (updaterStarted) return;
+  if (typeof window !== 'undefined') return;  // 只在服务端
 
-  updaterStarted = true
-  console.log('[MarketEngine] 惰性启动行情更新器...')
-  startRealPriceUpdater()
+  updaterStarted = true;
+  console.log('[MarketEngine] 惰性启动行情更新器...');
+  startUpdater();
 }

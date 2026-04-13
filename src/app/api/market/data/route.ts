@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMarket, startRealPriceUpdaterIfNeeded } from '@/lib/marketEngine';
+import { getMarket, startRealPriceUpdater } from '@/lib/marketEngine';
+
+// 一次性初始化守卫
+let updaterBootstrapped = false;
+
+function ensureUpdaterStarted() {
+  if (!updaterBootstrapped) {
+    startRealPriceUpdater();
+    updaterBootstrapped = true;
+  }
+}
 
 /**
  * GET /api/market/data
@@ -87,7 +97,7 @@ function applyBotAdjustment(price: number, floatValue: number): number {
 
 export async function GET(request: NextRequest) {
   // 惰性启动行情更新器（只在首次请求时启动，不影响构建）
-  startRealPriceUpdaterIfNeeded();
+  ensureUpdaterStarted();
 
   try {
     const searchParams = request.nextUrl.searchParams;
