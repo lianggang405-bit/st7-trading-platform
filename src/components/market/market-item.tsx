@@ -199,6 +199,9 @@ export function MarketItem({ symbol, price, change, onClick }: MarketItemProps) 
   useEffect(() => {
     const prevPrice = prevPriceRef.current;
 
+    // 先更新 ref（下次比较时使用当前价格）
+    prevPriceRef.current = price;
+
     // 只有价格真正变化时才触发脉冲
     if (Math.abs(price - prevPrice) > 0.000001) {
       if (price > prevPrice) {
@@ -209,14 +212,11 @@ export function MarketItem({ symbol, price, change, onClick }: MarketItemProps) 
 
       const t = setTimeout(() => {
         setPulse(null);
-      }, 350);
+      }, 400);
 
       return () => clearTimeout(t);
     }
   }, [price]);
-
-  // 更新前一次价格的引用
-  prevPriceRef.current = price;
 
   const getPricePrecision = (symbol: string) => {
     // JPY 对：3位小数
