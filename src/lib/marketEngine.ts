@@ -376,10 +376,19 @@ const LOW_VOL_MULTIPLIER = 0.35
 /**
  * 平滑调整 basePrice
  * 防止跳空，每次只调整差距的 20%
+ * 包含异常值保护：单次偏移超过 10% 则丢弃
  */
 function adjustBasePrice(data: SymbolData, realPrice: number) {
+  // 异常值保护：单次偏移超过 10% 则丢弃
+  const deviation = Math.abs(realPrice - data.basePrice) / data.basePrice
+  if (deviation > 0.1) {
+    console.warn(`[RealPriceSync] ${data.symbol} ignored outlier: deviation=${(deviation * 100).toFixed(2)}% > 10%`)
+    return false
+  }
+
   const diff = realPrice - data.basePrice
   data.basePrice += diff * 0.2  // 每次调整 20%
+  return true
 }
 
 /**
@@ -395,12 +404,17 @@ async function checkAndUpdateRealPrice(symbol: string) {
     // 时间到了，获取真实价格
     const real = await fetchRealPrice(symbol)
     if (real !== null) {
-      // 平滑调整，避免跳空
-      adjustBasePrice(data, real.price)
-      data.lastBaseUpdate = now
-      // 重置失败计数
-      realSourceMissCount[symbol] = 0
-      console.log(`[RealPriceSync] ${symbol} updated from ${real.source}: base=${data.basePrice.toFixed(4)} real=${real.price.toFixed(4)}`)
+      // 平滑调整，包含异常值保护
+      const adjusted = adjustBasePrice(data, real.price)
+      if (adjusted) {
+        data.lastBaseUpdate = now
+        // 重置失败计数
+        realSourceMissCount[symbol] = 0
+        console.log(`[RealPriceSync] ${symbol} updated from ${real.source}: base=${data.basePrice.toFixed(4)} real=${real.price.toFixed(4)}`)
+      } else {
+        // 异常值被丢弃，累加失败计数（防止污染锚点）
+        realSourceMissCount[symbol] = (realSourceMissCount[symbol] || 0) + 1
+      }
     } else {
       // 两个源都失败，累加失败计数
       realSourceMissCount[symbol] = (realSourceMissCount[symbol] || 0) + 1
@@ -518,11 +532,9 @@ export function stopRealPriceUpdater() {
   }
 }
 
-// 自动启动
-if (typeof window === 'undefined') {
-  // 只在服务端启动
-  startRealPriceUpdater()
-}
+// 注意：不再在模块加载时自动启动
+// 改为在运行时通过 ensureUpdaterStarted() 惰性启动
+// 查看文件底部的 startRealPriceUpdaterIfNeeded 函数
 
 // 🎯 Tick回调系统（交易所级）
 // 当价格更新时，触发所有注册的回调函数
@@ -633,4 +645,22 @@ function nextPrice(data: SymbolData): number {
 
   // 高精度返回，确保价格变化可见
   return Number(newPrice.toFixed(decimals))
+}
+
+// ============= 运行时惰性启动机制 =============
+// 确保只在请求处理时启动，不在构建阶段执行
+
+let updaterStarted = false
+
+/**
+ * 惰性启动行情更新器
+ * 只在首次调用时启动，之后忽略
+ */
+export function startRealPriceUpdaterIfNeeded(): void {
+  if (updaterStarted) return
+  if (typeof window !== 'undefined') return  // 只在服务端
+
+  updaterStarted = true
+  console.log('[MarketEngine] 惰性启动行情更新器...')
+  startRealPriceUpdater()
 }

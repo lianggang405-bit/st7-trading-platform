@@ -4,13 +4,14 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.COZE_SUP
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.COZE_SUPABASE_ANON_KEY || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.COZE_SUPABASE_SERVICE_ROLE_KEY || '';
 
-console.log('[Supabase] Configuration check:', {
-  hasUrl: !!supabaseUrl,
-  hasAnonKey: !!supabaseAnonKey,
-  hasServiceKey: !!supabaseServiceKey,
-  url: supabaseUrl,
-  usingServiceKey: !!supabaseServiceKey,
-});
+// 仅在开发环境输出配置信息
+if (process.env.NODE_ENV === 'development') {
+  console.log('[Supabase] Configuration check:', {
+    hasUrl: !!supabaseUrl,
+    hasAnonKey: !!supabaseAnonKey,
+    hasServiceKey: !!supabaseServiceKey,
+  });
+}
 
 // 优先使用 service_role key（服务端权限更高），否则使用 anon key
 const apiKey = supabaseServiceKey || supabaseAnonKey;
