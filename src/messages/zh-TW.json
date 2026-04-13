@@ -59,7 +59,9 @@
     "enterEmailError": "請輸入郵箱",
     "enterPasswordError": "請輸入密碼",
     "enterVerifyCodeError": "請輸入驗證碼",
-    "contactSupportForPassword": "請聯繫客服重置密碼"
+    "contactSupportForPassword": "請聯繫客服重置密碼",
+    "login": "登入",
+    "or": "或"
   },
   "notice": {
     "title": "公告",
