@@ -107,8 +107,7 @@ pm2 start npm --name "st7-trading-platform" -- start
 
 ## 🌐 訪問地址
 
-- **本地開發**: http://localhost:5000
-- **生產環境**: https://forexpl.shop（部署後）
+
 
 ---
 
